@@ -1,6 +1,12 @@
 $fa = 1;
 $fs = 0.4;
 
+include_follower = true;
+follower_diameter = 3.0;
+follower_outer_rim_thickness = 2;
+follower_inner_rim_thickness = 2;
+follower_lip = 0.7;
+
 module horn_arm(h) {
     outer_clearance = 0.50;
     inner_clearance = 0.0;
@@ -168,7 +174,27 @@ module linear_cam_surface(r_0, r_1, r_2, h, angle) {
         dx = r - r_0;
         rotate([0, 0, a]) translate([r-dx, 0, 0]) {
             cube([dx, 0.5, h]);
-        }    
+        }   
+       
+        if (include_follower) {
+            // Outer edge
+            rotate([0, 0, a]) translate([r + follower_diameter, 0, 0]) {
+                cube([follower_outer_rim_thickness, 0.5, h]);
+            }
+            // bottom 
+            rotate([0, 0, a]) translate([r-dx, 0, 0]) {
+                cube([dx+follower_diameter+follower_outer_rim_thickness, 0.5, 1]);
+            }
+            //outer_keeper
+            rotate([0, 0, a]) translate([r + follower_diameter-follower_lip, 0, h]) {
+                cube([follower_outer_rim_thickness+follower_lip, follower_lip, 2*follower_lip]);
+            }
+            //Inner keeper
+
+            rotate([0, 0, a]) translate([r- 2 * follower_lip, 0, h]) {
+                cube([3 * follower_lip, follower_lip, 2*follower_lip]);
+            }
+        } 
     }
      
         
