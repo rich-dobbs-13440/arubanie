@@ -5,11 +5,11 @@ $fs = 0.4;
 eps = 0.01;
 pad_diameter = 10.74;
 pad_height = 2.60;
-rotation_pivot_diameter = 3;
+rotation_pivot_diameter = 6;
 lip_dr_scale = 0.25; // lose (0.375 is tight)
 air_slider_length = 20;
 air_slider_width = rotation_pivot_diameter;  // long enough to figure out where pivot is!
-axle_length = 4; // Must be sufficent to allow latching on and to clear barrel!
+axle_length = 2; // Must be sufficent to allow latching on and to clear barrel!
 
 
 
@@ -39,12 +39,11 @@ module half_slide(pad_diameter, pad_height, length) {
 module half_air_slider() {
     cap_dz = 0.5*pad_height;
     // axle
-    dx_a = axle_length;
-    x_a = dx_a/2 + pad_diameter/2 + cap_dz;
+    dx_a = axle_length + cap_dz;
+    x_a = dx_a/2 + pad_diameter/2 + 0.5*cap_dz;
     translate([x_a, 0, rotation_pivot_diameter/2]) pivot_drill(dx_a, rotation_pivot_diameter);
     // slider
-    //t = 5;
-    dx_s = pad_diameter/2 + cap_dz + dx_a;
+    dx_s = pad_diameter/2 + dx_a;
     translate([dx_s, -air_slider_width/2, 0]) cube([air_slider_width,air_slider_width,air_slider_length], center=false);
 }
 
