@@ -7,6 +7,10 @@ pad_diameter = 10.74;
 pad_height = 2.60;
 rotation_pivot_diameter = 3;
 lip_dr_scale = 0.25; // lose (0.375 is tight)
+air_slider_length = 20;
+air_slider_width = rotation_pivot_diameter;  // long enough to figure out where pivot is!
+axle_length = 4; // Must be sufficent to allow latching on and to clear barrel!
+
 
 
 module catch_profile(pad_diameter, pad_height) {
@@ -32,6 +36,18 @@ module half_slide(pad_diameter, pad_height, length) {
 
 *half_slide(pad_diameter, pad_height, length=10);
 
+module half_air_slider() {
+    cap_dz = 0.5*pad_height;
+    // axle
+    dx_a = axle_length;
+    x_a = dx_a/2 + pad_diameter/2 + cap_dz;
+    translate([x_a, 0, rotation_pivot_diameter/2]) pivot_drill(dx_a, rotation_pivot_diameter);
+    // slider
+    //t = 5;
+    dx_s = pad_diameter/2 + cap_dz + dx_a;
+    translate([dx_s, -air_slider_width/2, 0]) cube([air_slider_width,air_slider_width,air_slider_length], center=false);
+}
+
 module base_trigger_catch(pad_diameter, pad_height) {
     // Cap
     rotate_extrude(angle = 180, convexity = 2) catch_profile(pad_diameter, pad_height);
@@ -46,14 +62,15 @@ module pivot_drill(length, diameter) {
 }
 
 module trigger_catch(pad_diameter, pad_height) {
-    dz = 0.5*pad_height + rotation_pivot_diameter/2 + eps;
-    difference() {
-        base_trigger_catch(pad_diameter, pad_height);
-        translate([0, 0, dz]) pivot_drill(2*pad_diameter, rotation_pivot_diameter);
-    }
+    
+    base_trigger_catch(pad_diameter, pad_height);
+    half_air_slider();
+    mirror([eps,0,0]) translate([-eps, eps, 0]) half_air_slider();
+
 }
 
-translate([0, 10, 0]) trigger_catch(pad_diameter, pad_height);
+trigger_catch(pad_diameter, pad_height);
+* translate([0, 10, 0]) trigger_catch(pad_diameter, pad_height);
 
 module yoke_half() {
 
@@ -83,5 +100,5 @@ module yoke() {
     mirror([1, 0, 0]) yoke_half();   
 }
 
-yoke();
+* yoke();
 
