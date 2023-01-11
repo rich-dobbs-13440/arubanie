@@ -1,10 +1,11 @@
+include <master_airbrush_measurements.scad>;
+
 $fa = 1;
 $fs = 0.4;
 
 // All dimensions in mm
 eps = 0.01;
-pad_diameter = 10.74;
-pad_height = 2.60;
+
 rotation_pivot_diameter = 6;
 lip_dr_scale = 0.25; // lose (0.375 is tight)
 air_slider_length = 20;

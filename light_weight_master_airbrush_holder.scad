@@ -1,26 +1,30 @@
+
+include <master_airbrush_measurements.scad>;
+
 $fa = 1;
 $fs = 0.4;
 
+
+
 // All dimensions are in mm!
 eps = 0.05;
-measured_barrel_diameter = 12.01; 
-barrel_length = 68.26;
-barrel_back_to_air_hose = 21.27;
-wall_thickness = 2;
-brace_height = 6.9;
-brace_width = 7.40;
-brace_length = 28.88;
-air_hose_diameter = 8.66;
-air_hose_barrel_length = 10.34;
-air_hose_clip_length = 2;
-m_trigger_pad_diameter = 10.18;
-m_trigger_pad_thickness = 2.63;
-m_trigger_pad_cl_to_barrel_cl_0_degrees = 10.65;
+barrel_diameter_clearance = 0.75;
+wall_thickness = 2.0;
+
+show_yoke = true;
+show_back_block = true;
 
 
-barrel_diameter = measured_barrel_diameter + 0.75;
+barrel_diameter = measured_barrel_diameter + barrel_diameter_clearance;
 trigger_pad_diameter = m_trigger_pad_diameter + 0.0;
 trigger_pad_thickness = m_trigger_pad_thickness + 0.0;
+
+yoke_depth = 50; 
+yoke_length = 19; 
+pivot_length = 4; 
+bar_width = 2.5;
+pivot_diameter = 2.5;
+
 
 
 module barrel() {
@@ -201,7 +205,10 @@ module back_block() {
     top_side(45);
 }
 
-* back_block();
+
+if (show_back_block) {
+    back_block();
+}
 
 module pivot_pin(yoke_length, pivot_length, pivot_diameter, pivot_offset, pin_angle) {
         // pivot
@@ -212,15 +219,17 @@ module pivot_pin(yoke_length, pivot_length, pivot_diameter, pivot_offset, pin_an
 
 
 module yoke_half(yoke_depth, yoke_length, bar_width, pivot_length, pivot_diameter, pins) {
-
+    
+    bar_height = 5;
     g = bar_width;
     // cross bar
     dx = yoke_length/2;
     dy = yoke_depth-g/2;
-    translate([0, dy, 0])  cube([dx, g, g], center=false);
+    z = bar_height;
+    translate([0, dy, 0])  cube([dx, g, z], center=false);
     //side bar of yoke
     dx_sb = yoke_length/2;
-    translate([dx_sb, -g/2, 0])  cube([g+eps,g+yoke_depth,g], center=false);
+    translate([dx_sb, -g/2, 0])  cube([g+eps, g+yoke_depth, z], center=false);
 
 
     for (pin = pins) {
@@ -236,8 +245,6 @@ module yoke_half(yoke_depth, yoke_length, bar_width, pivot_length, pivot_diamete
                 translate ([0, 0, h_p/2]) 
                   cylinder(h=h_p, d=d_p, center=true);
     }
-
-
 }
 
 
@@ -248,11 +255,14 @@ module yoke(yoke_depth, yoke_length, bar_width, pivot_length, pivot_diameter, pi
     mirror([1, 0, 0]) yoke_half(yoke_depth, yoke_length, bar_width, pivot_length, pivot_diameter, pins);   
 }
 
-yoke(
-    yoke_depth = 50, 
-    yoke_length = 19, 
-    pivot_length = 4, 
-    bar_width = 2.5, 
-    pivot_diameter = 2.5, 
-    pins = [[0,270], [12.5, 90]]
-);
+if (show_yoke) {
+    pins = [[0,270], [12.5, 90]];
+    yoke(
+        yoke_depth = yoke_depth, 
+        yoke_length = yoke_length, 
+        pivot_length = pivot_length, 
+        bar_width = bar_width, 
+        pivot_diameter = pivot_diameter, 
+        pins = pins
+    );
+}

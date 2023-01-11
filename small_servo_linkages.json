@@ -1,0 +1,17 @@
+{
+    "parameterSets": {
+        "design default values": {
+            "$fa": "1",
+            "$fs": "0.4",
+            "eps": "0.01",
+            "gap_depth_by_linkage_height": "0.75",
+            "gap_width_by_pin_size": "0.3",
+            "hole_size_by_pin_size": "1.1",
+            "linkage_height": "2",
+            "linkage_width": "4",
+            "pin_size": "3",
+            "test_link_length": "10"
+        }
+    },
+    "fileFormatVersion": "1"
+}
