@@ -9,9 +9,11 @@ rotation_pivot_diameter = 6;
 lip_dr_scale = 0.25; // lose (0.375 is tight)
 air_slider_length = 20;
 air_slider_width = rotation_pivot_diameter;  // long enough to figure out where pivot is!
+air_slider_depth = 2.5;
 axle_length = 2; // Must be sufficent to allow latching on and to clear barrel!
 
-
+pin_offset = 16.45;
+pin_hole_diameter = 3;
 
 module catch_profile(pad_diameter, pad_height) {
     r_pd = pad_diameter/2;
@@ -36,6 +38,11 @@ module half_slide(pad_diameter, pad_height, length) {
 
 *half_slide(pad_diameter, pad_height, length=10);
 
+module pin() {
+    dz = pin_offset;
+    translate([0, 0, dz]) rotate([0, 90, 0]) cylinder(h=40, d=pin_hole_diameter, center=true);
+}
+
 module half_air_slider() {
     cap_dz = 0.5*pad_height;
     // axle
@@ -43,8 +50,14 @@ module half_air_slider() {
     x_a = dx_a/2 + pad_diameter/2 + 0.5*cap_dz;
     translate([x_a, 0, rotation_pivot_diameter/2]) pivot_drill(dx_a, rotation_pivot_diameter);
     // slider
+
     dx_s = pad_diameter/2 + dx_a;
-    translate([dx_s, -air_slider_width/2, 0]) cube([air_slider_width,air_slider_width,air_slider_length], center=false);
+    difference() {
+        translate([dx_s, -air_slider_width/2, 0]) cube([air_slider_depth,air_slider_width,air_slider_length], center=false);
+        pin();
+    }
+
+    
 }
 
 module base_trigger_catch(pad_diameter, pad_height) {
@@ -89,9 +102,6 @@ module yoke_half() {
     translate([cbl, -g/2, 0])  cube([g+eps,g+yoke_depth,g], center=false);
     
     translate ([cbl - pivot_length/2, 0, g/2]) pivot_drill(pivot_length+eps, g);
-
-  
-
 }
 
 module yoke() {
