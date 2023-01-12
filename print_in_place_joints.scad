@@ -6,8 +6,8 @@ infinity = 50;
 
 pin_radius = 5;
 
-lap_radius_clearance = 1;
-pin_tolerance = 1;
+lap_radius_clearance = 0.3;
+pin_tolerance = 0.3;
 
 
 /* [Show] */
@@ -21,33 +21,39 @@ test_show_cutter = false;
 test_length = 30;
 test_part_2_width = 10;
 test_thickness = 4;
+test_breakable_gap = 0.28;
+test_breakable_gap_spacing = 1.5;
 
-test_overlap = 2 * pin_radius;
+test_overlap = 10;
 
 lap_radius = 2 * pin_radius;
 
+height=0.25;
+r=1;
+thickness=0.25;
+loops=6;
 
 
-
-module part_1() {
-    x = test_length + test_overlap;
+module part_1(overlap) {
+    x = test_length + overlap;
     y = test_length;
     z = test_thickness;
     dx = -x/2 + test_overlap; 
     translate([dx, 0, 0]) cube([x, y, z], center=true);
 }
 
-*part_1();
+*part_1(test_overlap);
 
-module part_2() {
-    x = test_length   +  test_overlap;
+module part_2(overlap) {
+    assert(overlap!=undef);
+    x = test_length   +  overlap;
     y = test_part_2_width;
     z = test_thickness;
-    dx = x/2 - test_overlap ; 
+    dx = x/2 - overlap; 
     translate([dx, 0, 0]) cube([x, y, z], center=true);
 }
 
-* part_2();
+* part_2(10);
 
 module octants(t) {
     dx = t.x * (1+eps) * infinity / 2;
@@ -74,13 +80,13 @@ module lap_end_to_radius(r, excise_t = [1,0,0]) {
     }    
 }
 
-* lap_end_to_radius(r=2*pin_radius) part_2();    
+* lap_end_to_radius(r=2*pin_radius) part_2(10);    
 
 module lap() {
     scale([1.0 + eps,1.00 + eps, 1.0+eps]) difference() {
         intersection() {
-            part_1();
-            part_2();
+            part_1(test_overlap);
+            part_2(test_overlap);
         }
         octants([0,0,1]);
     }
@@ -99,11 +105,11 @@ module lap_2() {
 
 * color("blue") lap();
 * color("red") translate([0, 0, 1]) lap_2();
-* part_2();
+* part_2(test_overlap);
 
 module lap_removed() {
     difference() {
-        part_2();
+        part_2(test_overlap);
         lap_2(); // lap();
     }    
 }
@@ -172,7 +178,7 @@ module part_1_cutout() {
 
 module modified_part_1() {
     difference() {
-        part_1();
+        part_1(test_overlap);
         part_1_cutout();
     }
 }
@@ -189,3 +195,53 @@ module test_assembly() {
 if (test_show_assembly) {
     test_assembly();
 }
+
+
+module test_breakable_shoulder() {
+    part_2(-1);
+    mirror([1,0,0]) part_2(0); 
+    translate([0,0,test_thickness-eps]) part_2(0);
+    // overlap
+    translate([0,0,test_thickness+test_breakable_gap]) part_2(5); 
+    
+    // breakable_filler
+    for (dx = [0: test_breakable_gap_spacing: 5]) {
+        translate([-dx , -test_part_2_width/2, test_thickness/2]) cube([test_breakable_gap, test_part_2_width, test_breakable_gap+eps]);
+    }
+}
+
+* test_breakable_shoulder();
+
+
+
+
+module spiral(r, thickness, loops, height) {
+    // From https://www.hubs.com/talk/t/need-help-want-to-make-a-spiral-flat/9081/5
+
+    linear_extrude(height=height) {
+        polygon(
+            points=concat( [for(t = [90:360*loops]) [(r-thickness+t/90)*sin(t),(r-thickness+t/90)*cos(t)]], [for(t = [360*loops:-1:90]) [(r+t/90)*sin(t),(r+t/90)*cos(t)]] ));
+    }  
+}
+
+
+
+module test_artifact_2() {
+    w=0.25;
+    
+    cylinder(d=20, h=1, center=true);
+    cube([30, 8, 1], center=true);
+    translate([0,0,0.5]) union() {
+        for (az = [0 : 15 : 360]) {
+            rotate([90,0,az]) cylinder(d=w, h=20, center=true);
+        }
+    }
+    translate([0,0,2.5]) spiral(r=r, thickness=thickness, loops=loops, height=height);
+
+}
+test_artifact_2();
+//w = 0.25;
+//    thickness=w;
+//    loops=6;
+
+    
