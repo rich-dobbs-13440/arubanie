@@ -9,7 +9,7 @@ infinity = 50;
 /* [Development] */
 show_initial_test = true;
 
-h_initial_test = [1.5, 2.6, 3.7];
+h_initial_test = [5, 2.6, 3.7];
 r_initial_test = [10, 5, 1];
 colors_initial_test = ["red", "yellow", "blue"];
 //len_h_initial_test=len(h_initial_test);
@@ -25,6 +25,8 @@ module v_cylinder(r, h, colors) {
     for(i = [0 : count-1]) {
         h_i = h[i];
         echo("h_i", h_i);
+        dz = h_cum[i-1];
+        translate([0,0,dz]) 
         color(colors[i]) cylinder(r=r[i], h=h[i]);
     }
 }
