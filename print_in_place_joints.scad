@@ -17,21 +17,30 @@ test_show_pin = false;
 test_show_pin_added_back_on = false;
 test_show_lap = false;
 test_show_cutter = false;
+test_show_artifact_tearaway = false;
+test_show_pin_angle = false;
 /* [Test] */
 test_length = 30;
 test_part_2_width = 10;
 test_thickness = 4;
 test_breakable_gap = 0.28;
 test_breakable_gap_spacing = 1.5;
+test_pin_angle = 5;
+test_pin_for_angle_extend = false;
 
 test_overlap = 10;
 
 lap_radius = 2 * pin_radius;
 
-height=0.25;
-r=1;
-thickness=0.25;
-loops=6;
+//height=0.25;
+//r=1;
+//thickness=0.25;
+//loops=6;
+
+/* [Filler Tests] */
+element_size = 0.5;
+artifact_radius = 10;
+h_base = 2;
 
 
 module part_1(overlap) {
@@ -85,22 +94,31 @@ module lap_end_to_radius(r, excise_t = [1,0,0]) {
 module lap() {
     scale([1.0 + eps,1.00 + eps, 1.0+eps]) difference() {
         intersection() {
-            part_1(test_overlap);
-            part_2(test_overlap);
+            children(0);  // part_1(test_overlap);
+            children(0);  // part_2(test_overlap);
         }
         octants([0,0,1]);
     }
 }
 
 if (test_show_lap) {
-    color("red") lap();
+    color("red") lap() {
+        part_1(test_overlap);
+        part_2(test_overlap);
+    }
 }
 
-* lap_end_to_radius(r=2*pin_radius, excise_t=[-1, 0, 0]) lap();
+* lap_end_to_radius(r=2*pin_radius, excise_t=[-1, 0, 0]) lap() {
+    part_1(test_overlap);
+    part_2(test_overlap);
+}
 
 module lap_2() {
     r_lap = 2*pin_radius;
-    lap_end_to_radius(r=r_lap, excise_t=[-1, 0, 0]) lap();
+    lap_end_to_radius(r=r_lap, excise_t=[-1, 0, 0]) lap() {
+        part_1(test_overlap);
+        part_2(test_overlap);
+    }
 }
 
 * color("blue") lap();
@@ -217,6 +235,7 @@ module test_breakable_shoulder() {
 
 module spiral(r, thickness, loops, height) {
     // From https://www.hubs.com/talk/t/need-help-want-to-make-a-spiral-flat/9081/5
+    // Doesn't give control of spacing between loos
 
     linear_extrude(height=height) {
         polygon(
@@ -224,24 +243,100 @@ module spiral(r, thickness, loops, height) {
     }  
 }
 
-
-
-module test_artifact_2() {
-    w=0.25;
-    
-    cylinder(d=20, h=1, center=true);
-    cube([30, 8, 1], center=true);
-    translate([0,0,0.5]) union() {
-        for (az = [0 : 15 : 360]) {
-            rotate([90,0,az]) cylinder(d=w, h=20, center=true);
-        }
+module annulus(r1, r2, h, center=false) {
+    difference() {
+        cylinder(r=r2, h=h, center=center);  
+        cylinder(r=r1, h=infinity, center=true); 
     }
-    translate([0,0,2.5]) spiral(r=r, thickness=thickness, loops=loops, height=height);
+}
+
+module rings(r, dr, h, center) {
+    for (r2 = [0 : dr : r]) {
+        r1 = r2-h;
+        annulus(r1, r2, h, center=center);
+    }
+}
+
+* rings(r=20, dr=2, h=0.25, center=true);
+
+module star(r, delta_angle, h, center) {
+    x = r;
+    dx = center ? x/2 : 0;   
+    for (az = [0 : delta_angle : 360]) {
+        rotate([90,0,az]) translate([dx, 0, 0]) cube([x, h, h], center=center);
+
+    }
+}
+
+* star(r=10,  delta_angle=360/5, h=0.25, center=false);
+
+
+//rings(r_range=[10], r_element=1 );
+
+module filler(artifact_radius, dr, element_size, filler_delta_angle) {
+    translate([0, 0, -element_size / 2]) star(r=artifact_radius, delta_angle=filler_delta_angle, h=element_size,center=true); 
+    translate([0, 0, element_size / 2]) rings(r=artifact_radius, dr=dr, h=element_size, center=true);
+    rotate([0, 0, filler_delta_angle/2]) translate([0, 0, 1.5*element_size]) star(r=artifact_radius, delta_angle=filler_delta_angle, h=element_size,center=true);
+}
+* filler();
+
+module base(d_base, h) {
+    cylinder(d=d_base, h=h, center=true);
+    cube([1.5*d_base, 0.25*d_base, h], center=true);
+}
+
+
+module top_over_filler(d_base, h, h_support) {
+    cylinder(d=d_base, h=h, center=true);
+    // Tabs
+    tab_width = 0.25*d_base;
+    rotate([0,0,90]) {
+        cube([1.5*d_base, tab_width, h], center=true);
+        // Support for tabs
+        x = tab_width;
+        z = h_support; 
+        dx = 1.05*d_base/2 + tab_width/2;
+        dz = -z/2 - h/2;
+        translate([dx, 0, dz]) cube([x, tab_width, z], center=true);
+        translate([-dx, 0, dz]) cube([x, tab_width, z], center=true);
+    }
 
 }
-test_artifact_2();
-//w = 0.25;
-//    thickness=w;
+
+module test_artifact_tearaway() {
+    d_base = artifact_radius * 2;
+    base(d_base, h_base);
+    
+    dr = artifact_radius/2;
+    translate([0,0,h_base/2 + element_size]) {
+        filler(artifact_radius = artifact_radius, dr=dr, element_size = element_size, filler_delta_angle=90); 
+    }
+    dz = h_base + 3 * element_size;
+    translate([0,0,dz]) top_over_filler(d_base, h_base, h_support=dz); 
+}
+
+if (test_show_artifact_tearaway) {
+    test_artifact_tearaway();
+}
+////[0 : 4*w : artifact_radius - 1]
+////w = 0.25;
+////    thickness=w;
 //    loops=6;
+
+//circle(r = 0.25);
+
+module test_article_bridging() {
+}
+
+module pin_for_angle(r, a, h, extend=false) {
+    r_1 = r + h * tan(a) ;
+    mirror([0,0,1]) translate([0,0, 0]) cylinder(r1=r_1, r2=r, h=h);
+}
+
+if (test_show_pin_angle) {
+    pin_for_angle(r=pin_radius, a=test_pin_angle, h=test_thickness/2, extend=false);
+}
+
+
 
     
