@@ -157,8 +157,36 @@ if (show_v_conic_frustrum_test_data_columns) {
     
 }
 
-if (show_test_pin) {
+module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base) {
+    assert(!is_undef(r_top), "You must specify r_top");
+    assert(!is_undef(r_top_inner), "You must specify r_top_inner");
+    assert(!is_undef(r_neck), "You must specify r_neck");
+    assert(!is_undef(r_base_inner), "You must specify r_base_inner");
+    assert(!is_undef(r_base), "You must specify r_base");
+    assert(!is_undef(h_total), "You must specify h_total");
+    assert(!is_undef(h_top), "You must specify h_top");
+    assert(!is_undef(h_base), "You must specify h_base");
     
+    columns = [vcf_r1_idx, vcf_r2_idx, vcf_h_idx, vcf_color_idx];
+    h_neck = h_total - h_top - h_base;
+    h_neck_bottom = h_neck/2;
+    h_neck_top = h_neck/2;
+    data = [
+        [r_base, r_base, h_base, color_blue_idx],
+        [r_base_inner, r_neck, h_neck_bottom, color_red_idx],
+        [r_neck, r_top_inner, h_neck_top, color_green_idx],
+        [r_top, r_top, h_top, color_yellow_idx],
+    ];    
+    v_conic_frustrum(
+        columns, 
+        data, 
+        colors_for_test_vcf);
+}
+
+if (show_test_pin) {
+    sample_pin(
+        r_top=5, r_top_inner=4, r_neck=3, r_base_inner=5, r_base=5,
+        h_total=10, h_top=2, h_base=2  );
 }
 
 
