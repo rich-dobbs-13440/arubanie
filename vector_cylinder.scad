@@ -26,17 +26,19 @@ color_yellow_idx = 3;
 
 /* [Test sample_pin] */
 show_test_pin = false;
-r_top = 5; 
-r_top_inner = 4; 
-r_neck = 3; 
-r_base_inner = 5; 
-r_base = 5;
-h_total = 10; 
-h_top = 2; 
-h_base = 2;
+
+r_top = 5.11; 
+r_top_inner = 4.11; 
+r_neck = 3.65; 
+r_base_inner = 5.11; 
+r_base = 5.11;
+h_total = 10.11; 
+h_top = 2.11; 
+h_base = 2.11;
 
 /* [Test opacity] */
 show_test_opacity = false;
+show_test_piece_pin_handle_clearance = false;
 air_gap = 0; // [0:0.1:5] 
 test_piece_radius_by_rbase = 2; // [0.9:0.1:5]
 test_piece_handle_length = 5; // [0:0.1:50]
@@ -119,9 +121,6 @@ if (show_initial_test) {
 
 
 if (show_v_conic_frustrum_test) {
-    
-
-    
     columns = [vcf_r1_idx, vcf_r2_idx, vcf_h_idx, vcf_color_idx];
     conic_frustrum_test_data = [
         [4, 5, 3.3, color_blue_idx],
@@ -209,17 +208,51 @@ if (show_test_pin) {
     sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base);
 }
 
+module pin_handle() {
+    // currentl
+    z = h_total/2 - 0.5 * air_gap;
+    x = 2*r_base;
+    y = test_piece_handle_length;
+    dx = -x / 2;
+    dy = -y;
+    dz = 0; // h_total - z + 2*eps;
+    translate([dx, dy, dz]) cube([x, y, z]);
+}
+
+module pin_handle_clearance() {
+    x = infinity;
+    y = infinity;
+    z = 1.2 * test_piece_handle_length;
+    dx = 0;// -r_top - air_gap;
+    dz = -z + h_total/2;
+    color("turquoise") 
+    rotate([0, 0, 235]) translate([dx,0,dz]) 
+    cube([x, y, z]);
+};
+
+if (show_test_piece_pin_handle_clearance) {
+        pin_handle_clearance();
+}
+
 if (show_test_opacity) {
-    sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base);
+    z_handle = h_total/2 - 0.5 * air_gap;
+    // pin plus handle
+    union() {
+        sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base);
+        pin_handle();
+    }
     test_piece_size = r_base*test_piece_radius_by_rbase;
     color([red_test_opacity/255, green_test_opacity /255, blue_test_opacity/255], alpha=alpha_for_opacity) {
         difference() {
             union() {
-                cube([5, test_piece_handle_length, h_total]);
+                translate([1,0,0]) cube([z_handle, test_piece_handle_length, h_total/2]);
                 cylinder(h=h_total, r=test_piece_size);
             }
-    
-            sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=air_gap);
+            union() {
+                sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=air_gap);
+                pin_handle_clearance();
+            }
+                
         }
     }
     //sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=air_gap);
