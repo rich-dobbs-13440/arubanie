@@ -52,9 +52,6 @@ alpha_spag = 0.5; // [0:0.1:1]
 module hide_from_customizer(){}
 
 
-
-
-    
 // Cumulative sum of values in v
 function cumsum(v) = [for (a = v[0]-v[0], i = 0; i < len(v); a = a+v[i], i = i+1) a+v[i]];
     
@@ -66,6 +63,7 @@ function index_of(columns, idx_to_match, i=0) =
         columns[i]==idx_to_match ? 
             i : 
             index_of(columns, idx_to_match, i + 1);
+
 
 module v_cylinder(r, h, colors) {
     count = len(h);
@@ -80,34 +78,38 @@ module v_cylinder(r, h, colors) {
     }
 }
 
-
-vcf_r1_idx = 0;
-vcf_r2_idx = 1;
-vcf_h_idx = 2;
-vcf_color_idx = 3;
+// Use functions to export constants
+function vcf_r1_idx() = 0;
+function vcf_r2_idx() = 1;
+function vcf_h_idx() = 2;
+function vcf_color_idx() = 3;
 
 module v_conic_frustrum(data_columns, data, colors) {
     
-    r1_idx = index_of(data_columns, vcf_r1_idx);
-    r2_idx = index_of(data_columns, vcf_r2_idx);
-    color_idx = index_of(data_columns, vcf_color_idx);
-    h_idx = index_of(data_columns, vcf_h_idx);
+    r1_idx = index_of(data_columns, vcf_r1_idx());
+    r2_idx = index_of(data_columns, vcf_r2_idx());
+    color_idx = index_of(data_columns, vcf_color_idx());
+    h_idx = index_of(data_columns, vcf_h_idx());
     
     count = len(data);
-    h = [for (i = [0 : count-1]) data[i][h_idx] ];
-    h_cum = cumsum(h);
-    r1 = [for (i = [0 : count-1]) data[i][r1_idx]];
-    r2 = [for (i = [0 : count-1]) data[i][r2_idx]];
-    color_offset = [for (i = [0 : count-1]) data[i][color_idx]];
-    for(i = [0 : count-1]) {
-        h_i = h[i];
-        // Make object slightly oversized for intersection goodness,
-        // and nice previews 
-        dz = (i == 0 ? 0.0 :  h_cum[i-1]) -eps ; 
-        translate([0,0,dz]) 
-        color(colors[color_offset[i]]) 
-        cylinder(r1=r1[i], r2=r2[i], h=h[i] + 2 * eps);
-    }    
+    if (count == 0) {
+        echo("###################### Warning:  Data is empty in v_conic_frustrum");
+    } else {
+        h = [for (i = [0 : count-1]) data[i][h_idx] ];
+        h_cum = cumsum(h);
+        r1 = [for (i = [0 : count-1]) data[i][r1_idx]];
+        r2 = [for (i = [0 : count-1]) data[i][r2_idx]];
+        color_offset = [for (i = [0 : count-1]) data[i][color_idx]];
+        for(i = [0 : count-1]) {
+            h_i = h[i];
+            // Make object slightly oversized for intersection goodness,
+            // and nice previews 
+            dz = (i == 0 ? 0.0 :  h_cum[i-1]) -eps ; 
+            translate([0,0,dz]) 
+            color(colors[color_offset[i]]) 
+            cylinder(r1=r1[i], r2=r2[i], h=h[i] + 2 * eps);
+        }  
+    }  
 }
 
 if (show_initial_test_vci) {
@@ -138,6 +140,7 @@ if (show_v_conic_frustrum_test_vcf) {
     echo("h0", h0);
     v_conic_frustrum(columns, conic_frustrum_test_data, colors_for_test_vcf);
 }
+
 
 if (show_v_conic_frustrum_test_data_columns_dc) {
     
@@ -173,6 +176,7 @@ if (show_v_conic_frustrum_test_data_columns_dc) {
     
 }
 
+
 module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=0) {
     
     // air_gap provides an ability to scale up the pin, to allow using intersection 
@@ -190,7 +194,7 @@ module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_t
     
     function ag(r) = r + air_gap;
     
-    columns = [vcf_r1_idx, vcf_r2_idx, vcf_h_idx, vcf_color_idx];
+    columns = [vcf_r1_idx(), vcf_r2_idx(), vcf_h_idx(), vcf_color_idx()];
     h_neck = h_total - h_top - h_base;
     h_neck_bottom = h_neck/2;
     h_neck_top = h_neck/2;
@@ -205,6 +209,7 @@ module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_t
         data, 
         colors_for_test_vcf);
 }
+
 
 if (show_test_pin_tsp) {
     sample_pin(r_top_tsp, r_top_inner_tsp, r_neck_tsp, r_base_inner_tsp, r_base_tsp, h_total_tsp, h_top_tsp, h_base_tsp);
