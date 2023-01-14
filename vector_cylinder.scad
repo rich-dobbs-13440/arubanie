@@ -37,6 +37,7 @@ h_base = 2;
 
 /* [Test opacity] */
 show_test_opacity = false;
+air_gap = 0; // [0:0.1:5] 
 red_test_opacity = 128; // [10:255]
 blue_test_opacity = 128; // [10:255]
 green_test_opacity = 128; // [10:255]
@@ -94,10 +95,12 @@ module v_conic_frustrum(data_columns, data, colors) {
     color_offset = [for (i = [0 : count-1]) data[i][color_idx]];
     for(i = [0 : count-1]) {
         h_i = h[i];
-        dz = i == 0 ? 0.0 :  h_cum[i-1];
+        // Make object slightly oversized for intersection goodness,
+        // and nice previews 
+        dz = (i == 0 ? 0.0 :  h_cum[i-1]) -eps ; 
         translate([0,0,dz]) 
         color(colors[color_offset[i]]) 
-        cylinder(r1=r1[i], r2=r2[i], h=h[i]);
+        cylinder(r1=r1[i], r2=r2[i], h=h[i] + 2 * eps);
     }    
 }
 
@@ -152,11 +155,6 @@ if (show_v_conic_frustrum_test_data_columns) {
     echo("map", map);
     echo("vcf_h_idx", vcf_h_idx);
     
-    //for (i = [0 : count-1])
-    
-    //color_idx = [for (i = [0 : count-1]) data[i][map[vcf_color_idx]]];
-    //echo("color_idx", color_idx);
-    
     map_trial = [
         index_of(data_columns_changed, 0),
         index_of(data_columns_changed, 1), 
@@ -173,6 +171,9 @@ if (show_v_conic_frustrum_test_data_columns) {
 }
 
 module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=0) {
+    
+    // air_gap provides an ability to scale up the pin, to allow using intersection 
+    // to generate a cavity for the pin.  Should help with print in place
     assert(!is_undef(r_top), "You must specify r_top");
     assert(!is_undef(r_top_inner), "You must specify r_top_inner");
     assert(!is_undef(r_neck), "You must specify r_neck");
@@ -182,15 +183,19 @@ module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_t
     assert(!is_undef(h_top), "You must specify h_top");
     assert(!is_undef(h_base), "You must specify h_base");
     
+    assert(air_gap >= 0, "air_gap must >= zero");
+    
+    function ag(r) = r + air_gap;
+    
     columns = [vcf_r1_idx, vcf_r2_idx, vcf_h_idx, vcf_color_idx];
     h_neck = h_total - h_top - h_base;
     h_neck_bottom = h_neck/2;
     h_neck_top = h_neck/2;
     data = [
-        [r_base,        r_base,         h_base,         color_blue_idx],
-        [r_base_inner,  r_neck,         h_neck_bottom,  color_red_idx],
-        [r_neck,        r_top_inner,    h_neck_top,     color_green_idx],
-        [r_top,         r_top,          h_top,          color_yellow_idx],
+        [ag(r_base),        ag(r_base),         h_base,         color_blue_idx],
+        [ag(r_base_inner),  ag(r_neck),         h_neck_bottom,  color_red_idx],
+        [ag(r_neck),        ag(r_top_inner),    h_neck_top,     color_green_idx],
+        [ag(r_top),         ag(r_top),          h_top,          color_yellow_idx],
     ];    
     v_conic_frustrum(
         columns, 
@@ -204,11 +209,20 @@ if (show_test_pin) {
 
 if (show_test_opacity) {
     sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base);
-    // color([red_test_opacity, blue_test_opacity, green_test_opacity], alpha=alpha for_opacity) 
-    color([red_test_opacity/255, green_test_opacity /255, blue_test_opacity/255], , alpha=alpha_for_opacity) 
-        cube([20, 20, h_total ]);
+    
+    color([red_test_opacity/255, green_test_opacity /255, blue_test_opacity/255], alpha=alpha_for_opacity) {
+        difference() {
+         
+            cube([20, 20, h_total ]);
+    
+            sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=air_gap);
+        }
+    }
+    //sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=air_gap);
 
 }
+
+
 
 
 
