@@ -38,6 +38,8 @@ h_base = 2;
 /* [Test opacity] */
 show_test_opacity = false;
 air_gap = 0; // [0:0.1:5] 
+test_piece_radius_by_rbase = 2; // [0.9:0.1:5]
+test_piece_handle_length = 5; // [0:0.1:50]
 red_test_opacity = 128; // [10:255]
 blue_test_opacity = 128; // [10:255]
 green_test_opacity = 128; // [10:255]
@@ -209,11 +211,13 @@ if (show_test_pin) {
 
 if (show_test_opacity) {
     sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base);
-    
+    test_piece_size = r_base*test_piece_radius_by_rbase;
     color([red_test_opacity/255, green_test_opacity /255, blue_test_opacity/255], alpha=alpha_for_opacity) {
         difference() {
-         
-            cube([20, 20, h_total ]);
+            union() {
+                cube([5, test_piece_handle_length, h_total]);
+                cylinder(h=h_total, r=test_piece_size);
+            }
     
             sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=air_gap);
         }
