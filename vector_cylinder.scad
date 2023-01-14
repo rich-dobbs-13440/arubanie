@@ -19,13 +19,28 @@ colors_for_test_vcf = ["red", "blue", "green", "yellow"];
 show_v_conic_frustrum_test_data_columns = false;
 
 /* [Hidden] */
-    color_red_idx = 0;
-    color_blue_idx = 1;
-    color_green_idx = 2;
-    color_yellow_idx = 3;
-    
+color_red_idx = 0;
+color_blue_idx = 1;
+color_green_idx = 2;
+color_yellow_idx = 3;
+
 /* [Test sample_pin] */
-    show_test_pin = false;
+show_test_pin = false;
+r_top = 5; 
+r_top_inner = 4; 
+r_neck = 3; 
+r_base_inner = 5; 
+r_base = 5;
+h_total = 10; 
+h_top = 2; 
+h_base = 2;
+
+/* [Test opacity] */
+show_test_opacity = false;
+red_test_opacity = 128; // [10:255]
+blue_test_opacity = 128; // [10:255]
+green_test_opacity = 128; // [10:255]
+alpha_for_opacity = 1; // [0:0.1:1]
 
 module hide_from_customizer(){}
 
@@ -157,7 +172,7 @@ if (show_v_conic_frustrum_test_data_columns) {
     
 }
 
-module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base) {
+module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=0) {
     assert(!is_undef(r_top), "You must specify r_top");
     assert(!is_undef(r_top_inner), "You must specify r_top_inner");
     assert(!is_undef(r_neck), "You must specify r_neck");
@@ -172,10 +187,10 @@ module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_t
     h_neck_bottom = h_neck/2;
     h_neck_top = h_neck/2;
     data = [
-        [r_base, r_base, h_base, color_blue_idx],
-        [r_base_inner, r_neck, h_neck_bottom, color_red_idx],
-        [r_neck, r_top_inner, h_neck_top, color_green_idx],
-        [r_top, r_top, h_top, color_yellow_idx],
+        [r_base,        r_base,         h_base,         color_blue_idx],
+        [r_base_inner,  r_neck,         h_neck_bottom,  color_red_idx],
+        [r_neck,        r_top_inner,    h_neck_top,     color_green_idx],
+        [r_top,         r_top,          h_top,          color_yellow_idx],
     ];    
     v_conic_frustrum(
         columns, 
@@ -184,9 +199,15 @@ module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_t
 }
 
 if (show_test_pin) {
-    sample_pin(
-        r_top=5, r_top_inner=4, r_neck=3, r_base_inner=5, r_base=5,
-        h_total=10, h_top=2, h_base=2  );
+    sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base);
+}
+
+if (show_test_opacity) {
+    sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base);
+    // color([red_test_opacity, blue_test_opacity, green_test_opacity], alpha=alpha for_opacity) 
+    color([red_test_opacity/255, green_test_opacity /255, blue_test_opacity/255], , alpha=alpha_for_opacity) 
+        cube([20, 20, h_total ]);
+
 }
 
 
