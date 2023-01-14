@@ -5,47 +5,49 @@ $fs = 0.4;
 eps = 0.001;
 
 infinity = 50;
+ 
 
 /* [Test v_cylinder initial] */
-show_initial_test = true;
+show_initial_test_vci = true;
 
-h_initial_test = [5, 2.6, 3.7];
-r_initial_test = [10, 5, 1];
-colors_initial_test = ["red", "yellow", "blue"];
+h_vci = [5, 2.6, 3.7];
+r_vci = [10, 5, 1];
+colors_vci = ["red", "yellow", "blue"];
 
 /* [Test v_conic_frustrum] */
-show_v_conic_frustrum_test = false;
+show_v_conic_frustrum_test_vcf = false;
+test_data_columns_vcf = false;
+show_v_conic_frustrum_test_data_columns_dc = false; 
 colors_for_test_vcf = ["red", "blue", "green", "yellow"];
-show_v_conic_frustrum_test_data_columns = false;
-
 /* [Hidden] */
-color_red_idx = 0;
-color_blue_idx = 1;
-color_green_idx = 2;
-color_yellow_idx = 3;
+color_red_idx_vcf = 0;
+color_blue_idx_vcf = 1;
+color_green_idx_vcf = 2;
+color_yellow_idx_vcf = 3;
 
 /* [Test sample_pin] */
-show_test_pin = false;
+show_test_pin_tsp = false;
 
-r_top = 5.11; 
-r_top_inner = 4.11; 
-r_neck = 3.65; 
-r_base_inner = 5.11; 
-r_base = 5.11;
-h_total = 10.11; 
-h_top = 2.11; 
-h_base = 2.11;
+r_top_tsp = 5.11; 
+r_top_inner_tsp = 4.11; 
+r_neck_tsp = 3.65; 
+r_base_inner_tsp = 5.11; 
+r_base_tsp = 5.11;
+h_total_tsp = 10.11; 
+h_top_tsp = 2.11; 
+h_base_tsp = 2.11;
 
-/* [Test opacity] */
-show_test_opacity = false;
-show_test_piece_pin_handle_clearance = false;
-air_gap = 0; // [0:0.1:5] 
-test_piece_radius_by_rbase = 2; // [0.9:0.1:5]
-test_piece_handle_length = 5; // [0:0.1:50]
-red_test_opacity = 128; // [10:255]
-blue_test_opacity = 128; // [10:255]
-green_test_opacity = 128; // [10:255]
-alpha_for_opacity = 1; // [0:0.1:1]
+/* [Test sample pin air gap ] */
+show_test_sample_pin_air_gap_spag = false;
+
+air_gap_spag = 0; // [0:0.1:5] 
+test_piece_radius_by_rbase_spag = 2; // [0.9:0.1:5]
+test_piece_handle_length_spag = 5; // [0:0.1:50]
+red_spag = 128; // [10:255]
+blue_spag = 128; // [10:255]
+green_spag = 128; // [10:255]
+alpha_spag = 0.5; // [0:0.1:1]
+
 
 module hide_from_customizer(){}
 
@@ -108,25 +110,25 @@ module v_conic_frustrum(data_columns, data, colors) {
     }    
 }
 
-if (show_initial_test) {
-    length = len(h_initial_test);
-    list_2 = [ for (i = [0 : 1 : length-1]) i < 2 ? h_initial_test[i] : 0 ];
+if (show_initial_test_vci) {
+    length = len(h_vci);
+    list_2 = [ for (i = [0 : 1 : length-1]) i < 2 ? h_vci[i] : 0 ];
     echo("list_2", list_2);
     
-    sum = vector_sum(h_initial_test);
-    echo("vector_sum", sum, h_initial_test);
-    echo("cumsum", h_initial_test, cumsum(h_initial_test));
-    v_cylinder(r=r_initial_test, h=h_initial_test, colors=colors_initial_test);
+    sum = vector_sum(h_vci);
+    echo("vector_sum", sum, h_vci);
+    echo("cumsum", h_vci, cumsum(h_vci));
+    v_cylinder(r=r_vci, h=h_vci, colors=colors_vci);
 }
 
 
-if (show_v_conic_frustrum_test) {
+if (show_v_conic_frustrum_test_vcf) {
     columns = [vcf_r1_idx, vcf_r2_idx, vcf_h_idx, vcf_color_idx];
     conic_frustrum_test_data = [
-        [4, 5, 3.3, color_blue_idx],
-        [5, 2, 5.3, color_red_idx],
-        [2, 2, 3.1, color_green_idx],
-        [2, 2, 3.1, color_red_idx],
+        [4, 5, 3.3, color_blue_idx_vcf],
+        [5, 2, 5.3, color_red_idx_vcf],
+        [2, 2, 3.1, color_green_idx_vcf],
+        [2, 2, 3.1, color_red_idx_vcf],
     ];
     
     echo("conic_frustrum_test_data", conic_frustrum_test_data);
@@ -137,14 +139,14 @@ if (show_v_conic_frustrum_test) {
     v_conic_frustrum(columns, conic_frustrum_test_data, colors_for_test_vcf);
 }
 
-if (show_v_conic_frustrum_test_data_columns) {
+if (show_v_conic_frustrum_test_data_columns_dc) {
     
     data_columns_changed = [vcf_color_idx, vcf_r1_idx, vcf_r2_idx, vcf_h_idx];
     conic_frustrum_test_data_changed_column_ordering = [
-        [color_blue_idx,  4, 5, 3.3],
-        [color_red_idx,   5, 2, 5.3],
-        [color_green_idx, 2, 2, 3.1],
-        [color_red_idx,   2, 2, 3.1],
+        [color_blue_idx_vcf,  4, 5, 3.3],
+        [color_red_idx_vcf,   5, 2, 5.3],
+        [color_green_idx_vcf, 2, 2, 3.1],
+        [color_red_idx_vcf,   2, 2, 3.1],
     ];
     map = [1, 2, 3, 0];
     count = 4;
@@ -193,10 +195,10 @@ module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_t
     h_neck_bottom = h_neck/2;
     h_neck_top = h_neck/2;
     data = [
-        [ag(r_base),        ag(r_base),         h_base,         color_blue_idx],
-        [ag(r_base_inner),  ag(r_neck),         h_neck_bottom,  color_red_idx],
-        [ag(r_neck),        ag(r_top_inner),    h_neck_top,     color_green_idx],
-        [ag(r_top),         ag(r_top),          h_top,          color_yellow_idx],
+        [ag(r_base),        ag(r_base),         h_base,         color_blue_idx_vcf],
+        [ag(r_base_inner),  ag(r_neck),         h_neck_bottom,  color_red_idx_vcf],
+        [ag(r_neck),        ag(r_top_inner),    h_neck_top,     color_green_idx_vcf],
+        [ag(r_top),         ag(r_top),          h_top,          color_yellow_idx_vcf],
     ];    
     v_conic_frustrum(
         columns, 
@@ -204,59 +206,25 @@ module sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_t
         colors_for_test_vcf);
 }
 
-if (show_test_pin) {
-    sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base);
+if (show_test_pin_tsp) {
+    sample_pin(r_top_tsp, r_top_inner_tsp, r_neck_tsp, r_base_inner_tsp, r_base_tsp, h_total_tsp, h_top_tsp, h_base_tsp);
 }
 
-module pin_handle() {
-    // currentl
-    z = h_total/2 - 0.5 * air_gap;
-    x = 2*r_base;
-    y = test_piece_handle_length;
-    dx = -x / 2;
-    dy = -y;
-    dz = 0; // h_total - z + 2*eps;
-    translate([dx, dy, dz]) cube([x, y, z]);
-}
 
-module pin_handle_clearance() {
-    x = infinity;
-    y = infinity;
-    z = 1.2 * test_piece_handle_length;
-    dx = 0;// -r_top - air_gap;
-    dz = -z + h_total/2;
-    color("turquoise") 
-    rotate([0, 0, 235]) translate([dx,0,dz]) 
-    cube([x, y, z]);
-};
+if (show_test_sample_pin_air_gap_spag) {
+    sample_pin(
+        r_top_tsp, r_top_inner_tsp, r_neck_tsp, r_base_inner_tsp, 
+        r_base_tsp, h_total_tsp, h_top_tsp, h_base_tsp);
 
-if (show_test_piece_pin_handle_clearance) {
-        pin_handle_clearance();
-}
-
-if (show_test_opacity) {
-    z_handle = h_total/2 - 0.5 * air_gap;
-    // pin plus handle
-    union() {
-        sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base);
-        pin_handle();
-    }
-    test_piece_size = r_base*test_piece_radius_by_rbase;
-    color([red_test_opacity/255, green_test_opacity /255, blue_test_opacity/255], alpha=alpha_for_opacity) {
+    test_piece_size = r_base_tsp*test_piece_radius_by_rbase_spag;
+    color([red_spag/255, green_spag /255, blue_spag/255], alpha=alpha_spag) {
         difference() {
-            union() {
-                translate([1,0,0]) cube([z_handle, test_piece_handle_length, h_total/2]);
-                cylinder(h=h_total, r=test_piece_size);
-            }
-            union() {
-                sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=air_gap);
-                pin_handle_clearance();
-            }
-                
+            cylinder(h=h_total_tsp, r=test_piece_size);
+            sample_pin(
+                r_top_tsp, r_top_inner_tsp, r_neck_tsp, r_base_inner_tsp, 
+                r_base_tsp, h_total_tsp, h_top_tsp, h_base_tsp, air_gap=air_gap_spag);     
         }
     }
-    //sample_pin(r_top, r_top_inner, r_neck, r_base_inner, r_base, h_total, h_top, h_base, air_gap=air_gap);
-
 }
 
 
