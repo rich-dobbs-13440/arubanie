@@ -38,44 +38,44 @@ angle_t = 15; // [-180 : 180]
 
 //function colors() = [taper_color, axle_color, cap_color, post_color, bearing_color];
 
-function idx_base_color() = 0;
-function idx_taper_color() = 1;
+function idx_lcap_color() = 0;
+function idx_lcone_color() = 1;
 function idx_axle_color() = 2;
-function idx_cap_color() = 3;
-function idx_post_color() = 4;
+function idx_tcone_color() = 3;
+function idx_tcap_color() = 4;
 function idx_bearing_color() = 5;
 
-function r_base(size, air_gap) = 3 * size + air_gap;
-function r_taper(size, air_gap) = 3 * size + air_gap;
+function r_lcap(size, air_gap) = 3 * size + air_gap;
+function r_lcone(size, air_gap) = 3 * size + air_gap;
 function r_axle(size, air_gap) = 1.25 * size + air_gap;
-function r_cap(size, air_gap) = 3 * size + air_gap;
-function r_post(size, air_gap) = 3 * size + air_gap;
+function r_tcone(size, air_gap) = 3 * size + air_gap;
+function r_tcap(size, air_gap) = 3 * size + air_gap;
 function r_bearing(size, air_gap) = 3 * size;
 
 function connector_size(size) = 2*r_axle(size, 0);
 
-function h_base(size) = 2 * size;
-function h_taper(size) = 2 * size;
+function h_lcap(size) = 2 * size;
+function h_lcone(size) = 2 * size;
 function h_axle(size) = 1 * size;
-function h_cap(size) = 2 * size;
+function h_tcone(size) = 2 * size;
 function h_tcap(size) = 2 * size;
-function h_bearing(size) = h_taper(size) + h_axle(size) + h_cap(size);
+function h_bearing(size) = h_lcone(size) + h_axle(size) + h_tcone(size);
 function h_total(size) = 
-    h_base(size) + 
-    h_taper(size) + 
+    h_lcap(size) + 
+    h_lcone(size) + 
     h_axle(size) + 
-    h_cap(size) + 
+    h_tcone(size) + 
     h_tcap(size);
 
 
 function columns() = [vcf_r1_idx(), vcf_r2_idx(), vcf_h_idx(), vcf_color_idx()];
 
 function pin_data(s, dr, colors) = 
-[   [ r_base(s, dr),    r_taper(s, dr),   h_base(s),    idx_base_color() ],
-    [ r_taper(s, dr),   r_axle(s, dr),    h_taper(s),   idx_taper_color() ],
-    [ r_axle(s, dr),    r_axle(s, dr),    h_axle(s),    idx_axle_color() ],
-    [ r_axle(s, dr),    r_cap(s, dr),     h_cap(s),     idx_cap_color() ],
-    [ r_cap(s, dr),     r_post(s, dr),    h_tcap(s),    idx_post_color() ],
+[   [ r_lcap(s, dr),    r_lcone(s, dr), h_lcap(s),  idx_lcap_color() ],
+    [ r_lcone(s, dr),   r_axle(s, dr),  h_lcone(s), idx_lcone_color() ],
+    [ r_axle(s, dr),    r_axle(s, dr),  h_axle(s),  idx_axle_color() ],
+    [ r_axle(s, dr),    r_tcone(s, dr), h_tcone(s), idx_tcone_color() ],
+    [ r_tcone(s, dr),   r_tcap(s, dr),  h_tcap(s),  idx_tcap_color() ],
 ];
 
 
@@ -102,7 +102,7 @@ module bearing(size, air_gap, colors) {
     echo("In bearing, air_gap = ", air_gap);
     bearing_color = colors[idx_bearing_color()];
     r = r_bearing(size, air_gap);
-    dz = h_base(size) + h_bearing(size)/2;
+    dz = h_lcap(size) + h_bearing(size)/2;
     echo("In bearing, r_bearing = ", r);
     color(bearing_color, alpha=0.35) {
         difference() {
@@ -114,12 +114,12 @@ module bearing(size, air_gap, colors) {
 
 module connector_post(size, air_gap, positive_offset) {
     x = connector_size(size);
-    y = connector_size(size) + r_cap(size, air_gap);
+    y = connector_size(size) + r_tcone(size, air_gap);
     z = h_total(size);
     dy = (positive_offset ? 1: -1) * y/2;
     dz = z / 2;
     h_clearance = 3 * h_total(size);
-    r_clearance = r_cap(size, air_gap);
+    r_clearance = r_tcone(size, air_gap);
     
     difference() { 
         translate([0, dy, dz]) cube([x, y, z], center=true);
@@ -132,7 +132,7 @@ module bearing_join(size, air_gap) {
     y = connector_size(size) + r_bearing(size, air_gap);
     z = h_bearing(size);
     dy = y/2;
-    dz = z / 2 + h_base(size);
+    dz = z / 2 + h_lcap(size);
     color(bearing_join_color) {
         difference() {
             translate([0, dy, dz]) cube([x, y, z], center=true);
@@ -144,7 +144,7 @@ module bearing_join(size, air_gap) {
 module l_cap_join(size, air_gap) {
     x = connector_size(size);
     y = connector_size(size) + r_bearing(size, air_gap) + air_gap;
-    z = h_base(size);
+    z = h_lcap(size);
     dy = -y/2;
     dz = z / 2;   
     color(cap_join_color) {
@@ -183,7 +183,7 @@ module sprue(size, air_gap) {
     h_sprue = 2*air_gap;
     r_sprue = air_gap;
     dy = - r_bearing(size, air_gap) - air_gap/2;
-    dz = h_base(size) + h_sprue/2;
+    dz = h_lcap(size) + h_sprue/2;
     translate([0, dy, dz]) cylinder(r=air_gap, h=h_sprue, center=true);
 }
 
@@ -246,8 +246,8 @@ if (show_mounting_on_top_of_item) {
     // Detemine the handle mask parameters, so that bearing handle isn't in contact with base plate
     x_hm = 2*connector_size(pivot_size);
     y_hm = 2*connector_size(pivot_size);
-    z_hm = h_base(pivot_size);
-    dy_hm = y_hm/2 + r_base(pivot_size, air_gap) - air_gap;
+    z_hm = r_lcap(pivot_size, air_gap);
+    dy_hm = y_hm/2 + r_lcap(pivot_size, air_gap) - air_gap;
     dz_hm = z_hm/2;
 
     difference() {
@@ -258,7 +258,7 @@ if (show_mounting_on_top_of_item) {
     // Now attach a hande that rests on the build plate.
     d_hdl = h_total(pivot_size) + plate_thickness;
     h_hdl = connector_size(pivot_size);
-    dy_hdl = r_base(pivot_size, air_gap) + d_hdl/2; 
+    dy_hdl = r_lcap(pivot_size, air_gap) + d_hdl/2; 
     dz_hdl = d_hdl/2 - plate_thickness ;
     translate([0, dy_hdl, dz_hdl]) 
     rotate([0,90,0]) cylinder(d=d_hdl, h=h_hdl, center=true);
