@@ -13,6 +13,7 @@ show_bearing = false;
 show_bearing_connector = false;
 show_cap_connector = false;
 show_sprue = false;
+show_mounting_on_top_of_item = false;
 
 /* [Colors] */
 
@@ -230,5 +231,39 @@ if (show_pivot) {
         my_colors = ["Thistle", "Salmon", "LightSteelBlue", "PeachPuff", "MidnightBlue"];
         pivot(size_t, air_gap_t, angle_t, colors=my_colors);
     }
+}
+
+if (show_mounting_on_top_of_item) {
+    plate_thickness = 0.5;
+    plate_size = 11;
+    dz = -plate_thickness/2;
+    translate([0, 0, dz]) cube([plate_size, plate_size, plate_thickness], center=true);
+
+    pivot_size = 1.;
+    air_gap = 0.35;
+    angle = 90;
+    
+    // Detemine the handle mask parameters, so that bearing handle isn't in contact with base plate
+    x_hm = 2*connector_size(pivot_size);
+    y_hm = 2*connector_size(pivot_size);
+    z_hm = h_base(pivot_size);
+    dy_hm = y_hm/2 + r_base(pivot_size, air_gap) - air_gap;
+    dz_hm = z_hm/2;
+
+    difference() {
+        color("LightSteelBlue")  pivot(pivot_size, air_gap, angle);
+        translate([0, dy_hm, dz_hm]) cube([x_hm, y_hm, z_hm], center=true);
+    }
+    
+    // Now attach a hande that rests on the build plate.
+    d_hdl = h_total(pivot_size) + plate_thickness;
+    h_hdl = connector_size(pivot_size);
+    dy_hdl = r_base(pivot_size, air_gap) + d_hdl/2; 
+    dz_hdl = d_hdl/2 - plate_thickness ;
+    translate([0, dy_hdl, dz_hdl]) 
+    rotate([0,90,0]) cylinder(d=d_hdl, h=h_hdl, center=true);
+    
+    
+    
 }
 
