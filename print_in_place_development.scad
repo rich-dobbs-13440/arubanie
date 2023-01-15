@@ -168,9 +168,8 @@ module bearing_handle(handle_length, h_bearing, r_bearing) {
     translate([0, dy ,dz]) {
         cube([x, y, z], center=true); // handle to attach to bearing
         
-        sprue_size = 0.5;
+        sprue_size = 0.8;
         x_sprue = handle_length;
-        sprue_size = 0.5;
         dz_sprue = -dz + sprue_size/2;
         translate([0, 0, dz_sprue]) cube([10, sprue_size, sprue_size], center=true); // sprue to connect parts
     }
@@ -180,16 +179,17 @@ module pin_handle(handle_length, h_pin, h_post, r_post) {
     // handle base
     x = r_post;
     y = handle_length;
-    z = h_pin;
-    dy = -y/2 - r_post - 1;
+    z = h_pin - h_post;
+    dy = -y/2 - r_post - 0.5;
     dz = z/2;
     translate([0, dy ,dz]) cube([x, y, z], center=true); 
     // Connector
     x_c = r_post;
-    y_c = handle_length;
-    z_c = h_post;
-    dy_c = -y_c/2;
-    dz_c = h_pin - h_post/2;
+
+    y_c =  handle_length/2 + 0.5 + 2 * r_post;
+    z_c = 1.5 * h_post;
+    dy_c = -y_c/2 + r_post ;
+    dz_c = h_pin +z_c/2 - h_post;
     translate([0, dy_c, dz_c]) cube([x_c, y_c, z_c], center=true);
     
     
