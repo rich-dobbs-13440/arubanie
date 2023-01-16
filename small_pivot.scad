@@ -37,8 +37,10 @@ cap_join_color_t = "LightBlue"; // ["LightBlue", "red", "blue", "green", "yellow
 
 size_t = 1; // [1: 0.5 : 10]
 air_gap_t = 0.45; // [0.3: 0.01 : 0.6]
-angle_t = 15; // [-180 : 180]
+angle_bearing_t = 0; // [0: 360]
+angle_cap_t = 180; // [0: 360]
 
+module end_of_customization() {} 
 
 function colors_t() = [
     lcap_color_t, 
@@ -64,22 +66,26 @@ function idx_bearing_join_color() = 6;
 function idx_cap_join_color() = 7;
 function idx_cap_post_color() = 8;
 
-MAX_COLOR_IDX = 20;
+COLOR_IDX_COUNT = 9;
 
 // Will get rid of these
 function idx_bearing_post_color() = 8;
 function idx_cap_post_color() = 9;
 
 function default_colors() = 
-[ for (idx = [0:MAX_COLOR_IDX]) 
+[ for (idx = [0:COLOR_IDX_COUNT]) 
     idx == idx_bearing_join_color() ? "Plum"  :
     "SteelBlue"
 ];
 
 module empty() {} // Just to hide following from customizer
 
-BEARING = 0;
-CAP = 1;
+// Attachment constants  
+BEARING = 2001;
+CAP = 2002;
+ADD_HULL_ATTACHMENT = 1001;
+FIRST_CHILD = 0;
+SECOND_CHILD = 1; // Only two attachment points so don't yet have a case for a large number.
 
 // Pivot geometry ratios to size
 S_R_LCAP = 3.0;
@@ -192,7 +198,10 @@ module bearing_join(size, air_gap, colors) {
     color(colors[idx_bearing_join_color()]) {
         difference() {
             translate([0, dy, dz]) cube([x, y, z], center=true);
-            pin(size, air_gap);
+            cylinder(r=r_bearing(size, air_gap), h=2*h_total(size), center=true);
+            //pin(size, air_gap);
+            //bearing(size, air_gap, colors);
+            // 
         }
     }
 }
@@ -201,7 +210,7 @@ module l_cap_join(size, air_gap, colors) {
     x = connector_size(size);
     y = connector_size(size) + r_bearing(size, air_gap) + air_gap;
     z = h_lcap(size);
-    dy = -y/2;
+    dy = y/2;
     dz = z / 2;   
     color(colors[idx_cap_join_color()]) {
         translate([0, dy, dz]) cube([x, y, z], center=true);
@@ -212,50 +221,89 @@ module t_cap_join(size, air_gap, colors) {
     x = connector_size(size);
     y = connector_size(size) + r_bearing(size, air_gap) + air_gap;
     z = h_tcap(size);
-    dy = -y/2;
+    dy = y/2;
     dz = h_total(size) - z / 2;   
     color(colors[idx_cap_join_color()]) {
         translate([0, dy, dz]) cube([x, y, z], center=true);
     }
 }
 
-module external_connector(size, air_gap, colors, is_bearing=true) {
-    
-    if (is_bearing) {
-        // Plan on eliminating this!
-        //color(colors[idx_bearing_post_color()])
-        //connector_post(size, air_gap, positive_offset=is_bearing);
-    } else {
-        color(colors[idx_cap_post_color()])
-        connector_post(size, air_gap, positive_offset=is_bearing);
-    }
-    
-    if (is_bearing) {
-        bearing_join(size, air_gap, colors);  
-    } else {
+module attachment_target(connector_id, size, air_gap, colors) {
+    if (connector_id == BEARING) {
+        bearing_join(size, air_gap, colors);
+    } 
+    if (connector_id == CAP) {
         l_cap_join(size, air_gap, colors); 
         t_cap_join(size, air_gap, colors); 
     }
 }
 
-module pivot(size, air_gap, angle=0, colors=default_colors(), attachments=undef, attachment_params=undef) {
+
+module external_attachment(size, air_gap, colors, attachment_instructions, connector_id) {
+    for (instruction = attachment_instructions) {
+        echo("Instruction", instruction);
+        command = instruction[0];
+        if (command == ADD_HULL_ATTACHMENT) {
+            target_connector_id = instruction[1];
+            if (target_connector_id == connector_id) {
+                child_idx = instruction[2];
+                hull() {
+                    children(child_idx);
+                    attachment_target(connector_id, size, air_gap, colors);
+                    
+                }
+            }
+        }
+    }
+}
+
+module external_connector(size, air_gap, colors, connector_id, attachment_instructions) {
+
+    if (connector_id == BEARING) {
+        bearing_join(size, air_gap, colors);  
+    } 
+    if (connector_id == CAP) {
+        color(colors[idx_cap_post_color()])
+        connector_post(size, air_gap, positive_offset=true);
+        
+        l_cap_join(size, air_gap, colors); 
+        t_cap_join(size, air_gap, colors); 
+    }
+    echo("external_connector: attachment_instructions", attachment_instructions);
+    if (len(attachment_instructions) > 0) {
+        external_attachment(size, air_gap, colors, attachment_instructions, connector_id) children();
+    } 
+}
+
+module pivot(size, air_gap, angle_bearing=0, angle_cap=180, colors=default_colors(), attachment_instructions=[]) {
 
     assert(!is_undef(size), "You must specify size");
     assert(!is_undef(air_gap), "You must specify air_gap");
-    assert(is_num(angle), "Angle must be a number");
+    assert(is_num(angle_bearing), "angle_bearing must be a number");
+    assert(is_num(angle_cap), "angle_cap must be a number");
     assert(len(colors) >= 5,"The number of colors must be at least 5");
     
     echo("In pivot module")
     echo("size = ", size);
     echo("air_gap = ", air_gap);
-    echo("angle = ", angle);
+    echo("angle_bearing = ", angle_bearing);
+    echo("angle_bearing = ", angle_bearing);
     echo("colors", colors);
+    echo("attachment_instructions", attachment_instructions);
     
     pin(size, 0.0, colors);
-    bearing(size, air_gap, colors);
-    
-    external_connector(size, air_gap, colors, is_bearing=false); 
-    rotate([0, 0, angle]) external_connector(size, air_gap, colors, is_bearing=true);  
+    bearing(size, air_gap, colors); 
+    rotate([0, 0, angle_cap]) {
+        external_connector(size, air_gap, colors, CAP, attachment_instructions) {
+            children();
+        }
+    } 
+    rotate([0, 0, angle_bearing]) {
+        external_connector(size, air_gap, colors, BEARING, attachment_instructions) {
+            children();
+        }
+    } 
+     
 }
 
 module sprue(size, air_gap) {
@@ -289,16 +337,19 @@ if (show_bearing_connector) {
 }
 
 if (show_pivot) {
-    pivot(size_t, air_gap_t, angle_t, colors=colors_t());
+    pivot(size_t, air_gap_t, angle_bearing_t, angle_cap_t, colors=colors_t());
 } 
 
 if (show_pivot_default_colors) {
-    pivot(size_t, air_gap_t, angle_t);
+    pivot(size_t, air_gap_t, angle_bearing_t, angle_cap_t);
 } 
 
 if (show_pivot_with_weird_colors) {
-    weird_colors = ["Thistle", "Salmon", "LightSteelBlue", "PeachPuff", "MidnightBlue"];
-    pivot(size_t, air_gap_t, angle_t, colors=weird_colors);
+    weird_colors = [
+        "Thistle", "Salmon", "LightSteelBlue", "PeachPuff", "MidnightBlue",
+        "WhiteSmoke", "Salmon", "LightSteelBlue", "PeachPuff", "MidnightBlue"
+    ];
+    pivot(size_t, air_gap_t, angle_bearing_t, angle_cap_t, colors=weird_colors);
 }
 
 if (show_mounting_on_top_of_item) {
@@ -332,11 +383,34 @@ if (show_mounting_on_top_of_item) {
     rotate([0,90,0]) cylinder(d=d_hdl, h=h_hdl, center=true);  
 }
 
+
+module fake_handle(pivot_size) {
+    
+    d_hdl = 10*pivot_size;
+    h_hdl = connector_size(pivot_size);
+    dy_hdl = 10;
+    dz_hdl = d_hdl/2 ;
+    translate([0, dy_hdl, dz_hdl]) 
+    rotate([0,90,0]) cylinder(d=d_hdl, h=h_hdl, center=true); 
+}
+
+
 if (show_bearing_attachment_revision) {
     pivot_size = 0.5;
     air_gap = 0.35;
+    * fake_handle(pivot_size);
     
-    // Want the basic attachment to not go to base, but that be the default value
-    pivot(pivot_size, air_gap, attachments="short",attachment_params=[BEARING, 0]);
+    
+    // Want to use the child to generate an attachment
+    clipping_diameter = 9;
+    attachment_instructions = [
+        [ADD_HULL_ATTACHMENT, BEARING, FIRST_CHILD, clipping_diameter],
+        [ADD_HULL_ATTACHMENT, CAP, SECOND_CHILD, clipping_diameter],
+    ];
+    echo("attachment_instructions", attachment_instructions);
+    pivot(pivot_size, air_gap, angle_bearing_t, angle_cap_t, attachment_instructions=attachment_instructions) {
+        fake_handle(pivot_size);
+        fake_handle(3*pivot_size);
+    }
 }
 
