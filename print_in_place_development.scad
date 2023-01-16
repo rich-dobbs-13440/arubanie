@@ -1,5 +1,7 @@
 use <vector_cylinder.scad>
 
+
+use <small_pivot.scad>
 /* [Boiler Plate] */
 
 $fa = 1;
@@ -13,6 +15,8 @@ infinity = 50;
 show_pin = false;
 show_bearing = false;
 show_air_gap_test_array = true;
+show_explore_bearing_connection = false;
+show_explore_children_in_sub_modules = false;
 
 /* [Colors] */
 bearing_color = "green"; // ["red", "blue", "green", "yellow", "orange", "purple"]
@@ -201,7 +205,7 @@ if (show_pin) {
 }
 
 if (show_bearing) {
-    bearing(air_gap_cst, total_height(), r_bearing_cst);
+    bearing(air_gap_cst, total_height(), r_bearing);
 }
 
 module label_test(air_gap, h_bearing, r_bearing) {
@@ -234,6 +238,116 @@ if (show_air_gap_test_array) {
     // 0.4 pushed out easily with small screw driver
     // 0.2 and smaller were fused
     // Incised text labeling didn't work.  Unreadable
+}
+
+
+module fake_bearing_attachment_target(size, air_gap, angle) {
+    x = connector_size(size);
+    y = connector_size(size);
+    z = h_bearing(size);
+    dx = x/2 + r_bearing(size);
+    dz = z/2 + h_lcap(size);
+    translate([dx, 0, dz]) cube([x, y, z], center=true);  
+}
+
+module sample_attachment_target() {
+    r = 2;
+    infinetesimal = 4;
+    dx = 8;
+    dy = 0;
+    dz = 0 + r + 1;
+    translate([dx, dy, dz]) 
+     rotate([0,90, 0]) 
+        cylinder(r=r, h=infinetesimal, center = true);
+}
+
+if (show_explore_bearing_connection) {
+    // For bearing connection we want to combine the bearing connection pad with an arbitray item in strong fashion.
+    // presume that the bearing connection pad is rectange the same height as the bearing, and
+    // with the specied connector size.
+    
+    // Explore using hull to attach them
+    
+    hull() {
+        fake_bearing_attachment_target(size=1, air_gap=0.35);
+        sample_attachment_target();
+    }  
+}
+
+module first_level() {
+    echo("$children", $children);
+    second_level_using_children() {
+        children();
+    }
+    second_level_using_loop() {
+        children([0:$children-1]);
+    }
+    // Note: this does cause a problem to call children with an index greater than count 
+    second_level_using_hand_items() {
+        children(0);
+        children(1);
+        children(2);
+        children(3);
+        children(4);
+        // Note: this doesn't cause a problem to call children with an index greater than count 
+        // within this scope
+        children(9);
+    }
+    
+    
+    second_level_using_for() {
+        for (i = [0:$children-1]) {
+            children(i);
+        }
+    }
+    i = $children;
+    second_level_using_if(i) {
+        if (i > 0) {
+            children(0);
+        }
+        if (i > 1) {
+            children(1);
+        }
+        if (i > 2) {
+            children(2);
+        }
+        if (i > 3) {
+            children(3);
+        }
+    }
+    
+}
+
+module second_level_using_if(count) {
+    echo("second_level_using_if count", count);
+    echo("second_level_using_if $children", $children);
+    color("red") children(1);
+    color("green") children(0);
+    color("yellow") children(2);
+}
+
+module second_level_using_for() {
+    echo("second_level_using_for $children", $children);
+}
+
+module second_level_using_hand_items() {
+    echo("second_level_using_hand_items $children", $children);
+}
+
+module second_level_using_loop() {
+    echo("second_level_using_loop $children", $children);
+}
+
+module second_level_using_children() {
+    echo("second_level_using_children $children", $children);
+}
+
+
+if (show_explore_children_in_sub_modules) {
+    first_level() {
+        cube([1,1,1]);
+        cylinder(r=1, h=1);
+    }
 }
 
 

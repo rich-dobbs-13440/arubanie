@@ -15,7 +15,7 @@ show_pivot_with_weird_colors = false;
 show_pin = false;
 show_bearing = false;
 show_bearing_rotational_group = false;
-show_cap_rotational_group = false;
+show_pin_rotational_group = false;
 show_sprue = false;
 show_mounting_on_top_of_item = false;
 show_bearing_attachment_revision = false;
@@ -86,11 +86,11 @@ RG_BEARING = 3002;
 
 // Attachment points  
 AP_BEARING = 2001;
-AP_LCAP = 2004;
-AP_TCAP = 2004;
-AP_CAP_YOKE = 2002;
-AP_TOP_OF_TCAP = 2003;
-AP_BOTTOM_OF_LCAP = 2003;
+AP_LCAP = 2002;
+AP_TCAP = 2003;
+AP_CAP_YOKE = 2004;
+AP_TOP_OF_TCAP = 2005;
+AP_BOTTOM_OF_LCAP = 2006;
 
 ROTATION_MAP = [
     [AP_BEARING, RG_BEARING],
@@ -270,16 +270,19 @@ module attachment_target(connector_id, size, colors) {
         l_cap_join(size, colors);
     }
     if (connector_id == AP_TCAP) {
-        l_cap_join(size, colors);
+        t_cap_join(size, colors);
     }
 }
 
 
 module attach(attachment_point_id, size, colors, instruction) {
-    echo("Instruction", instruction);
+    echo("####################### Instruction in attach", instruction);
     command = instruction[0];
+    echo("####################### command in attach", command);
+    echo("####################### command in attach", ADD_HULL_ATTACHMENT);
     if (command == ADD_HULL_ATTACHMENT) {
         child_idx = instruction[2];
+        echo("####################### child_idx in attach", child_idx);
         hull() {
             children(child_idx);
             attachment_target(attachment_point_id, size, colors); 
@@ -288,7 +291,11 @@ module attach(attachment_point_id, size, colors, instruction) {
 }
 
 module rotational_group(group_id, size, colors, instructions) {
+    echo("################ In rotational_group!"); 
     echo("group_id", group_id);
+    echo("RG_BEARING", RG_BEARING);
+    echo("RG_PIN", RG_PIN);
+    
     // TODO - handle this as instructions using default values.
     if (group_id == RG_BEARING) {
         bearing_join(size, colors);  
@@ -296,19 +303,25 @@ module rotational_group(group_id, size, colors, instructions) {
     if (group_id == RG_PIN) {
         // TODO:  add this as default as an attachment!
         // color(colors[idx_cap_post_color()]) connector_post(size, air_gap, positive_offset=true);
-        
+        echo("################ Show lcap");
         l_cap_join(size, colors); 
         t_cap_join(size, colors); 
     }
-    echo("rotational_group: attachment_instructions", instructions);
+    echo("rotational_group: instructions", instructions);
     if (!is_undef(instructions) ) {
         if (len(instructions) > 0) {
             for (instruction = instructions) {
-
+                echo("instruction: instructions", instruction);
                 attachment_point_id = instruction[1];
                 echo("attachment_point_id", attachment_point_id);
                 if (is_in_rotational_group(group_id, attachment_point_id)) {
-                    attach(attachment_point_id, size, colors, instruction) children();
+                    attach(attachment_point_id, size, colors, instruction) {    
+                        children(0);
+                        children(1);
+                        children(2);
+                        children(3);
+                        children(4);
+                    }
                 }
             } 
         }
@@ -327,22 +340,37 @@ module pivot(size, air_gap, angle_bearing=0, angle_cap=180, colors=default_color
     echo("size = ", size);
     echo("air_gap = ", air_gap);
     echo("angle_bearing = ", angle_bearing);
-    echo("angle_bearing = ", angle_bearing);
+    echo("angle_cap = ", angle_cap);
     echo("colors", colors);
     echo("attachment_instructions", attachment_instructions);
     
     pin(size, 0.0, colors);
-    bearing(size, air_gap, colors); 
+    bearing(size, air_gap, colors);
+    echo("Handle pin"); 
+    echo("################ $children", $children);
     rotate([0, 0, angle_cap]) {
         rotational_group(RG_PIN, size, colors, attachment_instructions) {
-            children();
+            // Kludge to avoid implicit union!
+            children(0);
+            children(1);
+            children(2);
+            children(3);
+            children(4);
         }
     } 
+    echo("################ $children in pivot", $children); 
+    echo("Handle bearing");
     rotate([0, 0, angle_bearing]) {
+         
         rotational_group(RG_BEARING, size, colors, attachment_instructions) {
-            children();
+            children(0);
+            children(1);
+            children(2);
+            children(3);
+            children(4);
         }
-    }   
+    }
+    echo("Exit pivot module");
 }
 
 module sprue(size, air_gap) {
@@ -367,11 +395,11 @@ if (show_bearing) {
 }
 
 if (show_bearing_rotational_group) {
-    rotational_group(RG_PIN, size=size_t, colors=colors_t()); 
+    rotational_group(RG_BEARING, size=size_t, colors=colors_t()); 
 }
 
- if (show_cap_rotational_group) {
-    rotational_group(RG_BEARING, size=size_t, colors=colors_t());
+ if (show_pin_rotational_group) {
+    rotational_group(RG_PIN, size=size_t, colors=colors_t());
 }
 
 if (show_pivot) {
@@ -443,12 +471,13 @@ if (show_bearing_attachment_revision) {
     clipping_diameter = 9;
     attachment_instructions = [
         [ADD_HULL_ATTACHMENT, AP_BEARING, 0, clipping_diameter],
-        [ADD_HULL_WITH_BEARING_CLEARACE, AP_LCAP, 1, clipping_diameter],
+        [ADD_HULL_ATTACHMENT, AP_TCAP, 1, clipping_diameter],
+        //[ADD_HULL_WITH_BEARING_CLEARACE, AP_TOP_OF_TCAP, 1, clipping_diameter],
     ];
     echo("attachment_instructions", attachment_instructions);
     pivot(pivot_size, air_gap, angle_bearing_t, angle_cap_t, attachment_instructions=attachment_instructions) {
         fake_handle(pivot_size);
-        fake_handle(pivot_size);
+        fake_handle(3*pivot_size);
     }
 }
 
