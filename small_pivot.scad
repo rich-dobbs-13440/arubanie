@@ -105,7 +105,10 @@ function rotation_match(mapping, attachment_point_id, group_id) =
     mapping[0] == attachment_point_id && mapping[1] == group_id;
 
 function is_in_rotational_group(group_id, attachment_point_id) = 
-    len([for (mapping = ROTATION_MAP) if (rotation_match(mapping, attachment_point_id, group_id)) true]) > 0;  
+    len([for (mapping = ROTATION_MAP) if (rotation_match(mapping, attachment_point_id, group_id)) true]) > 0;
+      
+assert(is_in_rotational_group(RG_PIN, AP_LCAP), "Internal error: is_in_rotational_group implementation"); 
+assert(!is_in_rotational_group(AP_BEARING, AP_LCAP), "Internal error: is_in_rotational_group implementation");  
 
 // Instruction commands
 ADD_HULL_ATTACHMENT = 1001;
@@ -259,17 +262,20 @@ module attachment_target(connector_id, size, colors) {
     if (connector_id == AP_BEARING) {
         bearing_join(size, colors);
     } 
-    if (connector_id == AP_CAP) {
+    if (connector_id == AP_CAP_YOKE) {
         l_cap_join(size, colors); 
         t_cap_join(size, colors); 
     }
     if (connector_id == AP_LCAP) {
         l_cap_join(size, colors);
     }
+    if (connector_id == AP_TCAP) {
+        l_cap_join(size, colors);
+    }
 }
 
 
-module external_attachment(attachment_point_id, size, colors, instruction) {
+module attach(attachment_point_id, size, colors, instruction) {
     echo("Instruction", instruction);
     command = instruction[0];
     if (command == ADD_HULL_ATTACHMENT) {
@@ -282,7 +288,7 @@ module external_attachment(attachment_point_id, size, colors, instruction) {
 }
 
 module rotational_group(group_id, size, colors, instructions) {
-
+    echo("group_id", group_id);
     // TODO - handle this as instructions using default values.
     if (group_id == RG_BEARING) {
         bearing_join(size, colors);  
@@ -295,12 +301,14 @@ module rotational_group(group_id, size, colors, instructions) {
         t_cap_join(size, colors); 
     }
     echo("rotational_group: attachment_instructions", instructions);
-    if (!is_undef(attachment_instructions) ) {
-        if (len(attachment_instructions) > 0) {
-            for (instruction = attachment_instructions) {
+    if (!is_undef(instructions) ) {
+        if (len(instructions) > 0) {
+            for (instruction = instructions) {
+
                 attachment_point_id = instruction[1];
+                echo("attachment_point_id", attachment_point_id);
                 if (is_in_rotational_group(group_id, attachment_point_id)) {
-                    attach(attachment_point, size, colors, instruction) children();
+                    attach(attachment_point_id, size, colors, instruction) children();
                 }
             } 
         }
@@ -326,12 +334,12 @@ module pivot(size, air_gap, angle_bearing=0, angle_cap=180, colors=default_color
     pin(size, 0.0, colors);
     bearing(size, air_gap, colors); 
     rotate([0, 0, angle_cap]) {
-        rotational_group(RG_PIN, size, air_gap, colors, attachment_instructions) {
+        rotational_group(RG_PIN, size, colors, attachment_instructions) {
             children();
         }
     } 
     rotate([0, 0, angle_bearing]) {
-        rotational_group(RG_BEARING, size, air_gap, colors, attachment_instructions) {
+        rotational_group(RG_BEARING, size, colors, attachment_instructions) {
             children();
         }
     }   
@@ -440,7 +448,7 @@ if (show_bearing_attachment_revision) {
     echo("attachment_instructions", attachment_instructions);
     pivot(pivot_size, air_gap, angle_bearing_t, angle_cap_t, attachment_instructions=attachment_instructions) {
         fake_handle(pivot_size);
-        fake_handle(3*pivot_size);
+        fake_handle(pivot_size);
     }
 }
 
