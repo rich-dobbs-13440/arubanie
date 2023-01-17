@@ -509,7 +509,7 @@ module v_pivot(size, air_gap, colors) {
     attachment_instructions = [
         [ADD_HULL_ATTACHMENT, AP_LCAP, 0, -1],
         [ADD_HULL_ATTACHMENT, AP_TCAP, 1, -1],
-        [ADD_HULL_ATTACHMENT, AP_BEARING, 2, -1]
+        [ADD_HULL_ATTACHMENT, AP_BEARING, 2]
     ];
     rotate([90,0, 0]) {
 
@@ -519,6 +519,7 @@ module v_pivot(size, air_gap, colors) {
             0, 
             180,
             attachment_instructions=attachment_instructions) {
+                
             translate([0, dy_l, dz_l]) cube([x, y, z_l], center=true);
             translate([0, dy_t, dz_t]) cube([x, y, z_t], center=true);
             translate([0, dy_hdl, dz_hdl]) rotate([0,90,0]) cylinder(d=d_hdl, h=h_hdl, center=true);
@@ -535,6 +536,27 @@ if (show_mounting_on_side_hand_crafted) {
     pivot_size = 0.7;
     air_gap = 0.35;
     v_pivot(pivot_size, air_gap);
+}
+
+module bearing_handle(size) {
+    
+    d_hdl = 7*size;
+    h_hdl = r_connector_size(size);
+    dy_hdl = 10*size;
+    dz_hdl = d_hdl/2 + 1.5* size;
+    translate([0, dy_hdl, dz_hdl]) rotate([0,90,0]) {
+        cylinder(d=d_hdl, h=h_hdl, center=true);
+    }
+}
+
+module yoke_brace_attachment(size) {
+    x = 0.5*size;
+    y = 0.5*size;
+    z = 0.5*size;
+
+    dy = 9*size;
+    dz = z/2;
+    translate([0, dy, dz]) cube([x, y, z], center=true);
 }
 
 
@@ -555,23 +577,26 @@ if (show_supports_for_side_attachment) {
     dz_w = z_w/2;
     translate([0, 0, dz_w]) cube([x_w, y_w, z_w], center=true);
     
-    pivot_size = 0.7;
-    air_gap = 0.35;
+    pivot_size = 0.8;
+    air_gap = 0.45;
     dz_p = 8;
     
     instructions = [
         [ADD_CAP_YOKE, AP_LCAP],
         [ADD_SPRUCES, AP_LCAP, [180]],
         [ADD_SPRUCES, AP_TCAP, [180]],
+        [ADD_HULL_ATTACHMENT, AP_BEARING, 0],
+        [ADD_HULL_ATTACHMENT, AP_CAP_YOKE, 1],
     ];
     translate([0, 0, dz_p]) { 
     
         rotate([90, 0, 0]) {
-            pivot(
-                pivot_size, 
-                air_gap, 
-                angle_bearing=angle_bearing_t, 
-                attachment_instructions= instructions);
+            pivot(pivot_size, air_gap, angle_bearing=0, attachment_instructions=instructions) {
+                
+                bearing_handle(pivot_size);
+                yoke_brace_attachment(pivot_size);
+            
+            }
         }
     
     }
