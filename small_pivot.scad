@@ -19,6 +19,9 @@ show_pin_rotational_group = false;
 show_sprue = false;
 show_mounting_on_top_of_item = false;
 show_bearing_attachment_revision = false;
+show_mounting_on_side = false;
+show_mounting_on_side_hand_crafted = false;
+show_supports_for_side_attachment = false;
 
 /* [Colors] */
 lcap_color_t = "Moccasin"; // ["Moccasin", "red", "blue", "green", "yellow", "orange", "purple"]
@@ -108,6 +111,8 @@ assert(!is_in_rotational_group(AP_BEARING, AP_LCAP), "Internal error: is_in_rota
 // Instruction commands - how to export??? 
 ADD_HULL_ATTACHMENT = 1001;
 ADD_HULL_WITH_BEARING_CLEARACE = 1002;
+ADD_CAP_YOKE = 1003;
+ADD_SPRUCES = 1004;
 
 FIRST_CHILD = 0;
 SECOND_CHILD = 1; 
@@ -128,7 +133,8 @@ S_H_AXLE = 2.0;
 S_H_TCONE = 2.0;
 S_H_TCAP = 2.0;
 
-S_CONNECTOR_SIZE = 2.5;
+R_CONNECTOR_SIZE = 1.0;
+T_CONNECTOR_SIZE = 2.5;
 
 
 function r_lcap(size, air_gap) = S_R_LCAP * size + air_gap;
@@ -138,7 +144,8 @@ function r_tcone(size, air_gap) = S_R_TCONE * size + air_gap;
 function r_tcap(size, air_gap) = S_R_TCAP * size + air_gap;
 function r_bearing(size) = S_R_BEARING * size;
 
-function connector_size(size) = S_CONNECTOR_SIZE * size;
+function r_connector_size(size) = R_CONNECTOR_SIZE * size;
+function t_connector_size(size) = T_CONNECTOR_SIZE * size;
 
 function h_lcap(size) = S_H_LCAP * size;
 function h_lcone(size) = S_H_LCONE * size;
@@ -197,8 +204,8 @@ module bearing(size, air_gap, colors) {
 }
 
 module connector_post(size, air_gap, positive_offset) {
-    x = connector_size(size);
-    y = connector_size(size) + r_tcone(size, air_gap);
+    x = t_connector_size(size);
+    y = r_connector_size(size) + r_tcone(size, 0);
     z = h_total(size);
     dy = (positive_offset ? 1: -1) * y/2;
     dz = z / 2;
@@ -212,8 +219,8 @@ module connector_post(size, air_gap, positive_offset) {
 }
 
 module bearing_join(size, colors) {
-    x = connector_size(size);
-    y = connector_size(size) + r_bearing(size);
+    x = t_connector_size(size);
+    y = r_connector_size(size) + r_bearing(size);
     z = h_bearing(size);
     dy = y/2;
     dz = z / 2 + h_lcap(size);
@@ -226,8 +233,8 @@ module bearing_join(size, colors) {
 }
 
 module l_cap_join(size, colors) {
-    x = connector_size(size);
-    y = connector_size(size) + r_bearing(size);
+    x = t_connector_size(size);
+    y = r_connector_size(size) + r_bearing(size);
     z = h_lcap(size);
     dy = y/2;
     dz = z / 2;   
@@ -240,8 +247,8 @@ module l_cap_join(size, colors) {
 }
 
 module t_cap_join(size, colors) {
-    x = connector_size(size);
-    y = connector_size(size) + r_bearing(size);
+    x = t_connector_size(size);
+    y = r_connector_size(size) + r_bearing(size);
     z = h_tcap(size);
     dy = y/2;
     dz = h_total(size) - z / 2;   
@@ -253,13 +260,12 @@ module t_cap_join(size, colors) {
     }
 }
 
-module attachment_target(connector_id, size, colors) {
+module attachment_target(connector_id, size, air_gap, colors) {
     if (connector_id == AP_BEARING) {
         bearing_join(size, colors);
     } 
     if (connector_id == AP_CAP_YOKE) {
-        l_cap_join(size, colors); 
-        t_cap_join(size, colors); 
+        connector_post(size, air_gap, positive_offset= true); 
     }
     if (connector_id == AP_LCAP) {
         l_cap_join(size, colors);
@@ -270,26 +276,31 @@ module attachment_target(connector_id, size, colors) {
 }
 
 
-module attach(attachment_point_id, size, colors, instruction) {
-    echo("####################### Instruction in attach", instruction);
+module attach(attachment_point_id, size, air_gap, colors, instruction) {
     command = instruction[0];
-    echo("####################### command in attach", command);
-    echo("####################### command in attach", ADD_HULL_ATTACHMENT);
     if (command == ADD_HULL_ATTACHMENT) {
         child_idx = instruction[2];
-        echo("####################### child_idx in attach", child_idx);
         hull() {
             children(child_idx);
-            attachment_target(attachment_point_id, size, colors); 
+            attachment_target(attachment_point_id, size, air_gap, colors); 
+        }
+    }
+    if (command == ADD_CAP_YOKE) { 
+        attachment_target(AP_CAP_YOKE, size, air_gap, colors); 
+    }
+    if (command == ADD_SPRUCES) {
+        angles = instruction[2];
+        echo("angles", angles);
+        if (attachment_point_id == AP_LCAP) {
+            sprues(size, air_gap, l_angles=angles); 
+        }
+        if (attachment_point_id == AP_TCAP) {
+            sprues(size, air_gap, t_angles=angles); 
         }
     }
 }
 
-module rotational_group(group_id, size, colors, instructions) {
-    echo("################ In rotational_group!"); 
-    echo("group_id", group_id);
-    echo("RG_BEARING", RG_BEARING);
-    echo("RG_PIN", RG_PIN);
+module rotational_group(group_id, size, air_gap, colors, instructions) {
     
     // TODO - handle this as instructions using default values.
     if (group_id == RG_BEARING) {
@@ -297,8 +308,6 @@ module rotational_group(group_id, size, colors, instructions) {
     } 
     if (group_id == RG_PIN) {
         // TODO:  add this as default as an attachment!
-        // color(colors[IDX_CAP_POST_COLOR]) connector_post(size, air_gap, positive_offset=true);
-        echo("################ Show lcap");
         l_cap_join(size, colors); 
         t_cap_join(size, colors); 
     }
@@ -310,7 +319,7 @@ module rotational_group(group_id, size, colors, instructions) {
                 attachment_point_id = instruction[1];
                 echo("attachment_point_id", attachment_point_id);
                 if (is_in_rotational_group(group_id, attachment_point_id)) {
-                    attach(attachment_point_id, size, colors, instruction) {    
+                    attach(attachment_point_id, size, air_gap, colors, instruction) {    
                         children(0);
                         children(1);
                         children(2);
@@ -341,10 +350,8 @@ module pivot(size, air_gap, angle_bearing=0, angle_cap=180, colors=default_color
     
     pin(size, 0.0, colors);
     bearing(size, air_gap, colors);
-    echo("Handle pin"); 
-    echo("################ $children", $children);
     rotate([0, 0, angle_cap]) {
-        rotational_group(RG_PIN, size, colors, attachment_instructions) {
+        rotational_group(RG_PIN, size, air_gap, colors, attachment_instructions) {
             // Kludge to avoid implicit union!
             children(0);
             children(1);
@@ -353,11 +360,9 @@ module pivot(size, air_gap, angle_bearing=0, angle_cap=180, colors=default_color
             children(4);
         }
     } 
-    echo("################ $children in pivot", $children); 
-    echo("Handle bearing");
     rotate([0, 0, angle_bearing]) {
          
-        rotational_group(RG_BEARING, size, colors, attachment_instructions) {
+        rotational_group(RG_BEARING, size, air_gap, colors, attachment_instructions) {
             children(0);
             children(1);
             children(2);
@@ -368,17 +373,25 @@ module pivot(size, air_gap, angle_bearing=0, angle_cap=180, colors=default_color
     echo("Exit pivot module");
 }
 
-module sprue(size, air_gap) {
-    // Design tweek to help with printing - need more flexibility
+module sprues(size, air_gap, l_angles, t_angles) {
+    // Design tweek to help with printing
+    
     h_sprue = 2*air_gap;
     r_sprue = air_gap;
     dy = - r_bearing(size) - air_gap/2;
-    dz = h_lcap(size) + h_sprue/2;
-    translate([0, dy, dz]) cylinder(r=air_gap, h=h_sprue, center=true);
+    
+    for (a = l_angles) {
+        dz = h_lcap(size) + h_sprue/2;
+        rotate([0, 0, a]) translate([0, dy, dz]) cylinder(r=air_gap, h=h_sprue, center=true);
+    }
+    for (a = t_angles) {
+        dz = h_tcap(size) + h_bearing(size) - h_sprue/2;
+        rotate([0, 0, a]) translate([0, dy, dz]) cylinder(r=air_gap, h=h_sprue, center=true);
+    }
 }
 
 if (show_sprue) {
-    sprue(size=size_t, air_gap=air_gap_t);
+    sprues(size=size_t, air_gap=air_gap_t,l_angles=[0, 120, 240], t_angles=[0,90, 180, 270]);
 }
 
 if (show_pin) {
@@ -424,8 +437,8 @@ if (show_mounting_on_top_of_item) {
     angle = 90;
     
     // Detemine the handle mask parameters, so that bearing handle isn't in contact with base plate
-    x_hm = 2*connector_size(pivot_size);
-    y_hm = 2*connector_size(pivot_size);
+    x_hm = 2*r_connector_size(pivot_size);
+    y_hm = 2*t_connector_size(pivot_size);
     z_hm = r_lcap(pivot_size, air_gap);
     dy_hm = y_hm/2 + r_lcap(pivot_size, air_gap) - air_gap;
     dz_hm = z_hm/2;
@@ -437,7 +450,7 @@ if (show_mounting_on_top_of_item) {
     
     // Now attach a hande that rests on the build plate.
     d_hdl = h_total(pivot_size) + plate_thickness;
-    h_hdl = connector_size(pivot_size);
+    h_hdl = r_connector_size(pivot_size);
     dy_hdl = r_lcap(pivot_size, air_gap) + d_hdl/2; 
     dz_hdl = d_hdl/2 - plate_thickness ;
     translate([0, dy_hdl, dz_hdl]) 
@@ -448,7 +461,7 @@ if (show_mounting_on_top_of_item) {
 module fake_handle(pivot_size) {
     
     d_hdl = 10*pivot_size;
-    h_hdl = connector_size(pivot_size);
+    h_hdl = r_connector_size(pivot_size);
     dy_hdl = 5;
     dz_hdl = d_hdl/2 ;
     translate([0, dy_hdl, dz_hdl]) 
@@ -468,12 +481,101 @@ if (show_bearing_attachment_revision) {
         [ADD_HULL_ATTACHMENT, AP_BEARING, 0, clipping_diameter],
         [ADD_HULL_ATTACHMENT, AP_TCAP, 1, clipping_diameter],
         [ADD_HULL_ATTACHMENT, AP_LCAP, 1, clipping_diameter]
-        //[ADD_HULL_WITH_BEARING_CLEARACE, AP_TOP_OF_TCAP, 1, clipping_diameter],
     ];
     echo("attachment_instructions", attachment_instructions);
     pivot(pivot_size, air_gap, angle_bearing_t, angle_pin_t, attachment_instructions=attachment_instructions) {
         fake_handle(pivot_size);
         fake_handle(0.75*pivot_size);
     }
+}
+
+module v_pivot(size, air_gap, colors) {
+    
+    x = 3*size;
+    y = 3*size;
+    z_l = 2*size;
+    z_t = 0.5*size;
+    dy_t = 9*size;
+    dy_l = 6*size;
+    dz_l = z_l/2;
+    dz_t = z_t/2;
+    
+    d_hdl = 8*size;
+    h_hdl = r_connector_size(size);
+    dy_hdl = 10*size;
+    dz_hdl = d_hdl/2 + size;
+     
+    
+    attachment_instructions = [
+        [ADD_HULL_ATTACHMENT, AP_LCAP, 0, -1],
+        [ADD_HULL_ATTACHMENT, AP_TCAP, 1, -1],
+        [ADD_HULL_ATTACHMENT, AP_BEARING, 2, -1]
+    ];
+    rotate([90,0, 0]) {
+
+        pivot(
+            size, 
+            air_gap, 
+            0, 
+            180,
+            attachment_instructions=attachment_instructions) {
+            translate([0, dy_l, dz_l]) cube([x, y, z_l], center=true);
+            translate([0, dy_t, dz_t]) cube([x, y, z_t], center=true);
+            translate([0, dy_hdl, dz_hdl]) rotate([0,90,0]) cylinder(d=d_hdl, h=h_hdl, center=true);
+        }
+        
+        // Add spruces so that bear is hanging in mid air!
+        sprues(size=size, air_gap=air_gap, l_angles=[0], t_angles=[0]);
+        
+    }
+        
+}
+
+if (show_mounting_on_side_hand_crafted) {
+    pivot_size = 0.7;
+    air_gap = 0.35;
+    v_pivot(pivot_size, air_gap);
+}
+
+
+
+
+if (show_supports_for_side_attachment) {
+    plate_thickness = 1;
+    plate_size = 11;
+    dz = -plate_thickness/2;
+    dy = -3;
+    translate([0, dy, dz]) cube([plate_size, plate_size, plate_thickness], center=true);  
+    
+    wall_thickness = 1;
+    wall_height  = 12;
+    x_w = plate_size;
+    y_w = wall_thickness;
+    z_w = wall_height;
+    dz_w = z_w/2;
+    translate([0, 0, dz_w]) cube([x_w, y_w, z_w], center=true);
+    
+    pivot_size = 0.7;
+    air_gap = 0.35;
+    dz_p = 8;
+    
+    instructions = [
+        [ADD_CAP_YOKE, AP_LCAP],
+        [ADD_SPRUCES, AP_LCAP, [180]],
+        [ADD_SPRUCES, AP_TCAP, [180]],
+    ];
+    translate([0, 0, dz_p]) { 
+    
+        rotate([90, 0, 0]) {
+            pivot(
+                pivot_size, 
+                air_gap, 
+                angle_bearing=angle_bearing_t, 
+                attachment_instructions= instructions);
+        }
+    
+    }
+    
+    
 }
 
