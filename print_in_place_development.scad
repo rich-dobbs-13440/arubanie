@@ -96,10 +96,6 @@ function pin_data(dr) =
     [ r_axle + dr,      r_axle + dr,    h_axle,    idx_of_color(axle_color) ],
     [ r_axle + dr,      r_cap + dr,     h_cap,     idx_of_color(cap_color) ],
     [ r_cap + dr,       r_post + dr,    h_post,    idx_of_color(post_color) ],
-    //    [ag(r_base),        ag(r_base),         h_base,         color_blue_idx_vcf],
-    //    [ag(r_base_inner),  ag(r_neck),         h_neck_bottom,  color_red_idx_vcf],
-    //    [ag(r_neck),        ag(r_top_inner),    h_neck_top,     color_green_idx_vcf],
-    //    [ag(r_top),         ag(r_top),          h_top,          color_yellow_idx_vcf],
 ];
 
 
@@ -349,6 +345,10 @@ if (show_explore_children_in_sub_modules) {
         cylinder(r=1, h=1);
     }
 }
+
+j = [[1, "Sam"], [2, "Jill"]];
+
+echo("j", j);
 
 
     

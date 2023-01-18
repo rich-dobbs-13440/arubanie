@@ -577,14 +577,14 @@ if (show_supports_for_side_attachment) {
     dz_w = z_w/2;
     translate([0, 0, dz_w]) cube([x_w, y_w, z_w], center=true);
     
-    pivot_size = 0.8;
-    air_gap = 0.45;
-    dz_p = 8;
+    pivot_size = 1;
+    air_gap = 0.55;
+    dz_p = 9;
     
     instructions = [
         [ADD_CAP_YOKE, AP_LCAP],
-        [ADD_SPRUCES, AP_LCAP, [180]],
-        [ADD_SPRUCES, AP_TCAP, [180]],
+        [ADD_SPRUCES, AP_LCAP, [165, 195]],
+        [ADD_SPRUCES, AP_TCAP, [165, 195]],
         [ADD_HULL_ATTACHMENT, AP_BEARING, 0],
         [ADD_HULL_ATTACHMENT, AP_CAP_YOKE, 1],
     ];
