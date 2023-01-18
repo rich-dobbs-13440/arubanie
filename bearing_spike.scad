@@ -199,7 +199,7 @@ module bushing(d, h, d_ratio, h_ratio, colors, air_gap) {
     }
 }
 
-module bearing(d, h, d_ratio, h_ratio, colors, air_gap) {
+module bearing(d, h, air_gap, d_ratio=0.4, h_ratio=0.7, colors=[]) {
     union() {
         axle(d, h, d_ratio, h_ratio, colors, air_gap);
         bushing(d, h, d_ratio, h_ratio, colors, air_gap);
@@ -235,7 +235,7 @@ module bushing_q(z_index) {
 
 module bearing_q(z_index) {
    view_cross_section(z_index) {
-       bearing(d_q, h_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
+       bearing(d_q, h_q, air_gap_q, d_ratio_q, h_ratio_q, colors_q);
    } 
 }
 
@@ -374,6 +374,40 @@ if (show_roller_q) {
     }
 }
 
+
+
+show_simple_usage_test = true;
+
+
+if (show_simple_usage_test) {
+    d = 6;
+    h = 6;
+    handle = 10;
+    air_gap = 0.4;
+    
+    x = handle; 
+    y = 0.7*h;
+    z = d/2;
+    dx = x/2;
+    dy = h/2;
+    dz = -d/2 + z/2;
+    
+    bearing(d, h, air_gap);
+    // Handle that attaches to side
+    hole_for_bearing() {
+        bearing(d, h, air_gap); // will be centered by default
+        translate([dx, dy, dz]) cube([x, y, z], center=true);
+    }
+    // Handle for end
+    x_e = handle + d / 2; 
+    dx_e = x_e / 2 - d /2;
+    dy_e = -y / 2;
+    dz_e = dz;
+    translate([dx_e, dy_e, dz_e]) cube([x_e, y, z], center=true);
+}
+
+
+
 if (show_handle_q) {
     handle_q();
 }
@@ -392,6 +426,8 @@ if (show_bearing_support_q) {
 
 if (show_union_test) {
 }
+
+
 
 
 
