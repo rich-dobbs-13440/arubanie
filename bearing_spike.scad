@@ -4,16 +4,18 @@ use <vector_cylinder.scad>
 
 $fa = 1;
 $fs = 0.4;
-eps = 0.001;  // [0.001, 0.01, 0.1, 1, 10]
+eps = 0.001;  // [0.001, 0.01, 0.1, 0.25, 1, 10]
 
 infinity = 50;
 
 // Use _q suffix to make it easy to search for global variable use in modules
 /* [Show] */
+show_bearing_q = true;
 show_axle_q = false;
 show_bushing_carve_out_q = false;
 show_bushing_q = false;
 show_bushing_blank_q = false;
+show_union_test = false;
 
 show_cross_section_q = false;
 show_roller_q = false;
@@ -47,6 +49,17 @@ colors_by_index = [axle_color_q, color_bushing_carve_q, color_bushing_q];
 /* [Roller] */
 roller_center_q = true;
 right_orientation_q = false;
+
+/* [Test Fixtures] */
+floor_width_to_bearing_diameter_q = 1.25; // [0: 0.1 : 2]
+floor_breadth_to_bearing_height_q = 1.25; // [0: 0.1 : 2]
+floor_thickness_q = 0.5; // [0: 0.1 : 2]
+wall_height_by_bearing_diameter_q  = 1.25; // [0: 0.1 : 2]
+wall_thickness_q = 0.5; // [0: 0.1 : 2]
+
+// relative to bearing diameter
+dx_handle_q = 0; // [-5: 0.1 : 5] 
+x_handle_q = 1; // [0 : 0.1 : 2]
 
 
 module end_of_customization () {}
@@ -197,7 +210,7 @@ module axle_q(z_index) {
 
 module bushing_carve_out_q(z_index) {
     view_cross_section(z_index) {
-        bushing_carve_out(d_q, d_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
+        bushing_carve_out(d_q, h_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
     }
 }
 
@@ -210,9 +223,91 @@ module bushing_q(z_index) {
 
 module bearing_q(z_index) {
    view_cross_section(z_index) {
-       bearing(d_q, d_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
+       bearing(d_q, h_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
    } 
 }
+
+//module union_for_bearing() {
+//    children(0); // This will be the bearing
+//    // for now just assume that all attachments are on sides, not ends
+//    for (i = [1:1:$children-1] {
+//        difference() {
+//            children(i)
+//            hull() {
+//                children(0)
+//            }
+//    }
+//}
+
+function wall_height_q() =  wall_height_by_bearing_diameter_q * d_q;
+function wall_width_q() = floor_width_to_bearing_diameter_q * d_q;
+
+module translate_fixture_t() {
+    dx = - wall_width_q() / 2;
+    dy = - wall_thickness_q;
+    dz = - wall_height_q() / 2;
+
+    translate([dx, dy, dz]) {
+        children();
+    }
+}
+
+module wall_q() {
+    y = wall_thickness_q;
+    x = wall_width_q();
+    z = wall_height_by_bearing_diameter_q * d_q;
+    translate_fixture_t() cube([x, y, z], center=false);
+}
+
+module floor_q() {
+    z = flooor_thickness_q;
+    x = floor_width_to_bearing_diameter_q * d_q;
+    y = floor_breadth_to_bearing_height_q * h_q;
+    dz = 0;
+    dy = 0;
+    translate_fixture_t() cube([x, y, z], center=false);   
+}
+
+module handle_support_t() {
+    z = floor_thickness_q;
+    x = x_handle_q * d_q;
+    y = d_q * 0.9;
+    dx = -dx_handle_q * d_q ;
+    dz = 0; 
+    dy = wall_thickness_q + air_gap_q; // h_q/2; 
+    translate_fixture_t() {
+        translate([dx, dy, dz]) cube([x, y, z], center=false);  
+    }    
+}
+
+handle_support_t();
+
+
+
+module handle_q() {
+    
+    x = 3;
+    y = h_q - air_gap_q;
+    z = 1.1 * d_q;
+    dy = y/2 + air_gap_q ;
+    dx = x/2;
+    difference() {
+        hull() {
+            translate([0, air_gap_q, 0]) scale([1.1,0.95, 1.1]) bushing_blank_q(z_index=3);
+            handle_support_t();
+        }
+        hull() {
+            bushing_blank_q(z_index=3);
+        }
+    }
+}
+handle_q();
+wall_q();
+*floor_q();
+
+
+
+
 
 // Order from inner to outer for eventual rendering with alpha!
 
@@ -231,15 +326,19 @@ if (show_bushing_q) {
 if (show_bushing_blank_q) {
    bushing_blank_q(z_index=3);    
 }
-
-
+if (show_bearing_q) {
+    bearing_q(z_index=4);
+}
 
 if (show_roller_q) {
     if (right_orientation_q) {
-        roller(d_q, h_q, center=roller_center_q, v=X_ORIENTATION);
+         roller(d_q, h_q, center=roller_center_q, v=X_ORIENTATION);
     }  else {
         roller(d_q, h_q, center=roller_center_q);
     }
+}
+
+if (show_union_test) {
 }
 
 
