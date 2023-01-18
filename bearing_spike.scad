@@ -15,10 +15,7 @@ show_axle_q = false;
 show_bushing_carve_out_q = false;
 show_bushing_q = false;
 show_bushing_blank_q = false;
-show_union_test = false;
 
-show_cross_section_q = false;
-show_roller_q = false;
 
 /* [Dimensions] */
 
@@ -40,6 +37,7 @@ clip_color_q = "blue"; // ["red", "blue", "green", "yellow", "orange", "purple"]
 colors_q = [shoulder_color_q, axle_color_q, clip_color_q, color_bushing_carve_q];
 
 /* [Cross Section] */
+show_cross_section_q = false;
 spidge_max_explode_q = 0.01;
 spidge_delta_q = spidge_max_explode_q/100;
 
@@ -51,15 +49,27 @@ roller_center_q = true;
 right_orientation_q = false;
 
 /* [Test Fixtures] */
+
+show_roller_q = false;
+show_handle_q = false;
+show_wall_q = false;
+show_floor_q = false;
+show_bearing_support_q = false;
+show_union_test = false;
+
 floor_width_to_bearing_diameter_q = 1.25; // [0: 0.1 : 2]
 floor_breadth_to_bearing_height_q = 1.25; // [0: 0.1 : 2]
 floor_thickness_q = 0.5; // [0: 0.1 : 2]
-wall_height_by_bearing_diameter_q  = 1.25; // [0: 0.1 : 2]
+wall_height_by_bearing_diameter_q  = 1.5; // [0: 0.1 : 2]
 wall_thickness_q = 0.5; // [0: 0.1 : 2]
 
-// relative to bearing diameter
-dx_handle_q = 0; // [-5: 0.1 : 5] 
-x_handle_q = 1; // [0 : 0.1 : 2]
+/* [Handle] */
+bearing_support_position_q = 0; // [-0.5: 0.01 : 0.5]
+bearing_support_r_q = 0.5; // [0.0 : 0.1 : 1.0]
+bearing_support_h_q = 0.5; // [0 : 0.1 : 1.0]
+handle_length_q = 5; // [0: 0.1 : 10]
+// In mm 
+handle_height_q = 2; // [0 : 0.01 : 4]
 
 
 module end_of_customization () {}
@@ -196,6 +206,8 @@ module bearing(d, h, d_ratio, h_ratio, colors, air_gap) {
     }
 }
 
+//--------------------------------------------- Customizer ----------------------------------------------------------------
+
 module bushing_blank_q(z_index) {
    view_cross_section(z_index) {
        bushing_blank(d_q, h_q); 
@@ -227,22 +239,12 @@ module bearing_q(z_index) {
    } 
 }
 
-//module union_for_bearing() {
-//    children(0); // This will be the bearing
-//    // for now just assume that all attachments are on sides, not ends
-//    for (i = [1:1:$children-1] {
-//        difference() {
-//            children(i)
-//            hull() {
-//                children(0)
-//            }
-//    }
-//}
+
 
 function wall_height_q() =  wall_height_by_bearing_diameter_q * d_q;
 function wall_width_q() = floor_width_to_bearing_diameter_q * d_q;
 
-module translate_fixture_t() {
+module translate_fixture_q() {
     dx = - wall_width_q() / 2;
     dy = - wall_thickness_q;
     dz = - wall_height_q() / 2;
@@ -256,7 +258,7 @@ module wall_q() {
     y = wall_thickness_q;
     x = wall_width_q();
     z = wall_height_by_bearing_diameter_q * d_q;
-    translate_fixture_t() cube([x, y, z], center=false);
+    translate_fixture_q() cube([x, y, z], center=false);
 }
 
 module floor_q() {
@@ -265,22 +267,52 @@ module floor_q() {
     y = floor_breadth_to_bearing_height_q * h_q;
     dz = 0;
     dy = 0;
-    translate_fixture_t() cube([x, y, z], center=false);   
+    translate_fixture_q() cube([x, y, z], center=false);   
 }
 
-module handle_support_t() {
-    z = floor_thickness_q;
-    x = x_handle_q * d_q;
-    y = d_q * 0.9;
-    dx = -dx_handle_q * d_q ;
-    dz = 0; 
-    dy = wall_thickness_q + air_gap_q; // h_q/2; 
-    translate_fixture_t() {
+module bearing_support_q() {
+
+    x = max(bearing_support_r_q * d_q, 3);
+    y = max(bearing_support_h_q * h_q, 3);
+    z = min(handle_height_q, 1);
+    echo("bearing support x, y, z", x, y, z);
+    dx = wall_width_q()/2 - x/2 -bearing_support_position_q * d_q;//-bearing_support_position_q * d_q ;
+    dy = -y/2 + d_q/2 + wall_thickness_q;
+    dz = 0;
+    translate_fixture_q() {
+        
         translate([dx, dy, dz]) cube([x, y, z], center=false);  
     }    
 }
 
-handle_support_t();
+//// relative to bearing diameter
+//bearing_support_position_q = 0; // [-5: 0.01 : 5]
+//handle_length_q = 5; // [0: 0.1 : 10]
+//// In mm 
+//handle_height_q = 0; // [0 : 0.01 : 2]
+// ***************************************************
+
+module union_for_bearing() {
+    
+//    children(0); // This will be the bearing
+//    // for now just assume that all attachments are on sides, not ends
+//    for (i = [1:1:$children-1] {
+//        difference() {
+//            children(i)
+//            hull() {
+//                children(0)
+//            }
+//    }
+}
+
+module hole_for_bearing() {
+    difference() {
+        children([1:$children-1]);
+        hull() {
+            children(0);
+        }
+    }
+}
 
 
 
@@ -291,23 +323,27 @@ module handle_q() {
     z = 1.1 * d_q;
     dy = y/2 + air_gap_q ;
     dx = x/2;
-    difference() {
+    hole_for_bearing() {
+        bearing_q(z_index=3); 
         hull() {
-            translate([0, air_gap_q, 0]) scale([1.1,0.95, 1.1]) bushing_blank_q(z_index=3);
-            handle_support_t();
+            bearing_support_q();
+            translate([handle_length_q, 0, 0]) bearing_support_q();
         }
         hull() {
-            bushing_blank_q(z_index=3);
+            translate([0, 2 * air_gap_q, 0]) roller(d=d_q * 1.2 , h=0.7 * h_q, center=false);
+            bearing_support_q();
         }
+        
     }
+//        hull() {
+//            bushing_blank_q(z_index=3);
+//        }
+//    }
 }
-handle_q();
-wall_q();
-*floor_q();
 
-
-
-
+* hole_for_bearing() {
+    bushing_q(z_index=3);  
+}
 
 // Order from inner to outer for eventual rendering with alpha!
 
@@ -336,6 +372,22 @@ if (show_roller_q) {
     }  else {
         roller(d_q, h_q, center=roller_center_q);
     }
+}
+
+if (show_handle_q) {
+    handle_q();
+}
+
+if (show_wall_q) {
+    wall_q();
+}
+
+if (show_floor_q) {
+    floor_q();
+}
+
+if (show_bearing_support_q) {
+    bearing_support_q();
 }
 
 if (show_union_test) {
