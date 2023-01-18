@@ -11,11 +11,12 @@ infinity = 50;
 // Use _q suffix to make it easy to search for global variable use in modules
 /* [Show] */
 show_axle_q = false;
-show_bearing_carve_out_q = false;
-show_bearing_q = false;
-show_bearing_blank_q = false;
+show_bushing_carve_out_q = false;
+show_bushing_q = false;
+show_bushing_blank_q = false;
 
 show_cross_section_q = false;
+show_roller_q = false;
 
 /* [Dimensions] */
 
@@ -26,21 +27,44 @@ h_ratio_q = 0.7;
 air_gap_q = 0.5; // [0: 0.01 : 1]
 
 
+
 /* [Colors] */
-color_bearing_carve_q = "orange"; // ["red", "blue", "green", "yellow", "orange", "purple"]
-color_bearing_q = "green"; // ["red", "blue", "green", "yellow", "orange", "purple"]
+color_bushing_carve_q = "orange"; // ["red", "blue", "green", "yellow", "orange", "purple"]
+color_bushing_q = "green"; // ["red", "blue", "green", "yellow", "orange", "purple"]
 shoulder_color_q = "green"; // ["red", "blue", "green", "yellow", "orange", "purple"]
 axle_color_q = "red"; // ["red", "blue", "green", "yellow", "orange", "purple"]
 clip_color_q = "blue"; // ["red", "blue", "green", "yellow", "orange", "purple"]
 
-colors_q = [shoulder_color_q, axle_color_q, clip_color_q, color_bearing_carve_q];
+colors_q = [shoulder_color_q, axle_color_q, clip_color_q, color_bushing_carve_q];
 
 /* [Cross Section] */
 spidge_max_explode_q = 0.01;
 spidge_delta_q = spidge_max_explode_q/100;
 
 alphas_by_index = [1, 0.7, 0.4, 0.3, 0.2,0.1];
-colors_by_index = [axle_color_q, color_bearing_carve_q, color_bearing_q];
+colors_by_index = [axle_color_q, color_bushing_carve_q, color_bushing_q];
+
+/* [Roller] */
+roller_center_q = true;
+right_orientation_q = false;
+
+
+module end_of_customization () {}
+
+Y_ORIENTATION = [-90, 0, 0];
+X_ORIENTATION = [0, 90, 0];
+
+
+
+module roller(d, h, center=true, v=Y_ORIENTATION) {
+
+    // A roller is a cylinder laying on its side
+    rotate(v) {
+        cylinder(d=d, h=h, center=center);
+    }
+}
+
+
 
 function spidge(z_index) = -spidge_max_explode_q + spidge_delta_q * z_index;
 
@@ -76,6 +100,8 @@ module view_cross_section(z_index, element_color) {
 }
 
 
+
+
 module cut_for_cap(d, h) {
     s = infinity;
 
@@ -104,29 +130,34 @@ module axle_shape(d, h, d_ratio, h_ratio, is_axle, colors) {
     ];
     echo("axle_data", axle_data);
     
-    difference() {
-        v_conic_frustrum(
-            columns,         
-            axle_data, 
-            colors);
-        if (is_axle) {
-            cut_for_cap(d_n, h_n);
+    
+    rotate(Y_ORIENTATION) {
+        difference() {
+            v_conic_frustrum(
+                columns,         
+                axle_data, 
+                colors);
+            if (is_axle) {
+                cut_for_cap(d_n, h_n);
+            }
         }
     }
        
 }  
 
+
+
 module axle(d, h, d_ratio, h_ratio, colors, air_gap) {
     d_axle = d - air_gap/2;
-    axle_shape(d_axle, h, d_ratio, h_ratio, true, colors);
+    translate([0, -eps, 0]) axle_shape(d_axle-eps, h+2*eps, d_ratio, h_ratio, true, colors);
 }
 
-module bearing_carve_out(d, h, d_ratio, h_ratio, colors, air_gap) {
+module bushing_carve_out(d, h, d_ratio, h_ratio, colors, air_gap) {
     d_c0 = d + air_gap/2;
     
     d_neck_axle = d * d_ratio;
-    d_neck_bearing = d * d_ratio + 2*air_gap;
-    d_ratio_co = d_neck_bearing / d_c0;
+    d_neck_bushing = d * d_ratio + 2*air_gap;
+    d_ratio_co = d_neck_bushing / d_c0;
     use_cut_for_cap = false;
     
     h_co = h;
@@ -134,20 +165,27 @@ module bearing_carve_out(d, h, d_ratio, h_ratio, colors, air_gap) {
     axle_shape(d_c0, h_co, d_ratio_co, h_ratio_co, use_cut_for_cap, colors);
 }
 
-module bearing_blank(d, h) {
-    translate([0,0,h/2]) cylinder(d=d-eps, h=h-eps, center=true); 
+module bushing_blank(d, h) {
+    translate ([0, eps, 0]) roller(d=d+eps, h = h - 2 * eps, center=false); 
 }
 
-module bearing(d, h, d_ratio, h_ratio, colors, air_gap) {
+module bushing(d, h, d_ratio, h_ratio, colors, air_gap) {
     difference() {
-        bearing_blank(d, h);
-        bearing_carve_out(d, h, d_ratio, h_ratio, colors, air_gap);
+        bushing_blank(d, h);
+        bushing_carve_out(d, h, d_ratio, h_ratio, colors, air_gap);
     }
 }
 
-module bearing_blank_q(z_index) {
+module bearing(d, h, d_ratio, h_ratio, colors, air_gap) {
+    union() {
+        axle(d, h, d_ratio, h_ratio, colors, air_gap);
+        bushing(d, h, d_ratio, h_ratio, colors, air_gap);
+    }
+}
+
+module bushing_blank_q(z_index) {
    view_cross_section(z_index) {
-       bearing_blank(d_q, h_q); 
+       bushing_blank(d_q, h_q); 
    } 
 }
 
@@ -157,17 +195,23 @@ module axle_q(z_index) {
    } 
 }
 
-module bearing_carve_out_q(z_index) {
+module bushing_carve_out_q(z_index) {
     view_cross_section(z_index) {
-        bearing_carve_out(d_q, d_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
+        bushing_carve_out(d_q, d_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
     }
 }
 
 
-module bearing_q(z_index) {
+module bushing_q(z_index) {
     view_cross_section(z_index) {
-        bearing(d_q, d_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
+        bushing(d_q, d_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
     }
+}
+
+module bearing_q(z_index) {
+   view_cross_section(z_index) {
+       bearing(d_q, d_q, d_ratio_q, h_ratio_q, colors_q, air_gap_q);
+   } 
 }
 
 // Order from inner to outer for eventual rendering with alpha!
@@ -176,22 +220,27 @@ if (show_axle_q) {
    axle_q(z_index=1);    
 }
 
-if (show_bearing_carve_out_q) {
-   bearing_carve_out_q(z_index=2);    
+if (show_bushing_carve_out_q) {
+   bushing_carve_out_q(z_index=2);    
 }
 
-if (show_bearing_q) {
-   bearing_q(z_index=3);    
+if (show_bushing_q) {
+   bushing_q(z_index=3);    
 }
 
-if (show_bearing_blank_q) {
-   bearing_blank_q(z_index=3);    
+if (show_bushing_blank_q) {
+   bushing_blank_q(z_index=3);    
 }
 
 
 
-
-
+if (show_roller_q) {
+    if (right_orientation_q) {
+        roller(d_q, h_q, center=roller_center_q, v=X_ORIENTATION);
+    }  else {
+        roller(d_q, h_q, center=roller_center_q);
+    }
+}
 
 
 
