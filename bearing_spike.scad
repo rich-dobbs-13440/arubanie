@@ -124,7 +124,6 @@ module view_cross_section(z_index, element_color) {
 
 module cut_for_cap(d, h) {
     s = infinity;
-
     rotate([0, 0, 90]) translate([d/2, 0, h]) translate([s/2, 0, s/2]) cube([s, s, s], center=true);
 }
 
@@ -152,6 +151,8 @@ module axle_shape(d, h, d_ratio, h_ratio, is_axle, colors) {
     
     
     rotate(Y_ORIENTATION) {
+        color(colors[c_a])
+        render()
         difference() {
             v_conic_frustrum(
                 columns,         
@@ -196,14 +197,22 @@ module bushing(d, h, d_ratio, h_ratio, colors, air_gap) {
     }
 }
 
-module attach_side_handles(d, h) {
+module bore_for_side_handles(d, h) {
+    echo("bore_for_side_handles - d, h", d, h);
     end_clearance = 0.05*h; 
     h_hole = h + 2 * end_clearance;
     d_hole = d - eps;
-    for (i = [0:1:$children-1]) {
-         difference() {
-            children(i);
-            translate([0, -end_clearance, 0]) roller(d=d_hole,h_hole, center=false);
+    translate([0, -end_clearance, 0]) roller(d=d_hole,h=h_hole, center=false);
+}
+
+module attach_side_handles(d, h) {
+    echo("$children", $children);
+    render() {
+        for (i = [0:1:$children-1]) {
+             difference() {
+                children(i);
+                bore_for_side_handles(d, h);
+            }
         }
     }
 }
@@ -246,7 +255,10 @@ module bearing(d, h, air_gap, d_ratio=0.4, h_ratio=0.7, colors=[], end_handle=fa
         axle(d, h, d_ratio, h_ratio, colors, air_gap);
         bushing(d, h, d_ratio, h_ratio, colors, air_gap);
     }
-    attach_side_handles(d, h) children();
+    echo("In bearing $children", $children);
+    if ($children >= 1) {
+        attach_side_handles(d, h) children();
+    }
     generate_end_handle(end_handle, d);  
 }
 
@@ -410,20 +422,28 @@ show_simple_usage_test = true;
 if (show_simple_usage_test) {
     d = 5;
     h = 5;
-    handle = 10;
-    air_gap = 0.4;
+    handle = 15;
+    air_gap = 0.5;
     
     x = handle; 
     y = 0.8*h;
-    z = d/2;
-    dx = x/2;
+    z = d;
+    dx = -x/2;
     dy = h/2;
     dz = -d/2 + z/2;
     
+    
     bearing(d, h, air_gap, end_handle=true) {
-        // This is the side handle!
-        translate([dx, dy, dz]) cube([x, y, z], center=true);
-    }
+        union() {
+            // This is the side handle!
+            translate([dx, dy, dz]) {
+                cube([x, y, z], center=true);
+            }
+            translate([-x, 3, -z/2]) cylinder(d=12, h=z); // finger pad for more leverage to try to break pivot free
+        }
+    } 
+
+    translate([3*d, -1, -z/2]) cylinder(d=12, h=z); // finger pad for more leverage to try to break pivot free
 }
 
 
