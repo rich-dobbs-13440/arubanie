@@ -80,7 +80,6 @@ X_ORIENTATION = [0, 90, 0];
 
 
 module roller(d, h, center=true, v=Y_ORIENTATION) {
-
     // A roller is a cylinder laying on its side
     rotate(v) {
         cylinder(d=d, h=h, center=center);
@@ -197,19 +196,58 @@ module bushing(d, h, d_ratio, h_ratio, colors, air_gap) {
     }
 }
 
-module bearing(d, h, air_gap, d_ratio=0.4, h_ratio=0.7, colors=[]) {
+module attach_side_handles(d, h) {
+    end_clearance = 0.05*h; 
+    h_hole = h + 2 * end_clearance;
+    d_hole = d - eps;
+    for (i = [0:1:$children-1]) {
+         difference() {
+            children(i);
+            translate([0, -end_clearance, 0]) roller(d=d_hole,h_hole, center=false);
+        }
+    }
+}
+
+module std_end_handle(d, h=true, l=true) {
+    echo("std_end_handle raw l: ", l);
+    echo("std_end_handle d: ", d);
+    // if l is a number, it is displacement in mm.  Could be positive or negative
+    // if l is a bool, it corresponds to should the handle be of 
+    // sufficient length to grab, or should it just be a mounting post.
+    length = is_num(l) ? l : (is_bool(l) && l) ? 2*d : 0;
+    assert(!is_undef(length), "Need to specify l parameter");
+    echo("std_end_handle length: ", length);
+    // Generate the bearing end of the handle
+    // if h is a number, then it directly used
+    // if h is boolean, then means generate a thick handle, 
+    // while false means 
+    assert(!is_undef(length), "Need to specify h parameter");
+    h_width = is_num(h) ? h : (is_bool(h) && h) ? d/2 : d/4;
+    assert(h_width > 0, "No meaning is currently defined for negative widths for the handles");
+    dy = -h_width;
+    dx = length;
+    
+    hull() {
+        translate([0, dy, 0]) roller(d, h=h_width, center=false); 
+        translate([dx, dy, 0]) roller(d, h=h_width, center=false); 
+    }
+}
+
+module generate_end_handle(end_handle, d) {
+    if (is_bool(end_handle) ) {
+        if (end_handle) {
+            std_end_handle(d);
+        } 
+    } 
+}
+
+module bearing(d, h, air_gap, d_ratio=0.4, h_ratio=0.7, colors=[], end_handle=false) {
     union() {
         axle(d, h, d_ratio, h_ratio, colors, air_gap);
         bushing(d, h, d_ratio, h_ratio, colors, air_gap);
     }
-    clearance = 0.05*h; //5 * air_gap;
-    for (i = [0:1:$children-1]) {
-         difference() {
-            children(i);
-             translate([0, -clearance, 0]) roller(d=d-eps,h=h + 2 * clearance, center=false);
-        }
-    }
-    
+    attach_side_handles(d, h) children();
+    generate_end_handle(end_handle, d);  
 }
 
 //--------------------------------------------- Customizer 
@@ -382,17 +420,10 @@ if (show_simple_usage_test) {
     dy = h/2;
     dz = -d/2 + z/2;
     
-    
-    
-    bearing(d, h, air_gap) {
+    bearing(d, h, air_gap, end_handle=true) {
+        // This is the side handle!
         translate([dx, dy, dz]) cube([x, y, z], center=true);
     }
-    // Handle for end
-    x_e = handle + d / 2; 
-    dx_e = - x_e / 2 + d /2;
-    dy_e = -y / 2;
-    dz_e = dz;
-    translate([dx_e, dy_e, dz_e]) cube([x_e, y, z], center=true);
 }
 
 
