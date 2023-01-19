@@ -123,8 +123,6 @@ module view_cross_section(z_index, element_color) {
 }
 
 
-
-
 module cut_for_cap(d, h) {
     s = infinity;
 
@@ -204,9 +202,19 @@ module bearing(d, h, air_gap, d_ratio=0.4, h_ratio=0.7, colors=[]) {
         axle(d, h, d_ratio, h_ratio, colors, air_gap);
         bushing(d, h, d_ratio, h_ratio, colors, air_gap);
     }
+    clearance = 0.05*h; //5 * air_gap;
+    for (i = [0:1:$children-1]) {
+         difference() {
+            children(i);
+             translate([0, -clearance, 0]) roller(d=d-eps,h=h + 2 * clearance, center=false);
+        }
+    }
+    
 }
 
-//--------------------------------------------- Customizer ----------------------------------------------------------------
+//--------------------------------------------- Customizer 
+
+
 
 module bushing_blank_q(z_index) {
    view_cross_section(z_index) {
@@ -285,25 +293,9 @@ module bearing_support_q() {
     }    
 }
 
-//// relative to bearing diameter
-//bearing_support_position_q = 0; // [-5: 0.01 : 5]
-//handle_length_q = 5; // [0: 0.1 : 10]
-//// In mm 
-//handle_height_q = 0; // [0 : 0.01 : 2]
 // ***************************************************
 
-module union_for_bearing() {
-    
-//    children(0); // This will be the bearing
-//    // for now just assume that all attachments are on sides, not ends
-//    for (i = [1:1:$children-1] {
-//        difference() {
-//            children(i)
-//            hull() {
-//                children(0)
-//            }
-//    }
-}
+
 
 module hole_for_bearing() {
     difference() {
@@ -335,10 +327,6 @@ module handle_q() {
         }
         
     }
-//        hull() {
-//            bushing_blank_q(z_index=3);
-//        }
-//    }
 }
 
 * hole_for_bearing() {
@@ -379,28 +367,29 @@ if (show_roller_q) {
 show_simple_usage_test = true;
 
 
+
+
 if (show_simple_usage_test) {
-    d = 6;
-    h = 6;
+    d = 5;
+    h = 5;
     handle = 10;
     air_gap = 0.4;
     
     x = handle; 
-    y = 0.7*h;
+    y = 0.8*h;
     z = d/2;
     dx = x/2;
     dy = h/2;
     dz = -d/2 + z/2;
     
-    bearing(d, h, air_gap);
-    // Handle that attaches to side
-    hole_for_bearing() {
-        bearing(d, h, air_gap); // will be centered by default
+    
+    
+    bearing(d, h, air_gap) {
         translate([dx, dy, dz]) cube([x, y, z], center=true);
     }
     // Handle for end
     x_e = handle + d / 2; 
-    dx_e = x_e / 2 - d /2;
+    dx_e = - x_e / 2 + d /2;
     dy_e = -y / 2;
     dz_e = dz;
     translate([dx_e, dy_e, dz_e]) cube([x_e, y, z], center=true);
