@@ -15,9 +15,9 @@ gap_x = 1; // [1: 5]
 vertical_padding = 2;  // [1: 5]
 
 overhangs = [ each [1 : delta_overhang: max_overhang] ];
-echo("overhangs", overhangs);
+* echo("overhangs", overhangs);
 h_count = len(overhangs);
-echo("h_count", h_count);
+* echo("h_count", h_count);
 
 
 // Cumulative sum of values in v
@@ -86,10 +86,23 @@ module echo_3d(label, value, dx, dy, dz=0, orientation=0, thickness = 1) {
     
 }
 
-module layout(i, j, arrangement) {
-    x = i * 5;
-    y = j * 6;
-    translate([x, y, 0]) children();
+module layout(i, j, data) {
+    rules = data[0];
+    method = rules[0];
+    echo("method", method);
+    if (method == "even") {
+        ax = rules[1][0];
+        bx = rules[1][1];
+        x = ax * i + bx;
+        
+        ay = rules[1][0];
+        by = rules[1][1];
+        y = ay * j + by;
+        translate([x, y, 0]) children();
+    } 
+    
+    
+    
 }
 
 
@@ -97,43 +110,70 @@ function cartesian_inner(r_i, s) = [ for (j = [0 : len(s) -1]) [r_i, s[j]] ];
 function cartesian(r, s) = [ for (i = [ 0 : len(r) - 1 ]) cartesian_inner(r[i], s) ];
     
 
-
-
-
-module test_layout(d, h) {
-    gap_x = 1;
-    gap_y = 1;
-    function calc_size(h, d) = [h + 3, d + 3]; // Return a list of [x, y]
-    cartesian = cartesian(d, h);
-    
-    // List comprehension layed out as conventional for loops
-    element_sizes =
-    [ for (i = [ 0 : len(d) - 1 ])
-        [ for (j = [0 : len(h) -1]) 
-            calc_size(d[i], h[i]) 
+module layout_compressed_by_x_then_y(i_t, j_t, sizes) {
+    echo("=====================================================");
+    echo("i_t", i_t);
+    echo("j_t", j_t);
+    // Break down the size elements by the x and y components
+    sx =
+    [ for (i = [0 : len(sizes) -1]) 
+        [ for (j = [0: len(sizes[i]) -1])
+            sizes[i][j][0]
         ]
     ];
-    echo("element_sizes", element_sizes);   
-    //x =     ];
-    e_x =  
-    [ for (i = [ 0 : len(d) - 1 ])
-        [ for (j = [0 : len(h) -1]) 
-            element_sizes[i][j][0] 
+    echo("sx", sx);
+    sy = 
+    [ for (i = [0 : len(sizes) -1]) 
+        [ for (j = [0: len(sizes[i]) -1])
+            sizes[i][j][1]
         ]
     ];
-    echo("e_x", e_x);
-    x =     
-    [ for (i = [ 0 : len(d) - 1 ]) 
-         cumsum(e_x[i])  
-    ];    
-    echo("x", x);   
-    arrangement = [d, h, cartesian, e_x, x];
-    
-    echo("arrangement:", arrangement);
-    for (i = [0 : len(d) -1]) {
-        for (j = [0: len(h) -1]) {
-            layout(i, j, arrangement) {
-                cube([d[i], h[j], 1]);
+    echo("sy", sy);    
+    // On x we compress as much as possible
+    dx = 
+    [ for (i = [0 : len(sx) -1]) 
+        cumsum(sx[i])
+    ];
+    echo("dx", dx);
+    // For each of the y rows, we need the maximum value for the whole row.
+    sy_max =  
+    [ for (i = [0 : len(sy) -1])
+        max(sy[i])
+    ];
+    echo("sy_max", sy_max);
+    // Then compress down the rows as much as possible.
+    dy = cumsum(sy_max);
+    echo("dy", dy);
+    // Finally place the target in place
+    dx_i_j = dx[i_t][j_t];
+    echo("dx_i_j", dx_i_j);
+    dy_i = dy[i_t];
+    echo("dy_i", dy_i);
+    translate([dx_i_j, dy_i, 0]) children();
+    echo("=====================================================");
+} 
+
+
+
+module test_layout(d, h, rules) {
+    echo("d", d);
+    echo("h", h);
+    pad_x = 1;
+    pad_y = 2;
+    pad_z = 3;
+    function size(d, h) = [d + pad_x, h + pad_y, d + pad_z];
+    sizes = 
+    [ for (i = [0 : len(d)-1]) 
+        [ for (j = [0: len(h)-1])
+            size(d[i], h[j])
+        ]
+    ];
+    echo("sizes", sizes);
+        
+    for (i = [0 : len(d)-1]) {
+        for (j = [0: len(h)-1]) {
+            layout_compressed_by_x_then_y(i, j, sizes) {
+                cube([d[i], h[j], d[i]]);
             } 
         }
     } 
@@ -141,11 +181,19 @@ module test_layout(d, h) {
 
 
 
-d = [ each [1 : 3] ];
-h = [ each [1 : 4] ];
-test_layout(d, h);
 
 
+
+
+gap_y = 2;
+layout_rules = ["even", [5, 1], [3, 1]];
+
+h = [1, 2, 3, 4, 5, 6, 7, 8];
+d = [1,2, 3];
+test_layout(d, h, layout_rules);
+
+//d = [ each [1 : 3] ];
+//h = [ each [1 : 4] ];
 //function size(i, j) = i + j;
 
 //i_r = [0, 1, 2, 3, 4];
