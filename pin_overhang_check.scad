@@ -7,7 +7,7 @@ eps = 0.001;
 infinity = 50;
 
 /* [Pin Overhang] */
-show_pin_overhang = false;
+show_pin_overhang = true;
 max_overhang = 3; // [ 1 : 0.5 : 5]
 delta_overhang = 0.25; // [0.25, 0.50, 1]
 
@@ -15,9 +15,9 @@ minimum_diameter = 3; // [1 : 1 : 10]
 maximum_diameter = 7; // [1 : 1 : 10]
 delta_diameter = 1; // [0.25, 0.50, 1, 2, 3, 4]
 
-pad_x = 1; // [0 : 0.01 : 5]
-pad_y = 2; // [0 : 0.01 : 5]
-pad_z = 3; // [0 : 0.01 : 5]
+pad_x = 5; // [-5 : 0.01 : 10]
+pad_y = 13; // [-5 : 0.01 : 20]
+pad_z = 3; // [[-5 : 0.01 : 10]
 
 // gap_x = 1; // [1: 5]
 //vertical_padding = 2;  // [1: 5]
@@ -26,6 +26,10 @@ pad_z = 3; // [0 : 0.01 : 5]
 overhangs = [ each [1 : delta_overhang: max_overhang] ];
 
 diameters = [ each [minimum_diameter : delta_diameter : maximum_diameter ] ];
+
+/* [Echo 3D] */
+
+echo_3d_mm_per_char = 2.5; // [0 : 0.01 : 5]
 
 
 * echo("overhangs", overhangs);
@@ -119,28 +123,51 @@ module pin(d, h, center=true, v=Y_ORIENTATION) {
 
 module wall(size, pad, sizing_data) {
     wall_y = sizing_data[3];
-    color("blue", alpha=0.7) 
+    //color("blue", alpha=0.7) 
         translate([0, -wall_y/2, 0]) 
             cube([size.x+pad.x, wall_y, size.z], center=true); 
 }
 
 
-
+module pin_label(d, h, size, sizing_data, is_first)  {
+   
+    wall_y = sizing_data[3];
+    dx = -2.3;
+    dy = -wall_y ;
+    dz = -size.z/2;
+    translate([dx, dy, dz]) {
+        if (is_first) {
+            dx_d = 0; //-4.5;
+            dy_d = -4.5;
+            translate([dx_d, dy_d, 0]) echo_3d(" d=", d, 0, 0, orientation=-90);
+        }
+            
+        echo_3d(" ", h, 0, 0, orientation=-90);
+        
+    }
+ 
+}
 
         
-module pin_element(d, h, size, sizing_data, pad) {
-    echo("In pin_element ==============================================");
-    echo("d", d);
-    echo("h", h);
-    echo("size", size);
-    echo("sizing_data", sizing_data);
-    echo("pad", pad);
+module pin_element(d, h, size, sizing_data, pad, i, j) {
+    // Need the i and j value to a row label
+    * echo("In pin_element ==============================================");
+    * echo("d", d);
+    * echo("h", h);
+    * echo("size", size);
+    * echo("sizing_data", sizing_data);
+    * echo("pad", pad);
     
     pin(d=d, h=h, center=false);
     wall(size, pad, sizing_data);
-    // Draw bounding box
-    color("red", alpha=0.3)  cube(size, center=true); 
-    echo("In pin_element ==============================================");
+    is_first = (j == 0); 
+    pin_label(d, h, size, sizing_data, is_first);
+    
+    
+
+    // Draw bounding box for debug purpose
+    * color("red", alpha=0.3)  cube(size, center=true); 
+    * echo("In pin_element ==============================================");
 }
 
 module pin_overhang(d, h, pad, sizing_data) {
@@ -157,7 +184,7 @@ module pin_overhang(d, h, pad, sizing_data) {
             layout_compressed_by_x_then_y(i, j, sizes, pad) {
                 
                 size = layout_size_of_element(d[i], h[j], m_d, m_h, c);
-                pin_element(d[i], h[j], size, sizing_data, pad);
+                pin_element(d[i], h[j], size, sizing_data, pad, i, j);
                 
             } 
         }
@@ -178,13 +205,13 @@ if (show_pin_overhang) {
 }
 
 
-module echo_3d(label, value, dx, dy, dz=0, orientation=0, thickness = 1) { 
-    line = str(label, value);
+module echo_3d(label, value, dx, dy, dz=0, orientation=0, thickness = 2) { 
+    line = !is_undef(value) ? str(label, value) :  label;
     z = thickness;
     height_of_text = 3.7;
     baseline_adjust = -0.5;
     length_of_text = len(line);
-    x = length_of_text * 3;
+    x = length_of_text * echo_3d_mm_per_char;
     y = height_of_text;
     dy_b = baseline_adjust;
     rz = orientation;
