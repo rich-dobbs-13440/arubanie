@@ -8,6 +8,23 @@ eps = 0.001;
 
 infinity = 50;
 
+/* [Logging] */
+
+log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+
+/* [Hidden] */
+
+CRITICAL = 50; 
+FATAL = CRITICAL;
+ERROR = 40; 
+WARNING = 30; 
+WARN = WARNING;
+INFO = 20; 
+DEBUG = 10; 
+NOTSET = 0;
+
+IMPORTANT = 25;
+
 /* [Dimensions] */
 
 o2_o4 = 20; // [ 1 : 1 : 100]
@@ -29,6 +46,39 @@ theta4 = 280; // To be calculated
 
 angles = [theta1, theta2, theta3, theta4];
 bars = [o2_o4, o2_a, a_b, o4_b]; // Input
+
+
+
+log_verbosity = 
+    log_verbosity_choice == "WARN" ? WARN :
+    log_verbosity_choice == "INFO" ? INFO : 
+    log_verbosity_choice == "DEBUG" ? DEBUG : 
+    NOTSET;
+    
+
+module end_of_customization() {}
+
+function v_cumsum(v) = [for (a = v[0]-v[0], i = 0; i < len(v); a = a+v[i], i = i+1) a+v[i]];
+    
+
+
+
+
+module log_v1(label, v1, level=INFO, important=0) {
+    overridden_level = max(level, important);
+    if (overridden_level >= log_verbosity) { 
+        style = overridden_level >= IMPORTANT ? 
+            "<b style='color:OrangeRed'><font size=\"+2\">" : 
+            "";
+        echo(style, "---");
+        echo(style, label, "= [");
+        for (v = v1) {
+            echo(style, "-........", v);
+        }
+        echo(style, "-------]");
+        echo(style, " ");
+    }
+} 
 
 module pivot() {
     cylinder(d=d, h=h, center=true);
@@ -69,4 +119,57 @@ module link_ab(bars, angles) {
 
 link_o2_a(bars, angles);
 link_ab(bars, angles);
+
+function calc_ds(b, a) = [cos(a)*b, sin(a)*b , 0 ];
+
+module show_linkage_chain(bars, angles) {
+    ds = [ for (i = [0 : len(angles)-1]) 
+        calc_ds(bars[i], angles[i])
+    ];
+    log_v1("ds", ds, DEBUG);
+    s = v_cumsum(ds);
+    log_v1("s", s, DEBUG, IMPORTANT);
+}
+
+show_linkage_chain(bars, angles);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
