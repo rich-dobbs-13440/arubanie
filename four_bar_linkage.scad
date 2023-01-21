@@ -26,6 +26,10 @@ theta2 = 90; // [ 0 : 1 : 360]
 h = 2; // [ 1 : 1 : 10]
 d = 1;  // [ 1 : 1 : 10]
 
+clevis_rod_length = 12; // [ 1 : 1 : 50]
+action_bar_length = 35; // [ 1 : 1 : 50]
+servo_to_pivot_distance = 40; // [ 1 : 1 : 50]
+
 
 module end_of_customization() {}
 
@@ -37,14 +41,14 @@ o4_b_2 = o4_b * o4_b;
 o2_o4_2 = o2_o4 * o2_o4;
 
 o4_a = sqrt(o2_o4_2 + o2_a_2 - 2 * o2_o4 * o2_a * cos(theta2));
-log_s("o4_a", o4_a, verbosity, DEBUG, IMPORTANT);
+log_s("o4_a", o4_a, verbosity, DEBUG);
 o4_a_2 = o4_a * o4_a;
 
 beta = asin((o2_a / o4_a) * sin(theta2));
-log_s("beta", beta, verbosity, DEBUG, IMPORTANT);
+log_s("beta", beta, verbosity, DEBUG);
 
 phi = acos((a_b_2 + o4_a_2 - o4_b_2)/(2 * a_b * o4_a));
-log_s("phi", phi, verbosity, DEBUG, IMPORTANT);
+log_s("phi", phi, verbosity, DEBUG);
 
 delta = asin((a_b/o4_b) * sin(phi));
 theta3 = phi - beta;
@@ -74,10 +78,12 @@ module linkage(p1, p2) {
 
 
 
-function calc_ds(b, a) = [cos(a)*b, sin(a)*b , 0 ];
+
 
 
 module show_linkage_chain(bars, angles) {
+    function calc_ds(b, a) = [cos(a)*b, sin(a)*b , 0 ];
+    
     ds = [ for (i = [0 : len(angles)-1]) 
         calc_ds(bars[i], angles[i])
     ];
@@ -91,21 +97,67 @@ module show_linkage_chain(bars, angles) {
     
 }
 
-show_linkage_chain(bars, angles);
+* show_linkage_chain(bars, angles);
+
+// Fixed distance from a library eventually
+function servo_hub_radius() = 6.94; 
+
+module servo_hub() {
+    r=servo_hub_radius();
+    difference() {
+        cylinder(r=8.81, h=2);
+        translate([r, 0, 0]) cylinder(d=1.29, h=5, center=true);
+    }
+}
+
+module clevis_rod(length) {
+    color("OliveDrab") cube([length, 1, 3]);
+}
+
+module action_bar(length) {
+    color("LightSeaGreen", alpha=0.5) cube([length, 1, 1]);
+}
+
+module pivot_and_ground(length) {
+    color("DarkKhaki", alpha=0.2) cube([length, 1, 1]);
+}
+
+module articulate(lengths, angles) {
+    
+    function calc_ds(b, a) = [cos(a)*b, sin(a)*b , 0 ];
+    
+    ds = [ for (i = [0 : len(angles)-1]) 
+        calc_ds(lengths[i], angles[i])
+    ];
+
+    s = concat([[0,0,0]], v_cumsum(ds));
+        
+        
+    for (i = [0 : $children-1]) {
+        translate(s[i]) rotate(angles[i]) children(i);
+    }
+}
 
 
-//s = [
-//    [20, 0, 0],
-//    [20, 10, 0],
-//    [39.6962, 13.473, 0],
-//    [43.1691, -6.22319, 0]
-//];
-//
-//
-//
-//s_star = concat([[0,0,0]], s);
-//
-//log_v1("s_star", s_star, verbosity, DEBUG, IMPORTANT);
+
+lengths = [
+    servo_hub_radius(),
+    clevis_rod_length,
+    action_bar_length,
+    servo_to_pivot_distance
+];
+
+function four_bar_angles(theta1, theta2, lengths) = [90, 30, -30, 180];
+
+angles_t = four_bar_angles(theta1, theta2, lengths);
+
+
+articulate(lengths, angles_t) {
+    servo_hub();
+    clevis_rod(clevis_rod_length);
+    action_bar(action_bar_length);
+    pivot_and_ground(servo_to_pivot_distance); 
+};
 
 
 
