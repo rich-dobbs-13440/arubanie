@@ -1,4 +1,4 @@
-
+include <logging.scad>
 
 /* [Boiler Plate] */
 
@@ -11,130 +11,101 @@ infinity = 50;
 /* [Logging] */
 
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
-
-/* [Hidden] */
-
-CRITICAL = 50; 
-FATAL = CRITICAL;
-ERROR = 40; 
-WARNING = 30; 
-WARN = WARNING;
-INFO = 20; 
-DEBUG = 10; 
-NOTSET = 0;
-
-IMPORTANT = 25;
+verbosity = log_verbosity_choice(log_verbosity_choice);
 
 /* [Dimensions] */
 
-o2_o4 = 20; // [ 1 : 1 : 100]
+o2_o4 = 10; // [ 1 : 1 : 100]
 o2_a = 10; // [ 1 : 1 : 100]
-a_b = 20; // [ 1 : 1 : 100]
-o4_b= 20; // [ 1 : 1 : 100]
+a_b = 10; // [ 1 : 1 : 100]
+o4_b = 10; // [ 1 : 1 : 100]
 
-theta1 = 0; // The angle between the fixed pivots
-theta2 = 90; // [ 0 : 1 : 360]
+
+theta2 = 90; // [ 0 : 1 : 360] 
 
 h = 2; // [ 1 : 1 : 10]
 d = 1;  // [ 1 : 1 : 10]
 
 
+module end_of_customization() {}
 
+theta1 = 180 ; // [ 0 : 1 : 360] 
 
-theta3 = 10; // To be calculated!
-theta4 = 280; // To be calculated
+o2_a_2 = o2_a * o2_a;
+a_b_2 = a_b * a_b;
+o4_b_2 = o4_b * o4_b;
+o2_o4_2 = o2_o4 * o2_o4;
+
+o4_a = sqrt(o2_o4_2 + o2_a_2 - 2 * o2_o4 * o2_a * cos(theta2));
+log_s("o4_a", o4_a, verbosity, DEBUG, IMPORTANT);
+o4_a_2 = o4_a * o4_a;
+
+beta = asin((o2_a / o4_a) * sin(theta2));
+log_s("beta", beta, verbosity, DEBUG, IMPORTANT);
+
+phi = acos((a_b_2 + o4_a_2 - o4_b_2)/(2 * a_b * o4_a));
+log_s("phi", phi, verbosity, DEBUG, IMPORTANT);
+
+delta = asin((a_b/o4_b) * sin(phi));
+theta3 = phi - beta;
+theta4 = - (beta + delta);
+
 
 angles = [theta1, theta2, theta3, theta4];
 bars = [o2_o4, o2_a, a_b, o4_b]; // Input
-
-
-
-log_verbosity = 
-    log_verbosity_choice == "WARN" ? WARN :
-    log_verbosity_choice == "INFO" ? INFO : 
-    log_verbosity_choice == "DEBUG" ? DEBUG : 
-    NOTSET;
-    
-
-module end_of_customization() {}
 
 function v_cumsum(v) = [for (a = v[0]-v[0], i = 0; i < len(v); a = a+v[i], i = i+1) a+v[i]];
     
 
 
-
-
-module log_v1(label, v1, level=INFO, important=0) {
-    overridden_level = max(level, important);
-    if (overridden_level >= log_verbosity) { 
-        style = overridden_level >= IMPORTANT ? 
-            "<b style='color:OrangeRed'><font size=\"+2\">" : 
-            "";
-        echo(style, "---");
-        echo(style, label, "= [");
-        for (v = v1) {
-            echo(style, "-........", v);
-        }
-        echo(style, "-------]");
-        echo(style, " ");
+module pivot(pivot_position) {
+    translate(pivot_position) {
+        cylinder(d=d, h=h, center=true);
     }
-} 
-
-module pivot() {
-    cylinder(d=d, h=h, center=true);
 }
 
-
-module link_o2_a(bars, angles) {
-    theta2 = angles[1]; 
-    o2_a = bars[1];
-    rotate([0, 0, theta2]) {
-        pivot();
-        
-        translate([o2_a, 0, 0]) { 
-            pivot();
-        }
-        translate([o2_a/2, 0, 0]) cube([o2_a, 1, h], center=true);
+module linkage(p1, p2) {
+    hull() {
+        pivot(p1);
+        pivot(p2);
     }
     
 }
 
-module link_ab(bars, angles) {
-    theta2 = angles[1];
-    theta3 = angles[2];
-    a_x = cos(angles[1])*bars[1];
-    a_y = sin(angles[1])*bars[1];
-    hull() {
-        translate([a_x, a_y, 0]) {
-            pivot();    
-        }
-        b_x = cos(angles[2])*bars[2] + a_x;
-        b_y = sin(angles[2])*bars[1] + a_y;
-        translate([b_x, b_y, 0]) {
-            pivot();
-        }
-    }
-}
 
-
-link_o2_a(bars, angles);
-link_ab(bars, angles);
 
 function calc_ds(b, a) = [cos(a)*b, sin(a)*b , 0 ];
+
 
 module show_linkage_chain(bars, angles) {
     ds = [ for (i = [0 : len(angles)-1]) 
         calc_ds(bars[i], angles[i])
     ];
-    log_v1("ds", ds, DEBUG);
-    s = v_cumsum(ds);
-    log_v1("s", s, DEBUG, IMPORTANT);
+    log_v1("ds", ds, verbosity, DEBUG);
+    s = concat([[0,0,0]], v_cumsum(ds));
+    log_v1("s", s, verbosity, DEBUG);
+    
+    for (i = [1: len(s)-1]) {
+        linkage(s[i-1], s[i]);
+    }
+    
 }
 
 show_linkage_chain(bars, angles);
 
 
-
+//s = [
+//    [20, 0, 0],
+//    [20, 10, 0],
+//    [39.6962, 13.473, 0],
+//    [43.1691, -6.22319, 0]
+//];
+//
+//
+//
+//s_star = concat([[0,0,0]], s);
+//
+//log_v1("s_star", s_star, verbosity, DEBUG, IMPORTANT);
 
 
 
