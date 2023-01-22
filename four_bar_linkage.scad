@@ -13,6 +13,11 @@ infinity = 50;
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice);
 
+/* [Debuggin] */
+sp_min = 0; // [ 0: 1 : 360]
+sp_step = 15; // [ 0: 1 : 360]
+sp_max = 360; // [ 0: 1 : 360]
+
 /* [Example Problem Dimensions ] */
 
 clevis_rod_length___ep_4b = 50; // [ 40: 1 : 60]
@@ -57,14 +62,21 @@ function v_cumsum(v) =
 //        https://link.springer.com/content/pdf/bbm:978-3-319-31970-4/1
 
 
-O2_A = 0; //    servo_hub_radius(),
-AB = 1; //    clevis_rod_length,
-O4_B = 2;//    action_bar_length,
-O2_O4 = 3; //    servo_to_pivot_distance
+O2_A = 0;  
+AB = 1; 
+O4_B = 2;
+O2_O4 = 3; 
 
-function calc_o4_a(t2, l) = 
-    sqrt(
-        l[O2_O4]*l[O2_O4] 
+
+
+;
+    
+    
+// Angles Calculation
+
+
+function calc_o4_a(t2, l) = sqrt(
+       l[O2_O4]*l[O2_O4] 
         + l[O2_A]*l[O2_A] 
         - 2 * l[O2_O4] * l[O2_A] * cos(t2)
     );
@@ -99,11 +111,32 @@ function calc_theta4(t2, l) =
     calc_delta(t2, l) - calc_beta(t2, l);
 
 function four_bar_angles(t2, l) = 
+    !is_num(calc_o4_a(t2, l)) ?
+        [t2, undef, undef, 180] :
+    !is_num(calc_beta(t2, l)) ?
+        [t2, undef, undef, 180] :
+    !is_num(calc_phi(t2, l)) ?
+        [t2, undef, undef, 180] :
+    !is_num(calc_delta(t2, l)) ?
+        [t2, undef, undef, 180] :
     [t2, calc_theta3(t2, l), calc_theta4(t2, l), 180];
     
-module articulate(lengths, angles) {
+function is_valid_four_bar_angles(angles) =
+        len(angles) == 4 && is_num(angles[1]) && is_num(angles[2]);
+        
+      
+        
+
     
-    function calc_ds(b, a) = [cos(a)*b, sin(a)*b , 0 ];
+module articulate(lengths, angles) {
+    for (i = [0 : len(angles)-1]) {
+        if (!is_num(angles[i])) {
+            log_v1("angles", angles, verbosity, level=INFO, IMPORTANT);
+            assert(is_num(angles[i]), str("i=", i));
+        }
+    }
+    
+    function calc_ds(b, a) = [cos(a)*b, sin(a)*b , 0];
     
     ds = [ for (i = [0 : len(angles)-1]) 
         calc_ds(lengths[i], angles[i])
@@ -112,10 +145,46 @@ module articulate(lengths, angles) {
     s = concat([[0,0,0]], v_cumsum(ds));
            
     for (i = [0 : $children-1]) {
-        translate(s[i]) rotate(angles[i]) children(i);
+        if (is_num(angles[i])) { 
+            translate(s[i]) rotate(angles[i]) children(i);
+        } else {
+            color("red", alpha=0.5) translate([lengths[i], 0, 0])  children(i);
+        }
     }
 }
 
+module dump_four_bar(t2, i, angles, lengths) {
+    okay_lengths = len(angles) == 4 && len(angles) == 4;
+    angles_defined = len([for (a=angles) if(is_undef(a)) a]) == 0;
+    lengths_defined = len([for (l=lengths) if(is_undef(l)) l]) == 0;
+    importance = okay_lengths && angles_defined && lengths_defined ? INFO : IMPORTANT;
+    log_v1("lengths", lengths, verbosity, level=INFO, importance);
+    log_v1("angles", angles, verbosity, level=INFO, importance);    
+}
+
+
+module visualizer(lengths, dump_for_bad, t2_min, t2_step, t2_max) {
+    module rod(l) {
+        cube([l, 0.1, 0.1]);
+    }
+    t2 = [ each [t2_min : t2_step : t2_max ] ];
+    for (i = [0:1:len(t2)-1]) {
+        angles = four_bar_angles(t2[i], lengths);
+        
+        if (is_valid_four_bar_angles(angles)) {
+            articulate(lengths, angles) {
+                rod(lengths[0]);
+                rod(lengths[1]);
+                rod(lengths[2]);
+                rod(lengths[3]);
+            };
+        } else {
+            if (dump_for_bad) {
+                dump_four_bar(t2, i, angles, lengths);
+            } 
+        }
+    }
+}
 
 module test_problem_1() {
     module rod(l) {
@@ -125,26 +194,51 @@ module test_problem_1() {
     lengths = [10, 10, 10, 10];
     log_v1("lengths", lengths, verbosity, level=INFO);
     
-    sp = concat( [ each [5 : 5 : 175 ] ], [ each [185 : 5 : 355 ] ])  ;
-    //sp = [90];
-    echo( len(sp) );
-    for (i = [0:len(sp)-1]) {
+    sp = [ each [15 : 15 : 345 ] ];
+    //sp = [10];
+    echo("len(sp)", len(sp));
+    for (i = [0:1:len(sp)-1]) {
         angles = four_bar_angles(sp[i], lengths);
-        important = (!is_num(angles[1]) || !is_num(angles[2])) ? IMPORTANT : NOTSET;
-        log_v1("angles", angles, verbosity, level=INFO, important);
-        assert(is_num(angles[1]));
         
-        articulate(lengths, angles) {
-            rod(lengths[0]);
-            rod(lengths[1]);
-            rod(lengths[2]);
-            rod(lengths[3]);
-        };
+        if (is_valid_four_bar_angles(angles)) {
+            articulate(lengths, angles) {
+                rod(lengths[0]);
+                rod(lengths[1]);
+                rod(lengths[2]);
+                rod(lengths[3]);
+            };
+        } else {
+            dump_four_bar(angles, lengths);
+        }
+        
     }
-    
 }
 
-test_problem_1();
+* test_problem_1();
+
+module test_problem_2(case) {
+    module echo_limits(lengths) {
+        log_v1("lengths", lengths, verbosity, level=INFO);
+        
+        limits_top = t2_limit_top(lengths);
+        log_v1("limits_top", limits_top, verbosity, level=IMPORTANT);
+        a_min = is_num(limits_top[0]) ? limits_top[0] : 0;
+        a_max = is_num(limits_top[1]) ? limits_top[1] : 360;
+        a_step = (a_max - a_min)/10;
+        dump_for_bad = false;
+        visualizer(lengths, dump_for_bad, a_min, a_step, a_max);
+    }
+        
+    
+    // Limited range of motion, should have min and maximum limits
+    ls_case_1 = [10, 1, 10, 15];
+    * echo_limits(ls_case_1);
+    // Should be a crank
+    ls_case_2 = [1, 10, 10, 10];
+    * echo_limits(ls_case_2);
+}
+
+test_problem_2();
 
         
 module example_problem_four_bar() {
