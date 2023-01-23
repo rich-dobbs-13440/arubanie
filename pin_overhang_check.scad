@@ -1,10 +1,13 @@
+use <vector_operations.scad>
+use <layout_for_3d_printing.scad>
+
 /* [Boiler Plate] */
 
 $fa = 1;
 $fs = 0.4;
 eps = 0.001;
 
-infinity = 50;
+infinity = 1000;
 
 /* [Pin Overhang] */
 show_pin_overhang = true;
@@ -35,84 +38,31 @@ echo_3d_char_length_adjustment = 1; // [0 : 0.01 : 2]
 h_count = len(overhangs);
 * echo("h_count", h_count);
 
+module end_of_customization() {}
 
-// Cumulative sum of values in v
-function v_cumsum(v) = [for (a = v[0]-v[0], i = 0; i < len(v); a = a+v[i], i = i+1) a+v[i]];
+module echo_3d(label, value, dx, dy, dz=0, orientation=0, thickness = 2) { 
+    line = !is_undef(value) ? str(label, value) :  label;
+    font_size = 5;
+    z = thickness;
+    height_of_text = 1.2 * font_size;
+    baseline_adjust = -0.5;
+    length_of_text = len(line);
+    x = length_of_text * font_size *  echo_3d_char_length_adjustment;
+    y = height_of_text;
+    dy_b = baseline_adjust;
+    rz = orientation;
+    translate([dx, dy, dz])  {
+        rotate([0, 0, rz]) {
+            translate([0, 0, z]) linear_extrude(1) text(line, size=font_size);
+            translate([0, dy_b, 0]) cube([x, y, z]);
+        }
+    }
     
-function v_sum(v, i=0, r=0) = i<len(v) ? v_sum(v, i+1, r+v[i]) : r;
-
-function v_add_scalar(v, s) = [ for (e = v) e + s ];
-    
-function v_mul_scalar(v, s) = [ for (e = v) e * s ];
-
-//function v_add(v1, v2) = (len(v1) == len(v2)) ? 
-//        [ for (i = [0 : len(v1) - 1) v1[i] + v2[i] ] : 
-//        undef;
-//        
-//function v_multiply(v1, v2) = (len(v1) == len(v2)) ? 
-//        [ for (i = [0 : len(v1) - 1) v1[i] * v2[i] ] : 
-//        undef;
-         
-    
+}
 
 Y_ORIENTATION = [-90, 0, 0];
 X_ORIENTATION = [0, 90, 0];
 
-function layout_size_of_element(r_i, s_j, m_r, m_s, c) = 
-    [
-        //  might be a vector equation r_i * m_r + s_j * m_s + c !
-        r_i*m_r.x + s_j*m_s.x + c.x, 
-        r_i*m_r.y + s_j*m_s.y + c.y,
-        r_i*m_r.z + s_j*m_s.z + c.z
-    ];
-
-function layout_generate_sizes(r, s, m_r, m_s, c) =
-    [ for (i = [0 : len(r)-1]) 
-        [ for (j = [0: len(s)-1])
-            layout_size_of_element(r[i], s[j], m_r, m_s, c)
-        ]
-    ];
- 
-function offset_x(dx_padded) = v_add_scalar(dx_padded, -dx_padded[0]/2);
-
-module layout_compressed_by_x_then_y(i_t, j_t, sizes, pad) {
-    // Break down the size elements by the x and y components
-    sx =
-    [ for (i = [0 : len(sizes) -1]) 
-        [ for (j = [0: len(sizes[i]) -1])
-            sizes[i][j][0]
-        ]
-    ];
-    sy = 
-    [ for (i = [0 : len(sizes) -1]) 
-        [ for (j = [0: len(sizes[i]) -1])
-            sizes[i][j][1]
-        ]
-    ];
-    sz = 
-    [ for (i = [0 : len(sizes) -1]) 
-        [ for (j = [0: len(sizes[i]) -1])
-            sizes[i][j][2]
-        ]
-    ];    
-    // On x,  we compress as much as possible
-    dx = 
-    [ for (i = [0 : len(sx) -1]) 
-        offset_x(v_cumsum(v_add_scalar(sx[i], pad.x))) 
-    ];
-    // For each of the y rows, we need the maximum value for the whole row.
-    sy_max =  
-    [ for (i = [0 : len(sy) -1])
-        max(sy[i])
-    ];
-    // Then compress down the rows as much as possible.
-    dy = v_cumsum(v_add_scalar(sy_max, pad.y));
-    // On Z, we the bottoms all on the build plate
-    // Finally place the target in place
-    dz = v_mul_scalar(sz, 0.5);
-    dx_i_j = dx[i_t][j_t];
-    translate([dx[i_t][j_t], dy[i_t], dz[i_t][j_t]]) children();
-} 
 
 module pin(d, h, center=true, v=Y_ORIENTATION) {
     rotate(v) {
@@ -129,9 +79,8 @@ module wall(size, pad, sizing_data) {
 
 
 module label_base(size, pad, sizing_data) {
-    thickness = 1;
+    thickness = 2;
     length = sizing_data[4];
-    echo(sizing_data[4]);
 
     y = sizing_data[4];
     dy = -y/2;   
@@ -144,7 +93,6 @@ module label_base(size, pad, sizing_data) {
 
 module pin_label(d, h, size, sizing_data, is_first)  {
    
-    
     wall_y = sizing_data[3];
     dx = -2.3;
     dy = -wall_y ;
@@ -202,7 +150,6 @@ module pin_overhang(d, h, pad, sizing_data) {
                 size = layout_size_of_element(d[i], h[j], m_d, m_h, c);
                 pin_element(d[i], h[j], size, sizing_data, pad, i, j);
                 
-                
             } 
         }
     } 
@@ -223,25 +170,7 @@ if (show_pin_overhang) {
 }
 
 
-module echo_3d(label, value, dx, dy, dz=0, orientation=0, thickness = 2) { 
-    line = !is_undef(value) ? str(label, value) :  label;
-    font_size = 5;
-    z = thickness;
-    height_of_text = 1.2 * font_size;
-    baseline_adjust = -0.5;
-    length_of_text = len(line);
-    x = length_of_text * font_size *  echo_3d_char_length_adjustment;
-    y = height_of_text;
-    dy_b = baseline_adjust;
-    rz = orientation;
-    translate([dx, dy, dz])  {
-        rotate([0, 0, rz]) {
-            translate([0, 0, z]) linear_extrude(1) text(line, size=font_size);
-            translate([0, dy_b, 0]) cube([x, y, z]);
-        }
-    }
-    
-}
+
     
 
 

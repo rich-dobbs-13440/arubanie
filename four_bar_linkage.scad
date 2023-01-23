@@ -124,10 +124,6 @@ function four_bar_angles(t2, l) =
 function is_valid_four_bar_angles(angles) =
         len(angles) == 4 && is_num(angles[1]) && is_num(angles[2]);
         
-      
-        
-
-    
 module articulate(lengths, angles) {
     for (i = [0 : len(angles)-1]) {
         if (!is_num(angles[i])) {

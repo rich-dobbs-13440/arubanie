@@ -155,42 +155,35 @@ function get_theta_2_ranges_array(ls) = [
         let (
             range = [
                 [base_limit[0], base_limit[1]], 
-                [360-base_limit[1], 360-base_limit[0]
-            ]]
+                [360-base_limit[1], 360-base_limit[0]]
+            ]
         )
         range
     else if (input_type == "0-Rocker") 
-        let (range = [[0, base_limit[1]], [360-base_limit[1], 360]])
+        let (
+            range = [
+                [0, base_limit[1]], 
+                [360-base_limit[1], 360]]
+        )
         range
     else if (input_type == "π-Rocker") 
-        "f"
+        let (
+            range = [[base_limit[0], 360-base_limit[0]]]
+        )
+        range
     else if (base_limit == [0, 180]) 
         let (
             range = [[0, 360]]
         )
         range
     else
-        "Joe"
+        assert(false, "Case not handled")
 ];
     
 function get_theta_2_ranges(ls) = 
     // Unpack the outer list, which is just created because 
     // weirdness with using if statements in functions.
     get_theta_2_ranges_array(ls)[0];
-    
-    
-//function classify(ls) = let [
-//    let(
-//        class = row_match(ls),
-//        base_limit = t2_limit_top(ls) 
-//            
-//            
-//    ) 
-//    if (true) 
-//        true 
-//    else 
-//        undef
-//    ];
     
     
 module dev(ls) {
@@ -222,7 +215,9 @@ module dev(ls) {
         range = [[0, base_limit[1]], [360-base_limit[1], 360]];
         log_v1("range", range, verbosity);
     } else if (input_type == "π-Rocker") {
-        assert(false, "Case not handle yet");
+        // min angle is base_limit[0], max is 180
+        range = [[base_limit[0], 360-base_limit[0]]];
+        log_v1("range", range, verbosity, IMPORTANT);
     } else {
         if (base_limit == [0, 180]) {
             range = [[0, 360]];
@@ -237,19 +232,7 @@ module dev(ls) {
 
     }
     theta_2_ranges = get_theta_2_ranges(ls);
-    log_v1("theta_2_ranges", theta_2_ranges, verbosity, IMPORTANT);      
-
-//            log_v1("range", range, verbosity, level=IMPORTANT); 
-
-    
-
-    //i_link_class = linkage_classification(ls_case_2);
-    //log_s("i_link_class", i_link_class, verbosity, level=IMPORTANT);
-    //log_s("class", C_D[i_link_class], verbosity, level=IMPORTANT);
-    // Limits
-    
-    
-  
+    log_v1("theta_2_ranges", theta_2_ranges, verbosity, IMPORTANT);  
 }
 
 
@@ -268,31 +251,40 @@ ls_case_4 = [1, 8.5, 1, 10];
 // "Rocker", "Crank"
 echo("In case 5");
 ls_case_5 = [5, 5, 1, 7];
-dev(ls_case_5);
+*dev(ls_case_5);
 
-//echo(diagnose_get_ranges(ls_case_4));
+// π-Rocker 0-Rocker
+// This would a long floating link compared to the ground link
+// with short input and output cranks 
+echo("In case 6");
+ls_case_6 = [1, 6.5, 1, 5];
+*dev(ls_case_6);
 
+// π-Rocker	π-Rocker
+// Input crank long compared to ground link
+// Floating link long compare to ouput crank
+echo("In case 7");
+ls_case_7 = [1, 0.5, 5.7, 5];
+dev(ls_case_7);
 
 // From the classication, need to determine the limits on the 
 // input crank angle 
 //    T_1	T_2 T_3 Grashof condition	Input link	Output link   Assumed Range
 //    −	    −	+	Grashof	            Crank	    Crank         0 - 360
 //    +	    +	+	Grashof	            Crank	    Rocker        0 - 360
-//    +	    −	−	Grashof	            Rocker	    Crank         ???
-//    −	    +	−	Grashof	            Rocker	    Rocker        ???
-//    −	    −	−	Non-Grashof	        0-Rocker	0-Rocker      ???
-//    −	    +	+	Non-Grashof	        π-Rocker	π-Rocker      ???
-//    +	    −	+	Non-Grashof	        π-Rocker	0-Rocker      ???
-//    +	    +	−	Non-Grashof	        0-Rocker	π-Rocker      ???
-    
-    
-    
+//    +	    −	−	Grashof	            Rocker	    Crank         l - u + reflection
+//    −	    +	−	Grashof	            Rocker	    Rocker        l - u + reflection
+//    −	    −	−	Non-Grashof	        0-Rocker	0-Rocker      -u - + u (include 0!) 
+//    −	    +	+	Non-Grashof	        π-Rocker	π-Rocker      l - π + reflection (include π-) 
+//    +	    −	+	Non-Grashof	        π-Rocker	0-Rocker      l - π + reflection (include π-)
+//    +	    +	−	Non-Grashof	        0-Rocker	π-Rocker      -u - + u (include 0!)
 
+// Crank means that the link can rotate all the way around
+// Rocker means that it can reach either 0 or π, but it is limited between them
+// 0-Rocker is a limited range of motion that includes 0 degree
+// π-Rocker is a limited range of motion that includes 180 degrees.
     
-//     class = row_match(ls);
-//    log_s("class", class, verbosity, IMPORTANT);
-//    input_type =  class[INPUT_TYPE_IDX];
-//    base_limit = t2_limit_top(ls);    
+ 
     
     
     
