@@ -90,12 +90,13 @@ module text_check_font_size_by_extrude_height(
                 base_height = 2;
                 
                 bounding_box = sizes[i][j];
-                base_dimension = v_o_dot(bounding_box, [1, 1, 0]) + [pad.x, 0, base_height];
-                echo("sizes[i][j]", sizes[i][j]); 
-                echo("base_dimension", base_dimension); 
+                base_dimension = [bounding_box.x + pad.x, bounding_box.y,  + base_height];
+
                 dz = - base_height / 2;
                 
-                color("LightSkyBlue", alpha=0.5) translate([0, 0, dz]) cube(base_dimension, center=true); 
+                color("LightSkyBlue", alpha=0.5) 
+                translate([0, 0, dz]) 
+                cube(base_dimension, center=true); 
                 if (show_bounding_box) {
                     echo("bounding_box", bounding_box);
                     color("red", alpha=0.3)  cube(bounding_box, center=true); 
@@ -108,13 +109,14 @@ module text_check_font_size_by_extrude_height(
 if (show_text_check_font_size_by_extrude_height) {
     pad = [pad_x, pad_y, pad_z];
 
-    sizing_data = layout_generate_sizing_data(
+    sizing_coefficents = layout_sizing_coefficents(
         x_sizing = [ dx_by_fs, dx_by_eh, c_for_x],
         y_sizing = [ dy_by_fs, dy_by_eh, c_for_y],
         z_sizing = [ dz_by_fs, dz_by_eh, c_for_z]
     );
     
-    text_check_font_size_by_extrude_height(font_sizes, extrude_heights, pad, sizing_data);
+    text_check_font_size_by_extrude_height(
+        font_sizes, extrude_heights, pad, sizing_coefficents);
 }
 
 a = [1, 2, 3];

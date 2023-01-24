@@ -1,6 +1,5 @@
 *.stl
 *.gcode
-vector_cylinder.json
-print_in_place_development.json
+*.json
 print_in_place_development.png
 

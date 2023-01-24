@@ -79,7 +79,7 @@ function layout_generate_sizes(
  
 
         
-function layout_generate_sizing_data(
+function layout_sizing_coefficents(
         x_sizing, // [ dx_by_r, dx_by_s, c_for_x],
         y_sizing, // [ dy_by_r, dy_by_s, c_for_y];
         z_sizing // [ dz_by_r, dz_by_s, c_for_z];
