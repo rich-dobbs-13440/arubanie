@@ -66,43 +66,49 @@ O_BITS = [6, 1];
 
 XYZO_BITMAP = [X_BITS, Y_BITS, Z_BITS, O_BITS];
 
-function center_to_bitvector(center) = [ 
+function _center_to_bitvector(center) = [ 
     for (i = [0:3]) let(places = XYZO_BITMAP[i][0], bits = XYZO_BITMAP[i][1]) 
        bw_extract(center, places, bits) 
 ];
     
-function bv_to_sign(bv) = [
-    for (i = [0:3]) 
-        bv[i] == PLUS ? 1 :
-        bv[i] == MINUS ? -1 : 0
-];
-    
-// Test naming convention for implementation function
+
 function _bv_to_sign(bv) = [
     for (i = [0:3]) 
         bv[i] == PLUS ? 1 :
         bv[i] == MINUS ? -1 : 0
 ];
     
-function center_to_sign(center) = 
-    bv_to_sign(center_to_bitvector(center));
 
-function center_to_dv(center, s, bv) = [
+function _center_to_dv(center, s, bv) = [
     for (i = [0:len(s)-1]) s[i] * bv[i]
 ];
     
-function center_to_displacement(center, s) = 
-    center_to_dv(center, s, center_to_bitvector(center));    
+function _center_to_displacement(center, size) = 
+    _center_to_dv(
+        center, 
+        v_mul_scalar(size, 0.5), 
+        _bv_to_sign(_center_to_bitvector(center)));    
 
 
-// Cuboid is a cube with a specific translation about the origin.
-module cuboid(size, center=0) {
-
-    disp = center_to_displacement(center, v_mul_scalar(size, 0.5));
+/* 
+    Cuboid is a cube with a specific translation about the origin.
+    
+    Example usage:
+    
+    size = [10, 2, 6];
+    cuboid(size); // Centered on X, Y, & Z axises
+    
+    cuboid(size, center=ABOVE); // Centered on X, Y axises
+    cuboid(size, center=ABOVE+FRONT); // Centered on X
+    cuboid(size, center=ABOVE+FRONT+LEFT); // One corner is at origin
+    
+*/
+module cuboid(size, center=0) { 
+    disp = _center_to_displacement(center, size);
     translate(disp) cube(size, center=true);  
 }
 
-cuboid([10, 2, 6], center=0);
+
 
 // Rod is a cylinder on its edge, with a specific translation 
 // about the origin and orientation
