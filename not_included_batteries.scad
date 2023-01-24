@@ -151,6 +151,75 @@ module rod(d, l, center=0) {
 * color("blue") rod(d=10, l=20);
 * rod(d=10, l=20, center = SIDEWISE + FRONT + ABOVE + LEFT);
 
+module rod2(d, l, center=0) {
+    bv = _center_to_bitvector(center);
+    is_sideways = bv[3] == 1;
+    x = is_sideways ? d : l;
+    y = is_sideways ? l : d;
+    z = d;
+    size=[x, y, z];
+    disp = _center_to_displacement(center, size);
+    a = is_sideways ? 90 : 0;
+    translate(disp)
+    rotate([0, 0, a])
+    rotate([0, 90, 0])
+    cylinder(d=d, h=l, center=true);  
+    
+}
+
+
+module _visual_test_rod_single_attribute(d, l, a) {
+    
+    color("SteelBlue", alpha = a) 
+    rod2(d=d, l=l, center=BEHIND); 
+
+    color("FireBrick", alpha = a) 
+    rod2(d=d, l=l, center=FRONT);
+
+    color("Lavender", alpha = a)   
+    rod2(d=d, l=l, center=LEFT);
+
+    color("RosyBrown", alpha = a)        
+    rod2(d=d, l=l, center=RIGHT);
+
+    color("Aqua", alpha = a)   
+    rod2(d=d, l=l, center=ABOVE);
+
+    color("blue", alpha = a)        
+    rod2(d=d, l=l, center=BELOW);
+}
+* _visual_test_rod_single_attribute(10, 20, 0.5);
+
+module _visual_test_all_octants(d, l, a) {
+    colors = [
+        [
+            ["red", "orange"],
+            ["yellow", "green"]
+        ],
+        [
+            ["IndianRed", "LightSalmon"],
+            ["Khaki", "LightGreen"]
+        ]
+    ];
+    
+    function i_x(x) = x == BEHIND ? 0 : 1;
+    function i_y(y) = y == LEFT ? 0 : 1;
+    function i_z(z) = z == ABOVE ? 0 : 1;
+    
+    function map_to_color(x, y, z) = colors[i_x(x)][i_y(y)][i_z(z)];
+    for (x_a = [BEHIND, FRONT]) {
+        for (y_a = [LEFT, RIGHT]) {
+            for (z_a = [ABOVE, BELOW]) {
+                color(map_to_color(x_a, y_a, z_a), alpha = a)        
+                rod2(d=d, l=l, center=x_a+y_a+z_a);                
+            }
+        }
+    }
+    
+}
+ _visual_test_all_octants(10, 20, 0.5);
+
+* rod(d=10, l=20, center = SIDEWISE + FRONT + ABOVE + LEFT);
 
 
 
