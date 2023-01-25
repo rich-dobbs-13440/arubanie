@@ -12,8 +12,10 @@ infinity = 1000;
 
 /* [Pin Overhang] */
 show_pin_overhang = true;
-max_overhang = 3; // [ 1 : 0.5 : 5]
+
+min_overhang = 1; // [ 1 : 0.25 : 5]
 delta_overhang = 0.25; // [0.25, 0.50, 1]
+max_overhang = 3; // [ 1 : 0.25 : 5]
 
 minimum_diameter = 3; // [1 : 1 : 10]
 maximum_diameter = 7; // [1 : 1 : 10]
@@ -40,14 +42,21 @@ dz_by_vj = 2; // [0 : 0.1 : 10]
 z_c = 4; // [0 : 0.1 : 10]
 z_pad = 3; // [[-5 : 0.01 : 10]
 
-/* [Expected to be constants] */
+/* [Label] */
+
+// x is currently ignored
+x_label_base = -34;
+y_label_base = 20; // [0:40]
+z_label_base = 2; // [1:4]
+
+/* [Element Data] */
 
 wall_y = 2;
 
-label_base = 25; //[10:30]
+label_base_x = 25; // [10:30]
+label_base_y = 15; // [1:40]
 
-
-overhangs = [ each [1 : delta_overhang: max_overhang] ];
+overhangs = [ each [min_overhang : delta_overhang: max_overhang] ];
 
 diameters = [ each [minimum_diameter : delta_diameter : maximum_diameter ] ];
 
@@ -93,8 +102,8 @@ module pin(d, h, center=true, v=Y_ORIENTATION) {
     }
 } 
 
-module wall(size, pad, element_dct) {
-    wall_y = find_in_dct(element_dct, "wall_y");
+module wall(size, pad, element_parameters) {
+    wall_y = find_in_dct(element_parameters, "wall_y");
     assert(!is_undef(wall_y));
     //color("blue", alpha=0.7) 
         translate([0, -wall_y/2, 0]) 
@@ -102,22 +111,27 @@ module wall(size, pad, element_dct) {
 }
 
 
-module label_base(size, pad, element_dct) {
-    thickness = 2;
-    length = find_in_dct(element_dct, "label_base_length", required=true);
-
-    y = sizing_data[4];
-    dy = -y/2;   
-    dz = -size.z/2 + thickness/2;
+module label_base(size, pad, element_parameters) {
+    
+//    length = find_in_dct(element_parameters, "label_base_x", required=true);
+//    y = find_in_dct(element_parameters, "label_base_y", required=true);
+    size_label_base = find_in_dct(element_parameters, "size_label_base", required=true);
+    dy = -size_label_base.y/2; // Below = 0
+    dz = -size.z/2 + size_label_base.z/2; // On floor of bounding box
+    connect_on_x = true; // Should be in element parameters
+    //connect_on_y = false;
+    x = size.x + (connect_on_x ? pad.x : 0);
+    y = size_label_base.y;
+    z = size_label_base.x;
     color("blue", alpha=0.7) 
         translate([0, dy, dz]) 
-            cube([size.x+pad.x, y, thickness], center=true);   
+            cube([x, y, z], center=true);   
 }
 
 
-module pin_label(d, h, size, element_dct, is_first)  {
+module pin_label(d, h, size, element_parameters, is_first)  {
    
-    wall_y = find_in_dct(element_dct, "wall_y");
+    wall_y = find_in_dct(element_parameters, "wall_y");
     dx = -2.3;
     dy = -wall_y ;
     dz = -size.z/2;
@@ -135,22 +149,22 @@ module pin_label(d, h, size, element_dct, is_first)  {
 }
 
         
-module pin_element(d, h, size, element_dct, pad, i, j) {
+module pin_element(d, h, size, element_parameters, pad, i, j) {
     // Need the i and j value to a row label
     * echo("In pin_element ==============================================");
     * echo("d", d);
     * echo("h", h);
     * echo("size", size);
-    * echo("element_dct", element_dct);
+    * echo("element_parameters", element_parameters);
     * echo("pad", pad);
     
     pin(d=d, h=h, center=false);
-    wall(size, pad, element_dct);
+    wall(size, pad, element_parameters);
     
     is_first = (j == 0); 
-    pin_label(d, h, size, element_dct, is_first);
+    pin_label(d, h, size, element_parameters, is_first);
     
-    label_base(size, pad, element_dct);
+    label_base(size, pad, element_parameters);
     
 
     // Draw bounding box for debug purpose
@@ -158,7 +172,7 @@ module pin_element(d, h, size, element_dct, pad, i, j) {
     * echo("In pin_element ==============================================");
 }
 
-module pin_overhang(d, h, pad, sizing_coefficents, element_dct) {
+module pin_overhang(d, h, pad, sizing_coefficents, element_parameters) {
 
     sizes = layout_generate_sizes(
         outer_loop_values=d, 
@@ -169,7 +183,7 @@ module pin_overhang(d, h, pad, sizing_coefficents, element_dct) {
         for (j = [0: len(h)-1]) {
             layout_compressed_by_x_then_y(i, j, sizes, pad) {
                 
-                pin_element(d[i], h[j], sizes[i][j], element_dct, pad, i, j);
+                pin_element(d[i], h[j], sizes[i][j], element_parameters, pad, i, j);
                 
             } 
         }
@@ -185,12 +199,12 @@ if (show_pin_overhang) {
         z_sizing = [ dz_by_vi, dz_by_vj, z_c]
     );
 
-    element_dct = [["wall_y", wall_y]];
-//    echo(element_dct);
-//    echo(find_in_dct(element_dct, "wall_y"));
+    element_parameters = [
+        ["wall_y", wall_y],
+        ["size_label_base", [x_label_base, y_label_base, z_label_base]],
+    ];
 
-    
-    pin_overhang(diameters, overhangs, pad, sizing_coefficents, element_dct);
+    pin_overhang(diameters, overhangs, pad, sizing_coefficents, element_parameters);
 }
 
 

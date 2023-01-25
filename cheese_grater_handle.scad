@@ -83,16 +83,41 @@ if (show_clip) {
     clip();
 }
 
-module old_clips() {
-    clip_width = 1.22;
-    clip_height = 4.13;
-    clip_id = 23.45;
-    clip_od = 25.88;
-    x = (clip_od - clip_id)/2;
-    y = clip_width;
-    z = clip_height;
-    translate(dx, dy, ) cube([x, y, z], center=true);
-    
-}
+//module old_clips() {
+//    clip_width = 1.22;
+//    clip_height = 4.13;
+//    clip_id = 23.45;F
+//    clip_od = 25.88;
+//    x = (clip_od - clip_id)/2;
+//    y = clip_width;
+//    z = clip_height;
+//    translate(dx, dy, ) cube([x, y, z], center=true);
+//    
+//}
 
-old_clips();
+//* old_clips();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

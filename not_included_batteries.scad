@@ -33,7 +33,7 @@ function _dct_assert_one_and_only(matches) =
 function find_in_dct(dct, key, required=false) =
     required ? 
         _dct_assert_one_and_only(find_all_in_kv_list(dct, key)) :
-        find_all_kvp(dct, key)[0];
+        find_all_in_kv_list(dct, key)[0];
         
 
 function bw_lshift(number, places) = 
@@ -91,19 +91,19 @@ function _center_to_displacement(center, size) =
 
 
 /* 
-    Cuboid is a cube with a specific translation about the origin.
+    Block is a cube with a specific translation about the origin.
     
     Example usage:
     
     size = [10, 2, 6];
     cuboid(size); // Centered on X, Y, & Z axises
     
-    cuboid(size, center=ABOVE); // Centered on X, Y axises
-    cuboid(size, center=ABOVE+FRONT); // Centered on X
-    cuboid(size, center=ABOVE+FRONT+LEFT); // One corner is at origin
+    block(size, center=ABOVE); // Centered on X, Y axises
+    block(size, center=ABOVE+FRONT); // Centered on X
+    block(size, center=ABOVE+FRONT+LEFT); // One corner is at origin
     
 */
-module cuboid(size, center=0) { 
+module block(size, center=0) { 
     disp = _center_to_displacement(center, size);
     translate(disp) cube(size, center=true);  
 }

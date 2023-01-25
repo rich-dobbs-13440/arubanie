@@ -1,4 +1,13 @@
-// Make up for the lack of common vector operations.
+/*
+
+    Make up for the lack of common vector operations.
+
+    Usage:
+
+        use <vector_operations.scad>
+
+*/
+
 
 
 // Cumulative sum of values in v
@@ -10,13 +19,8 @@ function v_add_scalar(v, s) = [ for (e = v) e + s ];
     
 function v_mul_scalar(v, s) = [ for (e = v) e * s ];
 
-//function v_add(v1, v2) = (len(v1) == len(v2)) ? 
-//        [ for (i = [0 : len(v1) - 1) v1[i] + v2[i] ] : 
-//        undef;
-//        
-//function v_multiply(v1, v2) = (len(v1) == len(v2)) ? 
-//        [ for (i = [0 : len(v1) - 1) v1[i] * v2[i] ] : 
-//        undef;
+// The add operation is reasonably as the + operator in the language itself. 
+ 
 
 // Array should be rectangular, with the same number
 // of elements in each contained list.  
@@ -36,7 +40,7 @@ module test_array_transpose() {
     echo("aT", array_transpose(a));
 }
 
-test_array_transpose();
+* test_array_transpose();
 
 //Hadamard Product - - a & b must be same dimensioon
 function v_o_dot(v_a, v_b) = 
