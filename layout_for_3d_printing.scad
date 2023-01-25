@@ -1,6 +1,5 @@
 use <vector_operations.scad>
-
-
+use <not_included_batteries.scad>
 
 // Example usage:
 //
@@ -50,7 +49,9 @@ use <vector_operations.scad>
 
 //  TODO: Create a generic working sample to show its use.
 
+show_visual_test_for_zero_padding = false;
 
+module end_of_customization() {}
 
 
 function layout_size_of_element(r_i, s_j, m_r, m_s, c) = 
@@ -129,6 +130,39 @@ module layout_compressed_by_x_then_y(i_t, j_t, sizes, pad) {
     assert(is_num(dx_i_j), str("i=", i_t, " j=", j_t) );
     translate([dx[i_t][j_t], dy[i_t], dz[i_t][j_t]]) children();
 } 
+
+    module blocks_without_padding(r, s, pad, sizing_coefficents) {
+
+        sizes = layout_generate_sizes(
+            outer_loop_values=r, 
+            inner_loop_values=s,
+            sizing_coefficents=sizing_coefficents);
+        
+        for (i = [0 : len(r)-1]) {
+            for (j = [0: len(s)-1]) {
+                layout_compressed_by_x_then_y(i, j, sizes, pad) {
+                    // Make the block transparent, so that overlaps can be seen.
+                    color("red", alpha=0.5) block(sizes[i][j]); 
+                } 
+            }
+        }
+    }
+
+if (show_visual_test_for_zero_padding) {
+
+    
+    pad = [0, 0, 0]; 
+    sizing_coefficents = layout_sizing_coefficents(
+        x_sizing = [ 0, 0, 10],
+        y_sizing = [ 0, 0, 10],
+        z_sizing = [ 0, 0, 1]
+    );
+    r = [1, 2, 3];
+    s = [1, 2];
+    // Run the test
+    blocks_without_padding(r, s, pad, sizing_coefficents);
+    
+}
 
 
 
