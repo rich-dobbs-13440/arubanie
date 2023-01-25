@@ -20,8 +20,8 @@ max_bridge =  10; // [ 1 : 1 : 20]
 bridges = [ each [min_bridge : delta_bridge: max_bridge] ];
 
 minimum_diameter = 1; // [1 : 1 : 10]
-maximum_diameter = 3; // [1 : 1 : 10]
 delta_diameter = 2; // [0.25, 0.50, 1, 2, 3, 4]
+maximum_diameter = 5; // [1 : 1 : 10]
 diameters = [ each [minimum_diameter : delta_diameter : maximum_diameter ] ];
 
 /* [Element Data] */
@@ -37,10 +37,10 @@ x_pad = 0; // [-5 : 0.01 : 10]
 
 /* [Y Layout Tuning] */
 // vi is d, vj is b
-dy_by_vi = 2; // [0 : 0.1 : 10]
+dy_by_vi = 1; // [0 : 0.1 : 10]
 dy_by_vj = 0; // [0 : 0.1 : 10] 
-y_c = 10; // [0 : 0.1 : 10]
-y_pad = 13; // [-5 : 0.01 : 20]
+y_c = 15; // [-20 : 0.5 : 20]
+y_pad = 0; // [-5 : 0.01 : 20]
 
 /* [Z Layout Tuning] */
 // vi is d, vj is b
