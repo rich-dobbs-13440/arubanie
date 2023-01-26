@@ -70,26 +70,36 @@ module text_check_font_size_by_extrude_height(
     font_sizes, extrude_heights, pad, sizing_coefficents) {
         
     sizes = layout_generate_sizes(
-        outer_loop_values=font_sizes, 
-        inner_loop_values=extrude_heights,
+        row_values=font_sizes, 
+        column_values=extrude_heights,
         sizing_coefficents=sizing_coefficents); 
+        
+    strategy = [
+        COMPRESS_ROWS(), 
+        COMPRESS_MAX_COLS(), 
+        CONST_OFFSET_FROM_ORIGIN()];
+    
+    displacements = layout_displacements(
+        sizes, 
+        pad, 
+        strategy);
    
-    for (i = [0 : len(font_sizes)-1]) {
-        for (j = [0: len(extrude_heights)-1]) {
-            line = str("s=", font_sizes[i], " h=", extrude_heights[j]);
+    for (row = [0 : len(font_sizes)-1]) {
+        for (col = [0: len(extrude_heights)-1]) {
+            line = str("s=", font_sizes[row], " h=", extrude_heights[col]);
             
-            layout_compressed_by_x_then_y(i, j, sizes, pad) {
+            translate(displacements[row][col]) {
                 color("black") linear_extrude(
-                    extrude_heights[j])  
+                    extrude_heights[row])  
                     text(line, 
-                    size=font_sizes[i],
+                    size=font_sizes[col],
                     valign = "center", 
                     halign = "center"
                     );
                 
                 base_height = 2;
                 
-                bounding_box = sizes[i][j];
+                bounding_box = sizes[row][col];
                 base_dimension = [bounding_box.x + pad.x, bounding_box.y,  + base_height];
 
                 dz = - base_height / 2;
