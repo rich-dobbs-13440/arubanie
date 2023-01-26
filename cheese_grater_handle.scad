@@ -62,17 +62,18 @@ if (show_spindle) {
 
 
 module clip() {
-    tol = 0.5;
+    clip_id_allowance = 1.0;
+    clip_h_allowance = 0.5;
     clip_od = 25.32;
-    clip_id = spdl_d[0] + tol;
-    clip_h =  spdl_h[1] - spdl_h[0];
+    clip_id = spdl_d[0] + clip_id_allowance;
+    clip_h =  spdl_h[1] - spdl_h[0] - clip_h_allowance;
     color("blue", alpha=0.25)
     render()
     difference() {
         cylinder(d=clip_od, h=clip_h, center=false); 
         cylinder(d=clip_id, h=2*clip_h, center=true);
         translate([0, clip_od/2, clip_h/2]) {
-            cube([0.5, clip_od, 2*clip_h], center=true);
+            cube([0.25, clip_od, 2*clip_h], center=true);
         }
     }
      

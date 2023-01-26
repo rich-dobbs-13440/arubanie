@@ -22,6 +22,8 @@ function v_mul_scalar(v, s) = [ for (e = v) e * s ];
 // The add operation is reasonably as the + operator in the language itself. 
  
 
+function a2_add_scalar(a, s) = [ for (ae = a) v_add_scalar(ae, s) ];
+
 // Array should be rectangular, with the same number
 // of elements in each contained list.  
 // That makes it different from a generic C style lists of list.

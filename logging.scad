@@ -1,4 +1,10 @@
+/*
 
+    Usage:
+    
+    include <logging.scad>
+    
+*/
 
 /* [Hidden] */
 
@@ -40,7 +46,25 @@ module log_s(label, s, verbosity, level=INFO, important=0) {
         style = console_styling(overridden_level);
         echo(style, label, s);
     }
-} 
+}
+
+function log_v1_styled(label, v1, style_level) = 
+    let (
+        style = console_styling(style_level),
+        dummy1 = echo(style, "---"),
+        dummy2 = echo(style, label, "= ["),
+        dummy3 = [for (v = v1) echo(style, "-........", v)],
+        dummy4 = echo(style, "-------]")
+    )
+    echo(style, " ");
+
+
+function log_v1(label, v1, verbosity, level=INFO, important=0) =
+    let (
+        overridden_level = max(level, important),
+        dummy = overridden_level >= verbosity ? log_v1_styled(label, v1, overridden_level) : undef
+    )
+    echo();
 
 module log_v1(label, v1, verbosity, level=INFO, important=0) {
     overridden_level = max(level, important);
@@ -55,3 +79,17 @@ module log_v1(label, v1, verbosity, level=INFO, important=0) {
         echo(style, " ");
     }
 } 
+
+module joe() {
+    echo("Module Joe!");
+}
+
+//dummywww = log_v1("My something", [4, 3, 2, 1,], INFO, IMPORTANT);
+//function joe() = echo("Function Joe!!!!!");
+//
+//echo(joe());
+//joe();
+//
+//dummyx = log_v1_styled("Sam", ["SamValue"], IMPORTANT);
+//
+//dummy = joe();

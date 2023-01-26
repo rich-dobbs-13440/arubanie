@@ -1,6 +1,7 @@
 include <not_included_batteries.scad>
 use <vector_operations.scad>
 use <layout_for_3d_printing.scad>
+include <logging.scad>
 
 /* [Boiler Plate] */
 
@@ -13,6 +14,7 @@ infinity = 1000;
 /* [Pin Bridge] */
 show_pin_bridge = true;
 show_bounding_box = false;
+show_zero_padding_bug_analysis = false;
 
 min_bridge = 8; // [ 1 : 1 : 20]
 delta_bridge = 1; // [1, 2]
@@ -186,3 +188,47 @@ if (show_pin_bridge) {
 
     pin_bridge(diameters, bridges, pad, sizing_coefficents, element_parameters);
 }
+
+
+if (show_zero_padding_bug_analysis) {
+    pad = [0, 0, 0];
+    
+    sizing_coefficents = layout_sizing_coefficents(
+        x_sizing = [ 0, 1, 4],
+        y_sizing = [ 1, 0, 15],
+        z_sizing = [ 2, 0, 6]
+    ); 
+ 
+    element_parameters = [];
+    
+    diameters = [1, 5];
+    bridges = [8, 10];
+    
+    * pin_bridge(diameters, bridges, pad, sizing_coefficents, element_parameters);
+  
+    sizes = layout_generate_sizes(
+        outer_loop_values=diameters, 
+        inner_loop_values=bridges,
+        sizing_coefficents=sizing_coefficents);  
+    
+    log_s("sizes", sizes, DEBUG, IMPORTANT);
+    // ECHO: "", "sizes", [[[12, 16, 8], [14, 16, 8]], [[12, 20, 16], [14, 20, 16]]]
+    i = 0; j= 1;
+    layout_compressed_by_x_then_y(i, j, sizes, pad) {
+    }
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
