@@ -46,7 +46,7 @@ function log_verbosity_choice(choice) =
     choice == "DEBUG" ? DEBUG : 
     NOTSET;
     
-function log_s(label, s, verbosity, level=INFO, important=0) = 
+function log_s(label, s, verbosity, level=DEBUG, important=0) = 
     let(
         overridden_level = max(level, important),
         style = console_styling(overridden_level), 
@@ -71,7 +71,7 @@ function log_v1_styled(label, v1, style_level) =
         dummy3 = [for (v = v1) echo(style, "-........", v)],
         dummy4 = echo(style, "-------]")
     )
-    echo(style, " ");
+    undef;
 
 
 function log_v1(label, v1, verbosity, level=INFO, important=0) =
@@ -79,7 +79,7 @@ function log_v1(label, v1, verbosity, level=INFO, important=0) =
         overridden_level = max(level, important),
         dummy = overridden_level >= verbosity ? log_v1_styled(label, v1, overridden_level) : undef
     )
-    echo();
+    undef;
 
 module log_v1(label, v1, verbosity, level=INFO, important=0) {
     overridden_level = max(level, important);

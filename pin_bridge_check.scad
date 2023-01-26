@@ -17,7 +17,7 @@ show_bounding_box = false;
 show_zero_padding_bug_analysis = false;
 
 min_bridge = 8; // [ 1 : 1 : 20]
-delta_bridge = 1; // [1, 2]
+delta_bridge = 1; // [1, 2, 4]
 max_bridge =  10; // [ 1 : 1 : 20]
 bridges = [ each [min_bridge : delta_bridge: max_bridge] ];
 
@@ -152,19 +152,39 @@ module pin_element(d, b, size, element_parameters, pad, i, j) {
 
 }
 
-module pin_bridge(d, b, pad, sizing_coefficents, element_parameters) {
+module pin_bridge(
+    pin_diameter, 
+    bridge_distance, 
+    pad, 
+    sizing_coefficents, 
+    element_parameters) {
 
     sizes = layout_generate_sizes(
-        outer_loop_values=d, 
-        inner_loop_values=b,
+        row_values=pin_diameter, 
+        column_values=bridge_distance,
         sizing_coefficents=sizing_coefficents);
     
-    for (i = [0 : len(d)-1]) {
-        for (j = [0: len(b)-1]) {
-            layout_compressed_by_x_then_y(i, j, sizes, pad) {
-                
-                pin_element(d[i], b[j], sizes[i][j], element_parameters, pad, i, j);
-                
+    strategy = [
+        COMPRESS_ROWS(), 
+        COMPRESS_MAX_COLS(), 
+        CONST_OFFSET_FROM_ORIGIN()];
+    
+    displacements = layout_displacements(
+        sizes, 
+        pad, 
+        strategy);
+    
+    for (row = [0 : len(pin_diameter)-1]) {
+        for (col = [0: len(bridge_distance)-1]) {
+            translate(displacements[row][col]) {
+                pin_element(
+                    pin_diameter[row], 
+                    bridge_distance[col], 
+                    sizes[row][col], 
+                    element_parameters, 
+                    pad, 
+                    row, 
+                    col);
             } 
         }
     } 
