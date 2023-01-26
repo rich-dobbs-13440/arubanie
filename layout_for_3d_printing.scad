@@ -71,6 +71,11 @@ show_visual_test_for_zero_padding = false;
 show_visual_test_for_small_padding = false;
 show_visual_variable_size_blocks = true;
 
+/* [Logging] */
+
+log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+verbosity = log_verbosity_choice(log_verbosity_choice);    
+
 module end_of_customization() {}
 
 X = 0;
@@ -92,14 +97,16 @@ function layout_generate_sizes(row_values, column_values, sizing_coefficents) =
     let (
         m_r = sizing_coefficents[0],
         m_s = sizing_coefficents[1],
-        c = sizing_coefficents[2]
+        c = sizing_coefficents[2],
+        result = 
+            [ for (row_value = row_values) 
+                [ for (column_value = column_values)
+                    _layout_size_of_element(row_value, column_value, m_r, m_s, c)
+                ]
+            ],
+        dmy_1 = log_v1("layout_generate_sizes", result, verbosity)
     )
-     
-    [ for (row_value = row_values) 
-        [ for (column_value = column_values)
-            _layout_size_of_element(row_value, column_value, m_r, m_s, c)
-        ]
-    ];
+    result;
  
 
         
@@ -110,15 +117,16 @@ function layout_sizing_coefficents(
     ) = array_transpose([x_sizing, y_sizing, z_sizing]);
 //      Return result is [ m_r, m_s, c] where each is [x, y, z]       
  
-function _separate_sizes__by_component(sizes) = 
+function _sizes_by_axis(sizes) = 
     [ for (axis_index = [0 : 2]) // x, y, z
         [ for (row = sizes) 
             [ for (col =  row) col[axis_index] ]
         ]
     ];
             
-function _offset_for_for_first_element(stacked_displacement) = 
-        v_add_scalar(stacked_displacement, -stacked_displacement[0]/2);
+function _offset_for_first_element(stacked_displacement) = 
+            stacked_displacement;
+        //v_add_scalar(stacked_displacement, -stacked_displacement[0]);
             
 function _displace_elements_by_stacking(
             sizes_for_axis, pad_for_axis, center_for_axis) = 
@@ -126,7 +134,7 @@ function _displace_elements_by_stacking(
     let (
         result = 
             [ for (row = sizes_for_axis) 
-                _offset_for_for_first_element(
+                _offset_for_first_element(
                     v_cumsum(
                         v_add_scalar(row, pad_for_axis))
                 ) 
@@ -144,15 +152,18 @@ function _displace_elements_by_stacking_after_max(
         sizes_for_axis, pad_for_axis, center_for_axis) =
     // Note: center_for_axis ignored but it is to make function argument list common!
     let (
-        max_sizes = _max_sizes(sizes_for_axis),
-        padded_sizes = v_add_scalar(max_sizes, pad_for_axis),
-        cumulative_sizes = v_cumsum(padded_sizes)
+        max_sizes_by_row = _max_sizes(sizes_for_axis),
+        padded_sizes = v_add_scalar(max_sizes_by_row, pad_for_axis),
+        cumulative_sizes_by_row = v_cumsum(padded_sizes),
+        disp_by_row = _offset_for_first_element(cumulative_sizes_by_row) 
     )
     echo("sizes_for_axis", sizes_for_axis)
     echo("padded_sizes", padded_sizes)
-    echo("cumulative_sizes", cumulative_sizes)
-    [ for (row = sizes_for_axis) 
-        _offset_for_for_first_element(cumulative_sizes) 
+    echo("cumulative_sizes", cumulative_sizes_by_row)
+    [ for (ir = [0 : 1: len(sizes_for_axis)-1])
+        [ for (col = sizes_for_axis[ir]) 
+            disp_by_row[ir]
+        ]
     ];
     // Same displayment along the row, patch so first row is centered on origin.
     
@@ -235,42 +246,100 @@ function _displacement_by_axis_row_col(sizes_by_axis, pad, center) =
      )
      result;
             
-function _disp_rc_compress_row(axis, sizes, pad_for_axis) =
-    [ for (row = sizes) 
-        [ for (col = row)
-            9
-        ] 
-    ]; 
+function _disp_rc_compress_row(axis, sizes_for_axis, pad_for_axis) =
+    
+    let (
+
+           
+        result = 
+            [ for (row = sizes_for_axis)
+                let (
+                    padded_sizes = v_add_scalar(row, pad_for_axis),
+                    edges = concat([0], v_cumsum(padded_sizes)),
+                    centers = [ for (i = [0 : len(edges)-2]) (edges[i] + edges[i+1])/2 ],
+                        
+                    dmy_2 = log_v1("edges", edges, verbosity, DEBUG, IMPORTANT),
+                    dmy_3 = log_v1("centers", centers, verbosity, DEBUG, IMPORTANT),
+                    last = 1
+                )
+                centers     
+            ],
+                    
+        dmy_1 = log_s("axis", axis, verbosity, DEBUG), 
+        dmy_2 = log_v1("sizes_for_axis", sizes_for_axis, verbosity, DEBUG, IMPORTANT), 
+        dmy_3 = log_s("pad_for_axis", pad_for_axis, verbosity, DEBUG),
+        dmy_65 = log_v1("_disp_rc_compress_row result", result, verbosity, DEBUG)
+    )    
+    result;
             
-function _disp_rc_compress_max_cols(axis, sizes, pad_for_axis) =
-    [ for (row = sizes) 
-        [ for (col = row)
-            12
-        ] 
-    ];
+function _disp_rc_compress_max_cols(axis, sizes_for_axis, pad_for_axis) =
+    let (
+        padded_sizes = a2_add_scalar(sizes_for_axis, pad_for_axis),
+        max_by_row = [ for (row = padded_sizes) max(row) ],
+//            [ for (ci = [0 : len(sizes_for_axis[0])-1])
+//                 max([ for (ri = [0 : len(sizes_for_axis)-1]) padded_sizes[ri][ci] ]) 
+//            ],
+        edges = concat([0], v_cumsum(max_by_row)), 
+        centers = [ for (i = [0 : len(edges)-2]) (edges[i+1] + edges[i])/2 ],
+        
+        result = [ for (ri = [0 : len(sizes_for_axis)-1])
+                      [ for (ci = [0 : len(sizes_for_axis[0])-1]) centers[ri] ]
+                 ],
+           
+        dmy_0 = log_s("In Module: ", "In _disp_rc_compress_max_cols", verbosity, INFO, IMPORTANT),     
+        dmy_1 = log_s("axis",   axis, verbosity, INFO), 
+        dmy_2 = log_v1("sizes_for_axis", sizes_for_axis, verbosity),
+        dmy_3 = log_s("pad_for_axis", pad_for_axis, verbosity),
+        dmy_4 = log_v1("padded_sizes", padded_sizes, verbosity),        
+        dmy_5 = log_v1("max_by_row", max_by_row, verbosity, INFO, IMPORTANT), 
+        dmy_7 = log_v1("edges", edges, verbosity, INFO, IMPORTANT),
+        dmy_8 = log_v1("centers", centers, verbosity, INFO, IMPORTANT),
+                
+//        dmy_3 = log_s("pad_for_axis", pad_for_axis, verbosity),
+//        ,
+//        dmy_6 = log_v1("disp_by_row", disp_by_row, verbosity),
+//        dmy_4 = log_v1("max_col_by_row", max_col_by_row, verbosity), 
+        dmy_12 = log_v1("_disp_rc_compress_max_cols - result", result, verbosity),
+        last = 1
+                
+    )
+    result;
+
+            
           
 function _disp_rc_element_base_level(axis, sizes, pad_for_axis) =
     [ for (row = sizes) 
-        ["charlie blah"] ]; 
+        [ for (col = row)
+            pad_for_axis
+        ] 
+    ];
            
 function _disp_rc(strategy_for_axis, axis, sizes, pad) = 
     let (
+        sizes_by_axis = _sizes_by_axis(sizes),
+        sizes_a = sizes_by_axis[axis],
+        pad_a = pad[axis],
         result = 
             strategy_for_axis == COMPRESS_ROWS() ? 
-                _disp_rc_compress_row(axis, sizes, pad[axis]) : 
+                _disp_rc_compress_row(axis, sizes_a, pad_a) : 
             strategy_for_axis == COMPRESS_MAX_COLS() ? 
-                _disp_rc_compress_max_cols(axis, sizes, pad[axis]) : 
-            strategy_for_axis == ELEMENT_BASE_IS_LEVEL_WITH_ORIGIN() ? 
-                _disp_rc_element_base_level(axis, sizes, pad[axis]) : 
+                _disp_rc_compress_max_cols(axis, sizes_a, pad_a) : 
+            strategy_for_axis == CONST_OFFSET_FROM_ORIGIN() ? 
+                _disp_rc_element_base_level(axis, sizes_a, pad_a) : 
                 assert(
                     false, 
                     strcat("The strategy ", strategy_for_axis," is not handled.")),
         context = str(
             " strategy_for_axis: ", strategy_for_axis, 
             " axis: ", axis, 
-            " sizes: ", sizes, 
-            " pad: ", pad,
-            " result: ", result)
+            " sizes_a: ", sizes_a, 
+            " pad_a: ", pad_a,
+            " result: ", result),
+            
+        dmy_2 = log_s("_disp_rc axis", axis, verbosity, INFO),    
+        dmy_1 = log_v1("_disp_rc result", result, verbosity, INFO)
+        
+        
     )
     assert(
         is_list(result), 
@@ -280,7 +349,7 @@ function _disp_rc(strategy_for_axis, axis, sizes, pad) =
         str( "Internal error: Result must be a list of lists ", context))
     assert(
         is_num(result[0][0]), 
-        str("Internal error: Result must be a list of lists", context))
+        str("Internal error: Result must be a list of lists...................", context))
     assert(
         len(result) == len(sizes), 
         str("Internal error: Row mismatch: ", 
@@ -299,40 +368,40 @@ function _disp_rc(strategy_for_axis, axis, sizes, pad) =
 function layout_displacements(sizes, pad, strategy_by_axis) = 
     assert(len(strategy_by_axis) == 3, "Each axis must have a layout strategy!")
     let (
+        dmy_ld = log_s("In Module: ", "In layout_displacements", verbosity, INFO),
         args = str(" sizes: ", sizes, " pad: ", pad, " strategy: ", strategy_by_axis),
+        dmy_args = log_s("args", args, verbosity, INFO),
+        
         row_count = len(sizes),
         col_count = len(sizes[0]),
         x_disp_rc = _disp_rc(strategy_by_axis[X], X, sizes, pad),
         y_disp_rc = _disp_rc(strategy_by_axis[Y], Y, sizes, pad),
-        z_disp_rc = _disp_rc(strategy_by_axis[Y], Z, sizes, pad),
+        z_disp_rc = _disp_rc(strategy_by_axis[Z], Z, sizes, pad),
         context = str(
             " x_disp_rc: ", x_disp_rc, 
             " y_disp_rc: ", y_disp_rc, 
             " z_disp_rc: ", z_disp_rc, 
-            " args: ", args)  
+            " args: ", args),  
+        result = 
+            [ for (ri = [0 : row_count-1])
+                [ for (ci = [0 : col_count-1])
+                   assert(is_num(y_disp_rc[ri][ci]), "context")
+                   assert(is_num(y_disp_rc[ri][ci]), "context")
+                   assert(is_num(z_disp_rc[ri][ci]), "context")
+                   [ x_disp_rc[ri][ci], y_disp_rc[ri][ci], z_disp_rc[ri][ci] ]
+                ]
+            ],
+                
+         dmy_result = log_v1("result", result, verbosity, IMPORTANT)       
     )
     
-    //assert(false, str("Got through rest of check!: ", x_disp_rc, y_disp_rc, z_disp_rc))
-    [ for (ri = [0 : row_count-1])
-        [ for (ci = [0 : col_count-1])
-           assert(
-                is_num(x_disp_rc[ri][ci]), 
-                str(
-                    "Must be a number. value:  ", x_disp_rc[ri][ci],
-                    " r: ", ri, 
-                    " c: ", ci, 
-                    " context: ", context))
-           assert(is_num(y_disp_rc[ri][ci]), "John")
-           assert(is_num(z_disp_rc[ri][ci]), "John")
-           [ x_disp_rc[ri][ci], y_disp_rc[ri][ci], z_disp_rc[ri][ci] ]
-        ]
-    ];
+    result;
     
 function layout_displacements_compressed_by_x_then_y(
     sizes, pad, center=[true, true, true]) = 
         
     let (
-        sizes_by_axis =_separate_sizes__by_component(sizes),
+        sizes_by_axis =_sizes_by_axis(sizes),
 
         displacements = _displacement_by_rc(
             _displacement_by_axis_row_col (
@@ -344,22 +413,28 @@ function layout_displacements_compressed_by_x_then_y(
     assert(len(displacements) == len(sizes), "Internal Error")
     displacements ;
     
+    
+    
+    
+    
+    
 module just_blocks_noveau(row_values, column_values, pad, sizing_coefficents) {
-
     sizes = layout_generate_sizes(
         row_values, 
         column_values,
         sizing_coefficents);
     
-    strategy = [COMPRESS_ROWS(), COMPRESS_MAX_COLS(), CONST_OFFSET_FROM_ORIGIN()];
+    strategy = [
+        COMPRESS_ROWS(), 
+        COMPRESS_MAX_COLS(), 
+        CONST_OFFSET_FROM_ORIGIN()];
     displacements = layout_displacements(sizes, pad, strategy);
-    log_v1("displacements", displacements, INFO, IMPORTANT);
-
+//    log_v1("displacements", displacements, INFO, IMPORTANT);
+//
     for (r_idx = [0 : len(row_values)-1]) {
         for (c_idx = [0: len(column_values)-1]) {
-            //displacement = displacements[r_idx][c_idx];
-            
-            translate(displacements[r_idx][c_idx]) {
+            disp = displacements[r_idx][c_idx];
+            translate([disp.x, disp.y, disp.z]) {
                 // Make the block transparent, so that overlaps can be seen.
                 color("blue", alpha=0.5) block(sizes[r_idx][c_idx]); 
             } 
@@ -374,25 +449,25 @@ module layout_compressed_by_x_then_y(
     // Break down the size elements by the x, y, and z components
     // sizes is structured to be indexed as [i][j][axis]
     // but for layout calculations we need [axis][i][j]
-    sizes_by_axis = _separate_sizes__by_component(sizes); 
+    sizes_by_axis = _sizes_by_axis(sizes); 
     dx = _displace_elements_by_stacking(sizes_by_axis.x, pad.x);
+    echo("dx", dx);
     dy =  _displace_elements_by_stacking_after_max(sizes_by_axis.y, pad.y, false);
-    
+    echo("dy", dy);
     // If the elements are constructed to have build plate parallel,
     // then the z axis is not translated
     //relative_location_z = is_build_plate_on_bottom ? 0.5 : 0;
     dz = _displace_elements_individually(
         sizes_by_axis.z, pad.z, !is_build_plate_on_bottom);
-    echo("sizes_by_axis.z", sizes_by_axis.z);
-    echo("pad.z", pad.z);
+    echo("dz", dz);
     //echo("relative_location_z", relative_location_z);
 //    echo("v_mul_scalar(sizes_for_axis, relative_location)", 
 //        v_mul_scalar(sizes_by_axis.z, relative_location_z));    
-    echo("dz", dz);
+
     
     dx_i_j = dx[i_t][j_t];
     assert(is_num(dx_i_j), str("i=", i_t, " j=", j_t) );
-    translate([dx[i_t][j_t], dy[i_t], dz[i_t][j_t]]) children();
+    translate([dx[i_t][j_t], dy[i_t][j_t], dz[i_t][j_t]]) children();
 } 
 
 module just_blocks(row_values, column_values, pad, sizing_coefficents) {
@@ -438,17 +513,19 @@ if (show_visual_test_for_small_padding) {
     just_blocks(r, s, pad, sizing_coefficents);  
 }
 
+echo("concat", concat([0], [1, 2, 3]));
+
 if (show_visual_variable_size_blocks) {
     pad = [0, 0, 0]; 
     sizing_coefficents = layout_sizing_coefficents(
-        x_sizing = [ 1, 0, 1],
-        y_sizing = [ 0, 1, 1],
-        z_sizing = [ 0, 1, 1]
+        x_sizing = [ 10, 10, 10],
+        y_sizing = [ 10, 10, 20],
+        z_sizing = [ 0, 0, 10]
     );
     r = [1, 2, 3, 4];
     s = [1, 2];
     // Run the test
-    *just_blocks(r, s, pad, sizing_coefficents);  
+    * just_blocks(r, s, pad, sizing_coefficents);  
     
     just_blocks_noveau(r, s, pad, sizing_coefficents);
 }

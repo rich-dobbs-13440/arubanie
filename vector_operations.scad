@@ -17,6 +17,8 @@ function v_sum(v, i=0, r=0) = i<len(v) ? v_sum(v, i+1, r+v[i]) : r;
 
 function v_add_scalar(v, s) = [ for (e = v) e + s ];
     
+function v_sub_scalar(v, s) = [ for (e = v) e - s ];
+    
 function v_mul_scalar(v, s) = [ for (e = v) e * s ];
 
 // The add operation is reasonably as the + operator in the language itself. 

@@ -4,6 +4,11 @@
     
     include <logging.scad>
     
+/* [Logging] * /
+
+log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+verbosity = log_verbosity_choice(log_verbosity_choice);    
+    
 */
 
 /* [Hidden] */
@@ -31,14 +36,24 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 
 
 function console_styling(level) = 
-    level >= IMPORTANT ? "<b style='color:OrangeRed'><font size=\"+2\">" :
-    "";
+    level >= IMPORTANT ? 
+        "<b style='color:OrangeRed'><font size=\"+2\">" :
+        "<font size=\"+2\">";
 
 function log_verbosity_choice(choice) = 
     choice == "WARN" ? WARN :
     choice == "INFO" ? INFO : 
     choice == "DEBUG" ? DEBUG : 
     NOTSET;
+    
+function log_s(label, s, verbosity, level=INFO, important=0) = 
+    let(
+        overridden_level = max(level, important),
+        style = console_styling(overridden_level), 
+        dmy1 = overridden_level >= verbosity ? echo(style, label, s) : undef
+        
+    )
+    undef;
     
 module log_s(label, s, verbosity, level=INFO, important=0) {
     overridden_level = max(level, important);
