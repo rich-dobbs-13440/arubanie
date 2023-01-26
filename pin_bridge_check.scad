@@ -21,9 +21,9 @@ delta_bridge = 1; // [1, 2, 4]
 max_bridge =  10; // [ 1 : 1 : 20]
 bridges = [ each [min_bridge : delta_bridge: max_bridge] ];
 
-minimum_diameter = 1; // [1 : 1 : 10]
-delta_diameter = 2; // [0.25, 0.50, 1, 2, 3, 4]
-maximum_diameter = 5; // [1 : 1 : 10]
+minimum_diameter = 0.5; // [0.5 : 0.25 : 10]
+delta_diameter = 0.50; // [0.25, 0.50, 1, 2, 3, 4]
+maximum_diameter = 2; // [0.5: 0.25 : 10]
 diameters = [ each [minimum_diameter : delta_diameter : maximum_diameter ] ];
 
 /* [Element Data] */
@@ -51,22 +51,17 @@ dz_by_vj = 0; // [0 : 0.1 : 10]
 z_c = 6; // [-20 : 0.5 : 20]
 z_pad = 0; // [[-10 : .5 : 10]
 
-/* [Label] */
-
-//// x is currently ignored
-//x_label_base = -34;
-//y_label_base = 20; // [0:40]
-//z_label_base = 2; // [1:4]
 
 module end_of_customization() {}
 
-module label(line, base_thickness) {
-    label_size = [12, 5, base_thickness];
+module label(size, line, base_thickness) {
+
+    label_size = [size.x, 5, base_thickness];
     block(label_size, center=BELOW);
     color("black") 
-    linear_extrude(1)  
+    linear_extrude(0.75)  
     text(line, 
-        size=4,
+        size=3.5,
         valign = "center", 
         halign = "center"
     );
@@ -83,11 +78,11 @@ module pin_element(d, b, size, element_parameters, pad, i, j) {
     
     b_line = strcat(["b ", str(b)]);
     translate([0, dy_label , 0])
-    label(b_line, base_thickness=bt);
+    label(size, b_line, base_thickness=bt);
 
     d_line = strcat(["d ", str(d)]);
     translate([0, -dy_label, 0])
-    label(d_line, base_thickness=bt);    
+    label(size, d_line, base_thickness=bt);    
 
     l_rod = b;
     translate([0, 0, dz_rod])
@@ -102,8 +97,12 @@ module pin_element(d, b, size, element_parameters, pad, i, j) {
     translate([b/2, 0, 0]) 
     block(pillar_size, center=ABOVE+FRONT);
     
+    join_on_y = true;
+    log_s("pad.y", pad.y, verbosity, INFO, IMPORTANT);
+    size_join = join_on_y ? pad.y : 0;
+    y_joiner = size.y + size_join;//  + (join_on_y) ? 16 : 0; //pad.y : 0;
     
-    joiner_size = [wt, 2*dy_label, bt];
+    joiner_size = [wt, y_joiner, bt];
     color("Yellow")
     translate([-b/2, 0, 0])
     block(joiner_size, center=BELOW+BEHIND);
@@ -116,39 +115,7 @@ module pin_element(d, b, size, element_parameters, pad, i, j) {
     if (show_bounding_box) {
         // Draw bounding box for debug purpose
         color("red", alpha=0.3)  cube(size, center=true); 
-    }
-
-//    
-//    
-//    label_size = [l_rod, label_z, label_z];
-//    
-//    color("Purple")
-//    translate([label_y, -d/2, label_z-base_z])
-//    block(label_size, center=BELOW+LEFT);
-//    
-//    color("Purple")
-//    translate([0, +d/2 , 0])
-//    block(label_size, center=BELOW+RIGHT);
-    
-    
-    
-    
-//    // Need the i and j value to a row label
-//    * echo("In pin_element ==============================================");
-//    * echo("d", d);
-//    * echo("h", h);
-//    * echo("size", size);
-//    * echo("element_parameters", element_parameters);
-//    * echo("pad", pad);
-//    
-//    pin(d=d, h=h, center=false);
-//    wall(size, pad, element_parameters);
-//    
-//    is_first = (j == 0); 
-//    pin_label(d, h, size, element_parameters, is_first);
-//    
-//    label_base(size, pad, element_parameters);
-//    
+    }    
 
 }
 

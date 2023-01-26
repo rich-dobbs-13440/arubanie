@@ -1,3 +1,16 @@
+include <not_included_batteries.scad>
+include <logging.scad>
+
+use <vector_cylinder.scad>
+
+
+
+///* [Dimensions for module_using_vector_cylinder] */
+//
+//d = 4; // [ ]
+
+
+
 /* [Boiler Plate] */
 
 $fa = 1;
@@ -17,16 +30,47 @@ spindle_retainer_clip_od = 21.11;
 spindle_mid_od = 19.45;
 spindle_id = 15.68;
 
-
-
-
 spindle_total_h = 15.27;
 spindle_top_lip_h = 2.44;
 
-
-
 handle_id = 22.60;
 handle_clip_id = 26.03;
+
+
+module module_using_vector_cylinder() {
+    C_A = 0 + 0;
+    C_B = 1 + 0;
+    C_C = 2 + 0;
+    C_D = 3 + 0;
+   
+    d = 1;
+    d_n = 2;
+    d_b = 3;
+    
+    h_n = 3; 
+    h_c = 3.3;
+    h_s = 2;
+    h_b = 2;
+
+    colors =["aqua", "blue", "tomato"];
+
+    columns = [vcf_r1_idx(), vcf_r2_idx(), vcf_h_idx(), vcf_color_idx()];
+
+    axle_data = 
+    [   
+        [ d/2,      d_n/2,  h_n, C_A ], // Tapered outward section
+        [ d_n/2,    d/2,    h_c, C_B ], // Tapered inward section 
+        [ d/2,      d/2,    h_s, C_C ], // Straight section 
+        [ d_b/2,    d_b/2,  h_b, C_D ], // Bigger and bad color index 
+    ];  
+
+     v_conic_frustrum(
+        columns,         
+        axle_data, 
+        colors); 
+}
+
+module_using_vector_cylinder();
 
 
 spdl_h = [
@@ -42,6 +86,10 @@ spdl_d = [
     19.94,
     22.39  
 ];
+
+module grip() {
+    
+}
 
 module spindle() {
 

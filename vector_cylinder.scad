@@ -1,3 +1,48 @@
+/*
+
+    Usage:
+    
+    use <vector_cylinder.scad>
+   
+    module module_using_vector_cylinder() {
+        C_A = 0 + 0;
+        C_B = 1 + 0;
+        C_C = 2 + 0;
+        C_D = 3 + 0;
+       
+        d = 1;
+        d_n = 2;
+        d_b = 3;
+        
+        h_n = 3; 
+        h_c = 3.3;
+        h_s = 2;
+        h_b = 2;
+
+        colors =["aqua", "blue", "tomato"];
+
+        columns = [vcf_r1_idx(), vcf_r2_idx(), vcf_h_idx(), vcf_color_idx()];
+
+        axle_data = 
+        [   
+            [ d/2,      d_n/2,  h_n, C_A ], // Tapered outward section
+            [ d_n/2,    d/2,    h_c, C_B ], // Tapered inward section 
+            [ d/2,      d/2,    h_s, C_C ], // Straight section 
+            [ d_b/2,    d_b/2,  h_b, C_D ], // Bigger and bad color index 
+        ];  
+
+        v_conic_frustrum(
+            columns,         
+            axle_data, 
+            colors); 
+    }
+
+    module_using_vector_cylinder();
+    
+
+*/
+
+
 /* [Boiler Plate] */
 
 $fa = 1;
