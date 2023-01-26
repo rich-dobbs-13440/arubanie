@@ -172,18 +172,40 @@ module pin_element(d, h, size, element_parameters, pad, i, j) {
     * echo("In pin_element ==============================================");
 }
 
-module pin_overhang(d, h, pad, sizing_coefficents, element_parameters) {
+module pin_overhang(
+        pin_diameters, 
+        pin_overhangs, 
+        pad, 
+        sizing_coefficents, 
+        element_parameters) {
 
     sizes = layout_generate_sizes(
-        outer_loop_values=d, 
-        inner_loop_values=h,
+        row_values=pin_diameters, 
+        column_values=pin_overhangs,
         sizing_coefficents=sizing_coefficents);
     
-    for (i = [0 : len(d)-1]) {
-        for (j = [0: len(h)-1]) {
-            layout_compressed_by_x_then_y(i, j, sizes, pad) {
+    strategy = [
+        COMPRESS_ROWS(), 
+        COMPRESS_MAX_COLS(), 
+        CONST_OFFSET_FROM_ORIGIN()];
+    
+    displacements = layout_displacements(
+        sizes, 
+        pad, 
+        strategy);
+    
+    for (row = [0 : len(pin_diameters)-1]) {
+        for (col = [0: len(pin_overhangs)-1]) {
+            translate(displacements[row][col]) {
                 
-                pin_element(d[i], h[j], sizes[i][j], element_parameters, pad, i, j);
+                pin_element(
+                    pin_diameters[row], 
+                    pin_overhangs[col], 
+                    sizes[row][col], 
+                    element_parameters, 
+                    pad, 
+                    row, 
+                    col);
                 
             } 
         }
