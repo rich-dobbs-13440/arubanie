@@ -1,13 +1,46 @@
 /*
 
-    Usage:
+Features:
+    * Larger font size since the console window font size can't be changed from GUI.
+    * Color coding of message.
+    * Prettier printing of vectors by rows..
+    * Control of output level from customizer
+    * Structured to encourage labeling output.
+
+Usage:
+
+include <logging.scad>
     
-    include <logging.scad>
+Add this to your customizer section:    
     
 /* [Logging] * /
 
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice);    
+    
+
+Sample usage in code: 
+    // DEBUG level assigned by default!
+    log_s("air_brush_length", air_brush_length, verbosity);  
+    
+    // Really show this message because its important for immediately debugging
+    log_s("air_brush_length", air_brush_length, verbosity, IMPORTANT);
+   
+    // Info message for aid in isolating a problem:
+    log_s("Entering module", "module_name", verbosity, INFO);
+    
+    // Not a fatal error, but something the user should immediately 
+    // spot in the log:
+    log_s("Warning", "Message about the worry!", verbosity, WARN);
+    
+    // Show an array with somewhat prettier printing:
+    log_v1("offsets", offsets, verbosity);
+    
+    // Dump out information relevant to an assertion failure
+    if (assertion_condition) {
+        log_v1("offsets", offsets, verbosity), ERROR);
+        assert(assertion_condition, "msg")
+    }
     
 */
 

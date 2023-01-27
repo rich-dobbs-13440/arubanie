@@ -1,35 +1,65 @@
-
+include <not_included_batteries.scad>
+use <vector_operations.scad>
 include <master_airbrush_measurements.scad>;
+include <logging.scad>
+
+/* [Boiler Plate] */
 
 $fa = 1;
 $fs = 0.4;
+eps = 0.001;
 
+infinity = 1000;
+
+
+/* [Show] */
+build_from = "air_hose"; // ["air_hose", "base"]
+show_yoke = false;
+show_back_block = false;
+show_base = false;
+show_air_brush_on_end = false;
+
+
+
+//angle = 0; // [-180 : +180]
+
+/* [Dimensions] */
+base_offset_from_air_hose = 21; // [9:1:21]
+// The lower sides are measured from the base>
+base_bottom_z = barrel_back_to_air_hose - base_offset_from_air_hose;
+// Controls how firmly the holder clips to air hose barrel:
+air_hose_clip_length = 3; // [0:0.5:6]
+
+// Small enough to not impact
+z1 = 8; 
+// Large enough to reach middle of brace
+z2 = 45; 
 
 
 // All dimensions are in mm!
-eps = 0.05;
 barrel_diameter_clearance = 0.75;
 wall_thickness = 2.0;
-
-show_yoke = true;
-show_back_block = true;
 
 
 barrel_diameter = measured_barrel_diameter + barrel_diameter_clearance;
 trigger_pad_diameter = m_trigger_pad_diameter + 0.0;
 trigger_pad_thickness = m_trigger_pad_thickness + 0.0;
-
+/* [Yoke Dimensions] */
 yoke_depth = 50; 
 yoke_length = 19; 
 pivot_length = 4; 
-bar_width = 2.5;
-pivot_diameter = 2.5;
+bar_width = 2.5; // [2:0.5:5]
+pivot_diameter = bar_width;
 
+/* [Logging] */
 
+log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+verbosity = log_verbosity_choice(log_verbosity_choice);    
+  
 
 module barrel() {
     // Display horizontal zero 
-    h = barrel_length+2/eps;
+    h = barrel_length +2*eps;
     d = barrel_diameter;
     translate([-eps, 0, 0]) rotate([0,90,0]) cylinder(h=h, d=d, center=false);
 }
@@ -37,7 +67,10 @@ module barrel() {
 module air_hose_barrel() {
     dx = barrel_back_to_air_hose + air_hose_diameter/2;
     h = air_hose_barrel_length + barrel_diameter;
-    translate([dx, 0, 0]) rotate([90,0,0]) cylinder(h=h, d=air_hose_diameter, center=false);
+    
+    translate([dx, 0, 0]) 
+        rotate([90,0,0]) 
+            cylinder(h=h, d=air_hose_diameter, center=false);
 }
 
 module brace() {
@@ -69,10 +102,12 @@ module trigger(angle) {
 }
 
 module air_brush(trigger_angle) {
-    barrel();
-    air_hose_barrel();
-    brace();
-    trigger(trigger_angle);
+    color("Black") {
+        barrel();
+        air_hose_barrel();
+        brace();
+        trigger(trigger_angle);
+    }
 }
 
 *air_brush(30);
@@ -98,10 +133,16 @@ module air_brush_on_end() {
 
 }
 
+
+
 // Try block to base of air hose
 * translate([-30, 0, 0]) cube([wall_thickness, wall_thickness, 22.69]);
 
-* air_brush_on_end();
+if (show_air_brush_on_end) {
+    handle_orientation(build_from) {
+        air_brush_on_end();
+    }
+}
 
 module air_hose_bracket() {
     // bottom around air house 
@@ -114,8 +155,9 @@ module air_hose_bracket() {
     x_bah_barrel = 2*air_hose_barrel_length;
     dz_bah_barrel = air_hose_diameter / 2 + wall_thickness;
     dx_bah_barrel  = -x_bah_barrel /2 ;
-    difference() {
-        translate([dx_bah, 0, dz_bah]) cube([x_bah, y_bah, z_bah], center=true);
+    render() difference() {
+        translate([dx_bah, 0, dz_bah]) 
+            cube([x_bah, y_bah, z_bah], center=true);
         air_brush_on_end();
     }
 }
@@ -123,25 +165,31 @@ module air_hose_bracket() {
 
 
 module base() {
-    x = barrel_diameter + 2 * wall_thickness;
+    x = barrel_diameter + wall_thickness;
     y = barrel_diameter + 2 * wall_thickness;
     z = wall_thickness;
-    //dx_trigger = barrel_diameter/2+trigger_diameter/2 - 1;
-    difference() {
-        translate([0, 0, z/2.]) cube([x, y, z], center=true);
+    dx = -wall_thickness/2;
+    dz = wall_thickness/2 + 
+        + barrel_back_to_air_hose 
+        - base_offset_from_air_hose;
+    render() difference() {
+        translate([dx, 0, dz]) cube([x, y, z], center=true);
         air_brush_on_end();
     }  
 }
 
-* base();
+if (show_base) {
+    base();
+}
+
 
 module lower_side(z1) {
-    x_s = barrel_diameter + 2 * wall_thickness;
+    x_s = barrel_diameter + wall_thickness;
     z_s = z1;
     dx_s = -barrel_diameter/2 - wall_thickness ;
     dy_s = barrel_diameter/2;
     // dz_s = z_s / 2;
-    color("red") translate([dx_s, dy_s, 0]) cube([x_s, wall_thickness, z_s]);
+    color("purple") translate([dx_s, dy_s, 0]) cube([x_s, wall_thickness, z_s]);
 }
 
 module upper_side(z1, z2) {
@@ -164,8 +212,6 @@ module air_control_pivot() {
 
 module sides() {
 
-    z1 = 8; // Small enough to not impact 
-    z2 = 45; // Large enough to reach middle of brace
     difference () {
         union() {
             lower_side(z1);
@@ -183,14 +229,17 @@ module top_side(z) {
     s = 2*wall_thickness; 
     dx = barrel_diameter/2 -s;
     dy = barrel_diameter/2 -s/2;
-    difference() {
-        translate([dx, dy, 0]) cube([s, s, z], center=false);
-        air_brush_on_end();
-    } 
     dy2 = -dy-s;
-    difference() {
-        translate([dx, dy2, 0]) cube([s, s, z], center=false);
-        air_brush_on_end();
+    color ("red", alpha=0.5) {
+        render() difference() {
+            translate([dx, dy, 0]) cube([s, s, z], center=false);
+            air_brush_on_end();
+        } 
+        
+        render() difference() {
+            translate([dx, dy2, 0]) cube([s, s, z], center=false);
+            air_brush_on_end();
+        }
     }
 }
 
@@ -198,16 +247,30 @@ module top_side(z) {
 * base();
 
 
+module handle_orientation(build_from) {
+    if (build_from == "air_hose") {
+        rotate([0, -90, 0]) children();
+    } else if (build_from == "base" ) {
+        children();
+    } else {
+        assert(false, "Internal error");
+    }
+    
+}
+
+
 module back_block() { 
-    base();
-    air_hose_bracket();
-    sides();
-    top_side(45);
+    handle_orientation(build_from) {
+        color("green") base();
+        air_hose_bracket();
+        sides();
+        top_side(45);
+    }
 }
 
 
 if (show_back_block) {
-    back_block();
+        back_block();
 }
 
 module pivot_pin(yoke_length, pivot_length, pivot_diameter, pivot_offset, pin_angle) {

@@ -21,7 +21,7 @@ show_cutout_for_rotation_stop = false;
 angle = 0; // [-180 : +180]
 
 /* [Dimensions] */
-allowance = 0.5; // [0:0.1:1.2]
+allowance = 0.3; // [0:0.1:1.2]
 height = 5; // [2:1:10]
 width = 5; // [2:1:10]
 length = 50; //[0:1:400]
