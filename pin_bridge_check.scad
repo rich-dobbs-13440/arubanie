@@ -59,9 +59,9 @@ module label(size, line, base_thickness) {
     label_size = [size.x, 5, base_thickness];
     block(label_size, center=BELOW);
     color("black") 
-    linear_extrude(0.75)  
+    linear_extrude(1.0)  
     text(line, 
-        size=3.5,
+        size=4,
         valign = "center", 
         halign = "center"
     );
