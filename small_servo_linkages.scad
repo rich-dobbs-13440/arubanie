@@ -226,7 +226,7 @@ module linkage_bracket(length) {
     
 }
 
-linkage_bracket(10);
+* linkage_bracket(10);
 
 module test_assembly_linkage() {
     for(i = [0 : 1]) {
@@ -248,7 +248,6 @@ module test_assembly_linkage() {
     
     
 }
-
-* test_assembly_linkage();
+test_assembly_linkage();
 
 

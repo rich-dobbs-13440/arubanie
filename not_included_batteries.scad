@@ -121,7 +121,7 @@ module block(size, center=0) {
 
 */
 
-module rod(d, l, center=0) {
+module rod(d, l, center=0, hollow=false) {
     bv = _center_to_bitvector(center);
     is_sideways = bv[3] == 1;
     x = is_sideways ? d : l;
@@ -130,15 +130,24 @@ module rod(d, l, center=0) {
     size=[x, y, z];
     disp = _center_to_displacement(center, size);
     a = is_sideways ? 90 : 0;
-    translate(disp)
-    rotate([0, 0, a])
-    rotate([0, 90, 0])
-    cylinder(d=d, h=l, center=true);  
+    translate(disp) {
+        rotate([0, 0, a])
+        rotate([0, 90, 0])
+        if (hollow == false) {
+            cylinder(d=d, h=l, center=true);
+        } else if (is_num(hollow)) {
+            render() difference() {
+                cylinder(d=d, h=l, center=true);
+                cylinder(d=hollow, h=2*l, center=true);
+            }
+        }
+    }  
     
 }
 
 
-module _visual_test_rod_single_attribute(d, l, a) {
+module _visual_test_rod_single_attribute(
+    d, l, a) {
     
     color("SteelBlue", alpha = a) 
     rod(d=d, l=l, center=BEHIND); 
