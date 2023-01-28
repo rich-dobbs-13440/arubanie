@@ -62,11 +62,15 @@ module _trigger(angle) {
 }
 
 module air_brush(trigger_angle) {
+
+    dx = -barrel_back_to_air_hose - air_hose_diameter/2;
     color("Black") {
-        _barrel();
-        _air_hose_barrel();
-        _brace();
-        _trigger(trigger_angle);
+        translate([dx, 0, 0]) {
+            _barrel();
+            _air_hose_barrel();
+            _brace();
+            _trigger(trigger_angle);
+        }
     }
 }
 if (show_air_brush) {
