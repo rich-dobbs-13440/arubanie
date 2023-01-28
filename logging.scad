@@ -42,6 +42,13 @@ Sample usage in code:
         assert(assertion_condition, "msg")
     }
     
+    warn(
+        lp >= 2.5*h, 
+        
+        "Pintle length should be at least 2.5 times the height.",
+        "The length is not sufficient to correctly implement rotation stops."
+    );
+    
 */
 
 /* [Hidden] */
@@ -68,9 +75,12 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 // ---------End of section-------------------
 
 
-function console_styling(level) = 
+function console_styling(level) =
+    level >= WARNING ?
+        "<b style='background-color:LightSalmon'><font size='+1'>" : 
     level >= IMPORTANT ? 
-        "<b style='color:OrangeRed'><font size=\"+2\">" :
+        "<b style='color:OrangeRed'><font size='+2\'>" :
+    // otherwise
         "<font size=\"+2\">";
 
 function log_verbosity_choice(choice) = 
@@ -78,7 +88,8 @@ function log_verbosity_choice(choice) =
     choice == "INFO" ? INFO : 
     choice == "DEBUG" ? DEBUG : 
     NOTSET;
-    
+ 
+ 
 function log_s(label, s, verbosity, level=DEBUG, important=0) = 
     let(
         overridden_level = max(level, important),
@@ -88,6 +99,7 @@ function log_s(label, s, verbosity, level=DEBUG, important=0) =
     )
     undef;
     
+    
 module log_s(label, s, verbosity, level=INFO, important=0) {
     overridden_level = max(level, important);
     if (overridden_level >= verbosity) { 
@@ -95,6 +107,7 @@ module log_s(label, s, verbosity, level=INFO, important=0) {
         echo(style, label, s);
     }
 }
+
 
 function log_v1_styled(label, v1, style_level) = 
     let (
@@ -114,6 +127,7 @@ function log_v1(label, v1, verbosity, level=INFO, important=0) =
     )
     undef;
 
+
 module log_v1(label, v1, verbosity, level=INFO, important=0) {
     overridden_level = max(level, important);
     if (overridden_level >= verbosity) { 
@@ -128,8 +142,13 @@ module log_v1(label, v1, verbosity, level=INFO, important=0) {
     }
 } 
 
-module joe() {
-    echo("Module Joe!");
+
+module warn(condition, condition_as_text, warning, consequence) {
+    if (!condition) {
+        // Quick and dirty implementation!
+        log_s(condition_as_text, warning , INFO, level=WARNING);
+        log_s("Consequence", consequence, INFO, level=WARNING);
+    }
 }
 
 //dummywww = log_v1("My something", [4, 3, 2, 1,], INFO, IMPORTANT);

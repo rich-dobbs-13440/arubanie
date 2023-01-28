@@ -26,7 +26,7 @@ module _barrel() {
 
 module _air_hose_barrel() {
     dx = barrel_back_to_air_hose + air_hose_diameter/2;
-    h = air_hose_barrel_length + barrel_diameter;
+    h = air_hose_barrel_length + barrel_diameter/2;
     
     translate([dx, 0, 0]) 
         rotate([90,0,0]) 
@@ -64,7 +64,7 @@ module _trigger(angle) {
 module air_brush(trigger_angle) {
 
     dx = -barrel_back_to_air_hose - air_hose_diameter/2;
-    color("Black") {
+    color("Red", alpha=0.25) {
         translate([dx, 0, 0]) {
             _barrel();
             _air_hose_barrel();

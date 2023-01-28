@@ -185,8 +185,7 @@ module handle_orientation(build_from) {
         children();
     } else {
         assert(false, "Internal error");
-    }
-    
+    } 
 }
 
 
