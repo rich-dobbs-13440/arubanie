@@ -1,0 +1,31 @@
+{
+    "parameterSets": {
+        "design default values": {
+            "$fa": "1",
+            "$fs": "0.4",
+            "air_gap_cst": "0.5",
+            "air_gap_increment": "0.1",
+            "air_gap_zero_agta": "0.3",
+            "axle_color": "red",
+            "bearing_color": "green",
+            "count_agta": "4",
+            "dx_extra_agta": "0",
+            "dx_text_by_r_bearing": "1",
+            "dy_text_by_r_bearing": "1",
+            "dz_text_offset_bearing": "-1",
+            "eps": "0.001",
+            "h_axle": "1",
+            "h_idx": "2",
+            "h_taper": "1",
+            "infinity": "50",
+            "r_axle": "1",
+            "r_bearing_cst": "4",
+            "r_taper": "2",
+            "show_air_gap_test_array": "true",
+            "show_bearing": "false",
+            "show_pin": "false",
+            "taper_color": "blue"
+        }
+    },
+    "fileFormatVersion": "1"
+}

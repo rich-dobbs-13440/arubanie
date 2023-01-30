@@ -7,8 +7,8 @@ show_gudgeon_assembly = false;
 show_cutout_for_rotation_stop = false;
 
 /* [Dimensions] */
-top_range = 135; // [0 : 170]
-bottom_range = 95; // [0 : 170]
+top_range = 135; // [20 : 170]
+bottom_range = 135; // [60 : 170]
 
 allowance = 0.35; // [0.3 : 0.05 : 0.5]
 height = 4; // [2:1:10]

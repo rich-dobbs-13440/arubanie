@@ -1,0 +1,23 @@
+{
+    "parameterSets": {
+        "fred": {
+            "allowance": "0.35",
+            "angle": "0",
+            "bottom_range": "144",
+            "gudgeon_stop_1": "90",
+            "gudgeon_stop_2": "-90",
+            "height": "4",
+            "length_gudgeon": "10",
+            "length_pintle": "10",
+            "pintle_stop_1": "90",
+            "pintle_stop_2": "-90",
+            "show_cutout_for_rotation_stop": "false",
+            "show_gudgeon_assembly": "false",
+            "show_pintle_assembly": "false",
+            "show_pivot": "true",
+            "top_range": "135",
+            "width": "4"
+        }
+    },
+    "fileFormatVersion": "1"
+}

@@ -1,0 +1,31 @@
+{
+    "parameterSets": {
+        "design default values": {
+            "$fa": "1",
+            "$fs": "0.4",
+            "c_for_x": "3",
+            "c_for_y": "10",
+            "c_for_z": "4",
+            "delta_extrude_height": "1",
+            "delta_font_size": "1",
+            "dx_by_eh": "0",
+            "dx_by_fs": "6",
+            "dy_by_eh": "0",
+            "dy_by_fs": "0.6",
+            "dz_by_eh": "0",
+            "dz_by_fs": "0",
+            "eps": "0.001",
+            "infinity": "1000",
+            "max_extrude_height": "5",
+            "max_font_size": "7",
+            "min_extrude_height": "2",
+            "min_font_size": "6",
+            "pad_x": "-1.03",
+            "pad_y": "3.57",
+            "pad_z": "0",
+            "show_bounding_box": "false",
+            "show_text_check_font_size_by_extrude_height": "true"
+        }
+    },
+    "fileFormatVersion": "1"
+}

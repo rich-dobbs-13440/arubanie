@@ -54,8 +54,8 @@ function _leaf_disp(h, w, l, al)        = w/2 -_leaf_width(h, w, l, al);
 
 module rotation_stop(h, w, angle, al) {
     rotate([0, angle, 0]) {
-        rod(d=h+al, l=1.1*w, center=SIDEWISE);
-        block([10*h, 1.1*w, h], center=FRONT);
+        rod(d=h+2*al, l=1.1*w, center=SIDEWISE);
+        block([10*h, 1.1*w, h+2*al], center=FRONT);
     }
     
 }

@@ -1,5 +1,2 @@
 *.stl
 *.gcode
-*.json
-print_in_place_development.png
-
