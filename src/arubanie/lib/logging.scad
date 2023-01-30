@@ -51,28 +51,34 @@ Sample usage in code:
     
 */
 
-/* [Hidden] */
-
-CRITICAL = 50; 
-FATAL = CRITICAL;
-ERROR = 40; 
-WARNING = 30; 
-WARN = WARNING;
-INFO = 20; 
-DEBUG = 10; 
-NOTSET = 0;
-
-IMPORTANT = 25;
-
+CRITICAL = 50 + 0; 
+FATAL = CRITICAL + 0;
+ERROR = 40 + 0;
+WARNING = 30 + 0;
+WARN = WARNING + 0;
+INFO = 20 + 0;
+DEBUG = 10 + 0;
+NOTSET = 0 + 0;
 
 // ----------Copy this section into your usage file -------------
 
 /* [Logging] */
 
-log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+log_verbosity_choice = "WARN"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice);
 
 // ---------End of section-------------------
+
+module end_of_customization() {}
+
+
+show_name = false;
+if (show_name) {
+    linear_extrude(2) text("logging.scad", halign="center");
+}
+
+
+IMPORTANT = 25 + 0;
 
 
 function console_styling(level) =
@@ -94,7 +100,7 @@ function log_s(label, s, verbosity, level=DEBUG, important=0) =
     let(
         overridden_level = max(level, important),
         style = console_styling(overridden_level), 
-        dmy1 = overridden_level >= verbosity ? echo(style, label, s) : undef
+        dmy1 = overridden_level >= verbosity ? echo (style, label, s) : undef
         
     )
     undef;
@@ -151,12 +157,3 @@ module warn(condition, condition_as_text, warning, consequence) {
     }
 }
 
-//dummywww = log_v1("My something", [4, 3, 2, 1,], INFO, IMPORTANT);
-//function joe() = echo("Function Joe!!!!!");
-//
-//echo(joe());
-//joe();
-//
-//dummyx = log_v1_styled("Sam", ["SamValue"], IMPORTANT);
-//
-//dummy = joe();

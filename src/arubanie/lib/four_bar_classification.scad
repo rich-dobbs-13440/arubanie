@@ -1,11 +1,18 @@
 include <logging.scad>
 
+show_name = false;
+
 /* [Logging] */
 
-log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+log_verbosity_choice = "WARN"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice);
 
 module end_of_customization() {}
+
+if (show_name) {
+    linear_extrude(2) text("four_bar_classification.scad", halign="center");
+}
+
 // Classification
 
 // From Wikipedia:
@@ -237,33 +244,33 @@ module dev(ls) {
 
 
 // Should be a crank
-echo("In case 2");
+* echo("In case 2");
 ls_case_2 = [1, 10, 10, 10];
 * dev(ls_case_2);
 // Parellogram 
-echo("In case 3");
+* echo("In case 3");
 ls_case_3 = [10, 1, 10, 1];
 * dev(ls_case_3);
 // "0-Rocker", "π-Rocker"
-echo("In case 4");
+* echo("In case 4");
 ls_case_4 = [1, 8.5, 1, 10];
 * dev(ls_case_4);
 // "Rocker", "Crank"
-echo("In case 5");
+* echo("In case 5");
 ls_case_5 = [5, 5, 1, 7];
 *dev(ls_case_5);
 
 // π-Rocker 0-Rocker
 // This would a long floating link compared to the ground link
 // with short input and output cranks 
-echo("In case 6");
+* echo("In case 6");
 ls_case_6 = [1, 6.5, 1, 5];
 *dev(ls_case_6);
 
 // π-Rocker	π-Rocker
 // Input crank long compared to ground link
 // Floating link long compare to ouput crank
-echo("In case 7");
+* echo("In case 7");
 ls_case_7 = [1, 0.5, 5.7, 5];
 dev(ls_case_7);
 

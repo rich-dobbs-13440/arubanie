@@ -130,7 +130,7 @@ module cut_for_cap(d, h) {
 
 module axle_shape(d, h, d_ratio, h_ratio, is_axle, colors) {
     assert(is_num(h_ratio), str("h_ratio is not a number but is: ", h_ratio));
-    echo("h_ratio", h_ratio);
+    * echo("h_ratio", h_ratio);
 
     c_a = 0;
     c_c = 1;
@@ -147,7 +147,7 @@ module axle_shape(d, h, d_ratio, h_ratio, is_axle, colors) {
         [ d/2, d_n/2,  h_n, c_a ],
         [ d_n/2, d/2,  h_c, c_c ],
     ];
-    echo("axle_data", axle_data);
+    * echo("axle_data", axle_data);
     
     
     rotate(Y_ORIENTATION) {
@@ -198,7 +198,7 @@ module bushing(d, h, d_ratio, h_ratio, colors, air_gap) {
 }
 
 module bore_for_side_handles(d, h) {
-    echo("bore_for_side_handles - d, h", d, h);
+    * echo("bore_for_side_handles - d, h", d, h);
     end_clearance = 0.05*h; 
     h_hole = h + 2 * end_clearance;
     d_hole = d - eps;
@@ -206,7 +206,7 @@ module bore_for_side_handles(d, h) {
 }
 
 module attach_side_handles(d, h) {
-    echo("$children", $children);
+    * echo("$children", $children);
     render() {
         for (i = [0:1:$children-1]) {
              difference() {
@@ -218,14 +218,14 @@ module attach_side_handles(d, h) {
 }
 
 module std_end_handle(d, h=true, l=true) {
-    echo("std_end_handle raw l: ", l);
-    echo("std_end_handle d: ", d);
+    * echo("std_end_handle raw l: ", l);
+    * echo("std_end_handle d: ", d);
     // if l is a number, it is displacement in mm.  Could be positive or negative
     // if l is a bool, it corresponds to should the handle be of 
     // sufficient length to grab, or should it just be a mounting post.
     length = is_num(l) ? l : (is_bool(l) && l) ? 2*d : 0;
     assert(!is_undef(length), "Need to specify l parameter");
-    echo("std_end_handle length: ", length);
+    * echo("std_end_handle length: ", length);
     // Generate the bearing end of the handle
     // if h is a number, then it directly used
     // if h is boolean, then means generate a thick handle, 
@@ -255,7 +255,7 @@ module bearing(d, h, air_gap, d_ratio=0.4, h_ratio=0.7, colors=[], end_handle=fa
         axle(d, h, d_ratio, h_ratio, colors, air_gap);
         bushing(d, h, d_ratio, h_ratio, colors, air_gap);
     }
-    echo("In bearing $children", $children);
+    * echo("In bearing $children", $children);
     if ($children >= 1) {
         attach_side_handles(d, h) children();
     }
@@ -333,7 +333,7 @@ module bearing_support_q() {
     x = max(bearing_support_r_q * d_q, 3);
     y = max(bearing_support_h_q * h_q, 3);
     z = min(handle_height_q, 1);
-    echo("bearing support x, y, z", x, y, z);
+    * echo("bearing support x, y, z", x, y, z);
     dx = wall_width_q()/2 - x/2 -bearing_support_position_q * d_q;//-bearing_support_position_q * d_q ;
     dy = -y/2 + d_q/2 + wall_thickness_q;
     dz = 0;

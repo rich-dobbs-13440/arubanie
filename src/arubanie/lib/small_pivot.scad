@@ -175,14 +175,14 @@ function pin_data(s, dr, colors) =
 
 
 
-echo("Sample pin data for cavity", pin_data(size_t, 0.0));
-echo("Sample pin data for cavity", pin_data(size_t, air_gap_t));
+* echo("Sample pin data for cavity", pin_data(size_t, 0.0));
+* echo("Sample pin data for cavity", pin_data(size_t, air_gap_t));
 
 
 module pin(size, air_gap, colors=default_colors()) {
 
     data = pin_data(size, air_gap);
-    echo("In pin module: size", size, "air_gap", air_gap, "pin data", data);
+    * echo("In pin module: size", size, "air_gap", air_gap, "pin data", data);
 
     v_conic_frustrum(
         columns(), 
@@ -290,7 +290,7 @@ module attach(attachment_point_id, size, air_gap, colors, instruction) {
     }
     if (command == ADD_SPRUCES) {
         angles = instruction[2];
-        echo("angles", angles);
+        * echo("angles", angles);
         if (attachment_point_id == AP_LCAP) {
             sprues(size, air_gap, l_angles=angles); 
         }
@@ -311,13 +311,13 @@ module rotational_group(group_id, size, air_gap, colors, instructions) {
         l_cap_join(size, colors); 
         t_cap_join(size, colors); 
     }
-    echo("rotational_group: instructions", instructions);
+    * echo("rotational_group: instructions", instructions);
     if (!is_undef(instructions) ) {
         if (len(instructions) > 0) {
             for (instruction = instructions) {
-                echo("instruction: instructions", instruction);
+                * echo("instruction: instructions", instruction);
                 attachment_point_id = instruction[1];
-                echo("attachment_point_id", attachment_point_id);
+                * echo("attachment_point_id", attachment_point_id);
                 if (is_in_rotational_group(group_id, attachment_point_id)) {
                     attach(attachment_point_id, size, air_gap, colors, instruction) {    
                         children(0);
@@ -340,13 +340,13 @@ module pivot(size, air_gap, angle_bearing=0, angle_cap=180, colors=default_color
     assert(is_num(angle_cap), "angle_cap must be a number");
     assert(len(colors) >= 5,"The number of colors must be at least 5");
     
-    echo("In pivot module")
-    echo("size = ", size);
-    echo("air_gap = ", air_gap);
-    echo("angle_bearing = ", angle_bearing);
-    echo("angle_cap = ", angle_cap);
-    echo("colors", colors);
-    echo("attachment_instructions", attachment_instructions);
+    * echo("In pivot module")
+    * echo("size = ", size);
+    * echo("air_gap = ", air_gap);
+    * echo("angle_bearing = ", angle_bearing);
+    * echo("angle_cap = ", angle_cap);
+    * echo("colors", colors);
+    * echo("attachment_instructions", attachment_instructions);
     
     pin(size, 0.0, colors);
     bearing(size, air_gap, colors);
@@ -370,7 +370,7 @@ module pivot(size, air_gap, angle_bearing=0, angle_cap=180, colors=default_color
             children(4);
         }
     }
-    echo("Exit pivot module");
+    * echo("Exit pivot module");
 }
 
 module sprues(size, air_gap, l_angles, t_angles) {
@@ -482,7 +482,7 @@ if (show_bearing_attachment_revision) {
         [ADD_HULL_ATTACHMENT, AP_TCAP, 1, clipping_diameter],
         [ADD_HULL_ATTACHMENT, AP_LCAP, 1, clipping_diameter]
     ];
-    echo("attachment_instructions", attachment_instructions);
+    * echo("attachment_instructions", attachment_instructions);
     pivot(pivot_size, air_gap, angle_bearing_t, angle_pin_t, attachment_instructions=attachment_instructions) {
         fake_handle(pivot_size);
         fake_handle(0.75*pivot_size);

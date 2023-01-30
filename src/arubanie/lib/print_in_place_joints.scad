@@ -42,6 +42,12 @@ element_size = 0.5;
 artifact_radius = 10;
 h_base = 2;
 
+module end_of_customization() {}
+
+show_name = false;
+if (show_name) {
+    linear_extrude(2) text("print_in_place_joints.scad", halign="center");
+}
 
 module part_1(overlap) {
     x = test_length + overlap;
@@ -164,9 +170,9 @@ module rotate_through_range(z_angle_range) {
 * rotate_through_range([-10,0,10]) scale([1.01, 1.01, 1.01]) pin_added_back_on();
 * rotate_through_range([-20:4:20]) scale([1.01, 1.01, 1.01]) pin_added_back_on();
 
-// for (a =[-20:4:20])echo(a);
+// for (a =[-20:4:20])* echo(a);
 //b = [-20:4:20];
-//for (a = b) echo(a);
+//for (a = b) * echo(a);
 
 module cutter() {
     /// Expand cutout to create outer clearance

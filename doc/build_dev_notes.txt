@@ -1,0 +1,49 @@
+(.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ openscad -o ../../../build/logging.stl logging.scad
+Current top level object is empty.
+\(.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ echo $?
+
+
+
+(.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ openscad -o ../../../build/logging.stl logging.scad
+Current top level object is empty.
+\(.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ echo $?
+
+
+(.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ openscad -o ../../../build/logging.stl logging.scad
+Current top level object is empty.
+\(.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ echo $?
+
+
+openscad -o ../../../build/bearing_spike.stl bearing_spike.scad
+openscad -o ../../../build/four_bar_classification.stl four_bar_classification.scad
+openscad -o ../../../build/four_bar_linkage.stl four_bar_linkage.scad
+openscad -o ../../../build/layout_for_3d_printing.stl layout_for_3d_printing.scad
+openscad -o ../../../build/logging.stl logging.scad
+openscad -o ../../../build/not_included_batteries.stl not_included_batteries.scad
+openscad -o ../../../build/print_in_place_development.stl print_in_place_development.scad
+openscad -o ../../../build/print_in_place_joints.stl print_in_place_joints.scad
+openscad -o ../../../build/small_pivot.stl small_pivot.scad
+openscad -o ../../../build/small_pivot_vertical_rotation.stl small_pivot_vertical_rotation.scad
+openscad -o ../../../build/small_servo_cam.stl small_servo_cam.scad
+openscad -o ../../../build/small_servo_linkages.stl small_servo_linkages.scad
+openscad -o ../../../build/vector_cylinder.stl vector_cylinder.scad
+openscad -o ../../../build/vector_operations.stl vector_operations.scad
+openscad -o ../../../build/y_rotation_bearing.stl y_rotation_bearing.scad
+
+
+
+four_bar_classification.stl
+
+
+logging.stl
+not_included_batteries.stl
+print_in_place_development.stl
+print_in_place_joints.stl
+small_pivot.stl
+small_pivot_vertical_rotation.stl
+small_servo_cam.stl
+small_servo_linkages.stl
+vector_cylinder.json
+vector_cylinder.stl
+vector_operations.stl
+y_rotation_bearing.stl

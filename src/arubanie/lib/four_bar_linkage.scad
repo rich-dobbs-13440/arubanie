@@ -32,6 +32,11 @@ servo_position___ep_4b = 0; // [ -80 : 1 : 80]
 
 module end_of_customization() {}
 
+show_name = false;
+if (show_name) {
+    linear_extrude(2) text("four_bar_linkage.scad", halign="center");
+}
+
 // TODO move this in a library!
 function v_cumsum(v) = 
     [for (a = v[0]-v[0], i = 0; i < len(v); a = a+v[i], i = i+1) a+v[i]];
@@ -192,7 +197,7 @@ module test_problem_1() {
     
     sp = [ each [15 : 15 : 345 ] ];
     //sp = [10];
-    echo("len(sp)", len(sp));
+    * echo("len(sp)", len(sp));
     for (i = [0:1:len(sp)-1]) {
         angles = four_bar_angles(sp[i], lengths);
         
@@ -228,10 +233,10 @@ module test_problem_2(case) {
     
     // Limited range of motion, should have min and maximum limits
     ls_case_1 = [10, 1, 10, 15];
-    * echo_limits(ls_case_1);
+    * _limits(ls_case_1);
     // Should be a crank
     ls_case_2 = [1, 10, 10, 10];
-    * echo_limits(ls_case_2);
+    * _limits(ls_case_2);
 }
 
 test_problem_2();

@@ -48,7 +48,7 @@ dz_text_offset_bearing = -1; //[-2: 0.01 : 2]
 
 /* [Air gap test array] */
 count_agta = 4; // [1 : 1 : 6]
-dx_extra_agta = 0;  // [-3: 1 : 10]
+dx_extra_agta = 5;  // [-3: 1 : 10]
 air_gap_increment = 0.05; // [0 : 0.01 : 0.5]
 air_gap_zero_agta = 0.35; // [0. 3: 0.01 : 0.7]
 
@@ -61,7 +61,8 @@ function color_yellow_idx_vcf()  = 3;
 
 function colors() = [bearing_color, taper_color, axle_color, cap_color, post_color];
 
-echo("colors()", colors());
+
+* echo("colors()", colors());
 
 function idx_of_color(color_to_match, color_range=colors(), i=0) = 
     i >= len(color_range) ? 
@@ -70,22 +71,6 @@ function idx_of_color(color_to_match, color_range=colors(), i=0) =
             i :
             idx_of_color(color_to_match, color_range, i+1);
             
-//function index_of(columns, idx_to_match, i=0) = 
-//    i == len(columns) ?
-//        undef :
-//        columns[i]==idx_to_match ? 
-//            i : 
-//            index_of(columns, idx_to_match, i + 1);
-
-// colors()[i] == color ? i : 
-    
-//;
-
-//function idx_of_color(color, i=0) = colors()[i] == color ? i : 
-//    (i >= len(colors()) ? undef : idx_of_color(color, i+1);
-   
-
-
 function ag(r) = r + air_gap;
 columns = [vcf_r1_idx(), vcf_r2_idx(), vcf_h_idx(), vcf_color_idx()];
 
@@ -99,16 +84,16 @@ function pin_data(dr) =
 ];
 
 
-echo("data", pin_data(0.5));
+* echo("data", pin_data(0.5));
 
 function heights() = [ for (i = [0 : len(pin_data(0.0))-1 ] ) pin_data()[i][h_idx] ]; // pin_data()[i][h_idx] ]
     
-echo("heights_vector", heights());
+* echo("heights_vector", heights());
 
 
 function total_height() = vector_sum(heights());
 
-echo("total_height", total_height());
+* echo("total_height", total_height());
 
 module pin(dr) {
 
@@ -123,7 +108,7 @@ module bearing_label(air_gap) {
     air_gap_text = str("AG=", air_gap);
     color("black") 
     linear_extrude(1) {
-        text(air_gap_text, size=1.5, halign=50);
+        text(air_gap_text, size=6, halign=50);
     }
 }
 
@@ -165,14 +150,9 @@ module bearing_handle(handle_length, h_bearing, r_bearing) {
 
     dy = y/2 + r_bearing*0.9;
     dz = z/2;
-    translate([0, dy ,dz]) {
-        cube([x, y, z], center=true); // handle to attach to bearing
+    translate([0, dy ,dz]) color("blue") cube([x, y, z], center=true); // handle to attach to bearing
         
-        sprue_size = 0.8;
-        x_sprue = handle_length;
-        dz_sprue = -dz + sprue_size/2;
-        translate([0, 0, dz_sprue]) cube([10, sprue_size, sprue_size], center=true); // sprue to connect parts
-    }
+
 }
 
 module pin_handle(handle_length, h_pin, h_post, r_post) {
@@ -196,7 +176,6 @@ module pin_handle(handle_length, h_pin, h_post, r_post) {
 }
 
 if (show_pin) {
-    
     pin(dr=0); 
 }
 
@@ -204,11 +183,20 @@ if (show_bearing) {
     bearing(air_gap_cst, total_height(), r_bearing);
 }
 
-module label_test(air_gap, h_bearing, r_bearing) {
+module label_test(air_gap, h_bearing, r_bearing, handle_length) {
+    pad_size = [10, 30, 2];
+    dx_pad = -pad_size.x /2;
+    bearing_overlap = 0.1 * r_bearing;
+    real_handle_length = handle_length - bearing_overlap;
+    dy_pad = r_bearing + real_handle_length;
+    color("white") translate([dx_pad, dy_pad, 0]) cube(pad_size, center=false);
+   
+    dy_label = dy_pad + 3;
     color("black") 
-    offset_bearing_label(r_bearing, h_bearing) 
-    linear_extrude(1) 
-    text(str(air_gap), size=1.5, halign=50);
+        translate([0, dy_label, pad_size.z]) 
+            rotate([0, 0, 90])
+                linear_extrude(1) text(str("G=", air_gap), size=5, valign="center");
+
     
 }
 
@@ -216,7 +204,7 @@ module assembly(h_bearing, air_gap) {
     pin(dr=0);
     h_pin = total_height();
     pin_handle(handle_length, h_pin, h_post, r_post);
-    label_test(air_gap, h_bearing, r_bearing);
+    label_test(air_gap, h_bearing, r_bearing, handle_length);
     bearing(air_gap, h_bearing, r_bearing);
     bearing_handle(handle_length, h_bearing, r_bearing);    
 }
@@ -271,7 +259,7 @@ if (show_explore_bearing_connection) {
 }
 
 module first_level() {
-    echo("$children", $children);
+    * echo("$children", $children);
     second_level_using_children() {
         children();
     }
@@ -315,27 +303,27 @@ module first_level() {
 }
 
 module second_level_using_if(count) {
-    echo("second_level_using_if count", count);
-    echo("second_level_using_if $children", $children);
+    * echo("second_level_using_if count", count);
+    * echo("second_level_using_if $children", $children);
     color("red") children(1);
     color("green") children(0);
     color("yellow") children(2);
 }
 
 module second_level_using_for() {
-    echo("second_level_using_for $children", $children);
+    * echo("second_level_using_for $children", $children);
 }
 
 module second_level_using_hand_items() {
-    echo("second_level_using_hand_items $children", $children);
+    * echo("second_level_using_hand_items $children", $children);
 }
 
 module second_level_using_loop() {
-    echo("second_level_using_loop $children", $children);
+    * echo("second_level_using_loop $children", $children);
 }
 
 module second_level_using_children() {
-    echo("second_level_using_children $children", $children);
+    * echo("second_level_using_children $children", $children);
 }
 
 
@@ -346,9 +334,6 @@ if (show_explore_children_in_sub_modules) {
     }
 }
 
-j = [[1, "Sam"], [2, "Jill"]];
-
-echo("j", j);
 
 
     

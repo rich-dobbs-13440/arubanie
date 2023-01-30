@@ -22,6 +22,13 @@ include <TOUL.scad>
 include <logging.scad>
 use <vector_operations.scad>
 
+module end_of_customization() {}
+
+show_name = false;
+if (show_name) {
+    linear_extrude(2) text("not_included_batteries.scad", halign="center");
+}
+
 function find_all_in_kv_list(list_kvp, identifier) =  
     [ for (item = list_kvp) if (item[0] == identifier) item[1] ];
         

@@ -27,8 +27,6 @@
 */
 
 
-
-
 include <not_included_batteries.scad>
 use <vector_operations.scad>
 use <layout_for_3d_printing.scad>

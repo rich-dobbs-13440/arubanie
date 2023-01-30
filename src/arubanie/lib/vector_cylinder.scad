@@ -96,6 +96,10 @@ alpha_spag = 0.5; // [0:0.1:1]
 
 module hide_from_customizer(){}
 
+show_name = false;
+if (show_name) {
+    linear_extrude(2) text("vector_cylinder.scad", halign="center");
+}
 
 // Cumulative sum of values in v
 function cumsum(v) = [for (a = v[0]-v[0], i = 0; i < len(v); a = a+v[i], i = i+1) a+v[i]];
@@ -113,10 +117,10 @@ function index_of(columns, idx_to_match, i=0) =
 module v_cylinder(r, h, colors) {
     count = len(h);
     h_cum = cumsum(h);
-    echo("h_cum", h_cum);
+    * echo("h_cum", h_cum);
     for(i = [0 : count-1]) {
         h_i = h[i];
-        echo("h_i", h_i);
+        * echo("h_i", h_i);
         dz = i == 0 ? 0.0 :  h_cum[i-1];
         translate([0,0,dz]) 
         color(colors[i]) cylinder(r=r[i], h=h[i]);
@@ -138,7 +142,7 @@ module v_conic_frustrum(data_columns, data, colors) {
     
     count = len(data);
     if (count == 0) {
-        echo("###################### Warning:  Data is empty in v_conic_frustrum");
+        * echo("###################### Warning:  Data is empty in v_conic_frustrum");
     } else {
         h = [for (i = [0 : count-1]) data[i][h_idx] ];
         h_cum = cumsum(h);
@@ -160,11 +164,11 @@ module v_conic_frustrum(data_columns, data, colors) {
 if (show_initial_test_vci) {
     length = len(h_vci);
     list_2 = [ for (i = [0 : 1 : length-1]) i < 2 ? h_vci[i] : 0 ];
-    echo("list_2", list_2);
+    * echo("list_2", list_2);
     
     sum = vector_sum(h_vci);
-    echo("vector_sum", sum, h_vci);
-    echo("cumsum", h_vci, cumsum(h_vci));
+    * echo("vector_sum", sum, h_vci);
+    * echo("cumsum", h_vci, cumsum(h_vci));
     v_cylinder(r=r_vci, h=h_vci, colors=colors_vci);
 }
 
@@ -178,11 +182,11 @@ if (show_v_conic_frustrum_test_vcf) {
         [2, 2, 3.1, color_red_idx_vcf],
     ];
     
-    echo("conic_frustrum_test_data", conic_frustrum_test_data);
+    * echo("conic_frustrum_test_data", conic_frustrum_test_data);
     element_0 = conic_frustrum_test_data[0];
-    echo("element_0", element_0);
+    * echo("element_0", element_0);
     h0 = element_0[2];
-    echo("h0", h0);
+    * echo("h0", h0);
     v_conic_frustrum(columns, conic_frustrum_test_data, colors_for_test_vcf);
 }
 
@@ -198,20 +202,20 @@ if (show_v_conic_frustrum_test_data_columns_dc) {
     ];
     map = [1, 2, 3, 0];
     count = 4;
-    echo("color idx", map[vcf_color_idx]);
-    echo("r1 idx", map[vcf_r1_idx]);
-    echo("r2 idx", map[vcf_r2_idx]);
-    echo("h idx", map[vcf_h_idx]);
-    echo("data_column", data_columns_changed);
-    echo("map", map);
-    echo("vcf_h_idx", vcf_h_idx);
+    * echo("color idx", map[vcf_color_idx]);
+    * echo("r1 idx", map[vcf_r1_idx]);
+    * echo("r2 idx", map[vcf_r2_idx]);
+    * echo("h idx", map[vcf_h_idx]);
+    * echo("data_column", data_columns_changed);
+    * echo("map", map);
+    * echo("vcf_h_idx", vcf_h_idx);
     
     map_trial = [
         index_of(data_columns_changed, 0),
         index_of(data_columns_changed, 1), 
         index_of(data_columns_changed, 2), 
         index_of(data_columns_changed, 3)]; 
-    echo("map_trial", map_trial);
+    * echo("map_trial", map_trial);
     assert(is_undef(index_of(data_columns_changed, 99)));
     
     v_conic_frustrum(

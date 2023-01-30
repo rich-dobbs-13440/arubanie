@@ -8,7 +8,12 @@
 
 */
 
+module end_of_customization() {}
 
+show_name = false;
+if (show_name) {
+    linear_extrude(2) text("vector_operations.scad", halign="center");
+}
 
 // Cumulative sum of values in v
 function v_cumsum(v) = [for (a = v[0]-v[0], i = 0; i < len(v); a = a+v[i], i = i+1) a+v[i]];
@@ -40,8 +45,8 @@ function array_transpose(a) =
 module test_array_transpose() {
     a = [["cat1", "dog1"],
          ["cat2", "dog2"]]; 
-    echo("a", a);
-    echo("aT", array_transpose(a));
+    * echo("a", a);
+    * echo("aT", array_transpose(a));
 }
 
 * test_array_transpose();

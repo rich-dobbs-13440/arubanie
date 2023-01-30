@@ -81,10 +81,15 @@ show_visual_variable_size_blocks = true;
 
 /* [Logging] */
 
-log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+log_verbosity_choice = "WARN"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice);    
 
 module end_of_customization() {}
+
+show_name = false;
+if (show_name) {
+    linear_extrude(2) text("layout_for_3d_printing.scad", halign="center");
+}
 
 X = 0;
 Y = 1;
@@ -356,7 +361,7 @@ if (show_visual_test_for_small_padding) {
     just_blocks(r, s, pad, sizing_coefficents);  
 }
 
-echo("concat", concat([0], [1, 2, 3]));
+* echo("concat", concat([0], [1, 2, 3]));
 
 if (show_visual_variable_size_blocks) {
     pad = [0, 0, 0]; 
