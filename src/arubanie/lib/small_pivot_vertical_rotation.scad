@@ -26,11 +26,11 @@
     
 */
 
-
+include <logging.scad>
 include <not_included_batteries.scad>
 use <vector_operations.scad>
 use <layout_for_3d_printing.scad>
-include <logging.scad>
+
 
 /* [Boiler Plate] */
 
@@ -129,6 +129,10 @@ module small_pivot_vertical_rotation(
     assert(is_num(allowance));
     assert(is_num(angle));
     
+    assert(is_num(range[0]));
+    assert(is_num(range[1]));
+    assert(len(range) == 2);
+    
     assert(h > 4 * allowance, "Height is too small compared to allowance.");
     assert(h > 2, "Height is too small for 3D printing.");
     assert(w < 20, "Width is too large.  This design target to smaller uses.");
@@ -146,8 +150,10 @@ module small_pivot_vertical_rotation(
 //        "The length is not sufficient to correctly implement rotation stops."
 //    );
 //    
+
     top_gudgeon = -range[0];
     bottom_gudgeon = range[1];
+    assert(!is_undef(bottom_gudgeon));
     top_pintle = range[0]-180;
     bottom_pintle = 180-range[0];
     gudgeon_stops = [bottom_gudgeon, top_gudgeon];
@@ -158,4 +164,4 @@ module small_pivot_vertical_rotation(
     gudgeon(h, w, lg, al, gudgeon_stops);
 }
 
-* small_pivot_vertical_rotation(5, 10, 20, 30, 0.3, range=[150, 135], angle=0);
+small_pivot_vertical_rotation(5, 10, 20, 30, 0.3, range=[150, 135], angle=0);

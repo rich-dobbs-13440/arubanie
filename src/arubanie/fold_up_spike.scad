@@ -1,9 +1,10 @@
-use <small_pivot_vertical_rotation.scad>
+//use <lib/small_pivot_vertical_rotation.scad>
 
 
 
 
 
 
-module 
+//module 
 
+cube([1, 1, 1]);

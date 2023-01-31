@@ -5,15 +5,19 @@ set -x
 set -e
 
 
-function build() {
+function build {
+    set +e
     file=$1
-    filename=basename filename .scad
+    filename=$(basename "$file" .scad)
     stl_file="${filename}.stl"
-    echo ${stl_file}
-    #openscad -D show_name=true -o "../../../build/${stl_file}" ${file}
+    set -e
+    openscad --hardwarnings -D show_name=true -o "../../build/${stl_file}" "${file}"
     echo "Elapsed Time: $SECONDS seconds"
 }
 
-for file in "*.scad"; do 
-   build() "${file}" 
+date
+SECONDS=0
+scad_files="*.scad"
+for file in $scad_files; do 
+   build "${file}"
 done

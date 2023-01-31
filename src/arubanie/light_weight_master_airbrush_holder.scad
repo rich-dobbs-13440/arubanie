@@ -1,7 +1,10 @@
-include <not_included_batteries.scad>
-use <vector_operations.scad>
-include <master_airbrush_measurements.scad>;
-include <logging.scad>
+include <./lib/logging.scad>
+
+use <lib/vector_operations.scad>
+include <lib/not_included_batteries.scad>
+
+
+include <master_airbrush_measurements.scad>
 
 /* [Boiler Plate] */
 

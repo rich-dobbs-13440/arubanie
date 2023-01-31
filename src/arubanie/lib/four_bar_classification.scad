@@ -1,6 +1,6 @@
 include <logging.scad>
 
-show_name = false;
+
 
 /* [Logging] */
 
@@ -9,6 +9,7 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 
 module end_of_customization() {}
 
+show_name = false;
 if (show_name) {
     linear_extrude(2) text("four_bar_classification.scad", halign="center");
 }

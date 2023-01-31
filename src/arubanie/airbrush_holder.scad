@@ -39,13 +39,13 @@ bottom_shoulder = screw_block_size + brace_height;
 
 // block width is dx
 block_width = barrel_diameter + top_shoulder + bottom_shoulder;
-echo("block_width = ", block_width);
+* echo("block_width = ", block_width);
 
 
 
 barrel_radius = barrel_diameter/2.;
 total_thickness = block_thickness + joiner_thickness + block_thickness;
-echo("total_thickness = ", total_thickness);
+* echo("total_thickness = ", total_thickness);
 
 pivot_diameter = rotation_pivot_diameter - 2 * rotation_pivot_clearance;
 
@@ -230,7 +230,7 @@ module servo_mounting(y_inside, y_outside, bar_thickness) {
     //bar
     translate([0, dy_servo, 0]) cube([bar_dx, bar_thickness, bar_thickness]);
     // Mounting blocks
-    echo("server_mounting_block(", screw_allowance, servo_block_depth, servo_width, bar_thickness);
+    * echo("server_mounting_block(", screw_allowance, servo_block_depth, servo_width, bar_thickness);
     translate([servo_edge_x1, dy_servo, 0]) {
         servo_mounting_block(screw_allowance, screw_length, pilot_diameter, servo_block_depth, servo_width, bar_thickness);
     }

@@ -110,5 +110,5 @@ module yoke() {
     mirror([1, 0, 0]) yoke_half();   
 }
 
-* yoke();
+translate ([0, 10, 0]) yoke();
 

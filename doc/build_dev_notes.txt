@@ -1,3 +1,7 @@
+git update-index --chmod=+x *.sh
+chmod +x *.sh
+
+
 (.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ openscad -o ../../../build/logging.stl logging.scad
 Current top level object is empty.
 \(.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ echo $?

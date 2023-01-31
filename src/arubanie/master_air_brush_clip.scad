@@ -1,8 +1,8 @@
-include <not_included_batteries.scad>
-include <logging.scad>
+include <lib/logging.scad>
+include <lib/not_included_batteries.scad>
+ use <lib/small_pivot_vertical_rotation.scad>
 include <master_airbrush_measurements.scad>
 use <master_air_brush.scad>
-use <small_pivot_vertical_rotation.scad>
 
 /* [Boiler Plate] */
 
@@ -19,6 +19,8 @@ show_barrel_clips = false;
 show_air_barrel_clips = false;
 show_joiners = false;
 show_barrel_joiner_support = false;
+// Problem with pivots creating message about  "Exported object may not be a valid 2-manifold and may need repair"
+show_pivots = false; 
 
 /* [Show Construction] */
 show_air_brush = false;
@@ -57,22 +59,23 @@ module pivots() {
         dz_side = side_sign * dz;
         translate([0, dy, dz_side]) 
             rotate([90, 0, -90])  // Correct for orientation of rotation
+                assert(!is_undef(angle_pivot_t))
                 small_pivot_vertical_rotation(
                     h_pivot_t, 
                     w_pivot_t, 
                     pintle_length_t, 
                     gudgeon_length_t, 
                     allowance_pivot, 
-                    angle_pivot_t);
-        }
-         
-    
+                    angle=angle_pivot_t);
+    } 
 }
 
-handle_orientation(build_from) {
-    pivots();
+if (show_pivots) {
+    handle_orientation(build_from) {
+        pivots();
+    }
 }
-   
+       
 joiner_max_size = [
     barrel_back_to_air_hose - air_hose_clearance - wall_thickness, 
     air_hose_barrel_length - barrel_clearance - wall_thickness, 
