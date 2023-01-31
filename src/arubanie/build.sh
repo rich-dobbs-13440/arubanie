@@ -11,7 +11,7 @@ function build {
     filename=$(basename "$file" .scad)
     stl_file="${filename}.stl"
     set -e
-    openscad --hardwarnings -D show_name=true -o "../../build/${stl_file}" "${file}"
+    openscad --hardwarnings -o "../../build/${stl_file}" "${file}"
     echo "Elapsed Time: $SECONDS seconds"
 }
 

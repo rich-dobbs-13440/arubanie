@@ -1,10 +1,8 @@
 include <./lib/logging.scad>
-
 use <lib/vector_operations.scad>
 include <lib/not_included_batteries.scad>
-
-
 include <master_airbrush_measurements.scad>
+use <master_air_brush.scad>
 
 /* [Boiler Plate] */
 
@@ -16,10 +14,10 @@ infinity = 1000;
 
 
 /* [Show] */
-build_from = "air_hose"; // ["air_hose", "base"]
+build_from = "base"; // ["air_hose", "base"]
 show_yoke = false;
-show_back_block = false;
-show_base = false;
+show_back_block = true;
+show_base = true;
 show_air_brush_on_end = false;
 
 
@@ -43,7 +41,7 @@ z2 = 45;
 
 wall_thickness = 2.0;
 
-
+barrel_allowance = 0.2;
 
 /* [Yoke Dimensions] */
 yoke_depth = 50; 
@@ -57,11 +55,14 @@ pivot_diameter = bar_width;
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice);    
   
+module end_of_customization() {}
 
-
+barrel_diameter = measured_barrel_diameter + barrel_allowance;
 
 module air_brush_on_end() {
-    rotate([-90, -90, 0]) air_brush(30); // Rotate to vertical
+    dz = barrel_back_to_air_hose + measured_barrel_diameter/2;
+    translate([0, 0, dz])
+        rotate([-90, -90, 0]) air_brush(30); // Rotate to vertical
     // Not ready yet: trigger_cap_clearance();
 }
 

@@ -16,9 +16,3 @@ m_trigger_pad_cl_to_barrel_cl_0_degrees = 10.65;
 
 pad_diameter = 10.74;
 pad_height = 2.60;
-
-
-show_name = false;
-if (show_name) {
-    linear_extrude(2) text("master_airbrush_measurements.scad", halign="center");
-}

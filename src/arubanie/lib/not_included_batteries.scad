@@ -15,7 +15,7 @@
      
      Usage:
      
-     use <not_included_batteries.scad>
+     use <lib/not_included_batteries.scad>
 */  
 
 include <TOUL.scad>

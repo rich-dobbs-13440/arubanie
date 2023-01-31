@@ -15,7 +15,7 @@ Note: The air brush is oriented on its side, with the coordinate
 
 */ 
 
-include <master_airbrush_measurements.scad>;
+include <lib/not_included_batteries.scad>
 
 /* [Boiler Plate] */
 
@@ -28,7 +28,48 @@ infinity = 1000;
 /* [Show] */
 
 show_air_brush = true;
+show_brace = false;
 barrel_diameter_clearance = 0.75;
+
+module end_of_customization() {}
+
+
+measured_barrel_diameter = 12.01; 
+barrel_length = 68.26;
+barrel_back_to_air_hose = 21.27;
+brace_height = 6.9;
+brace_width = 7.40;
+brace_length = 28.88;
+air_hose_diameter = 8.66;
+air_hose_barrel_length = 10.34;
+m_trigger_pad_diameter = 10.18;
+m_trigger_pad_thickness = 2.63;
+m_trigger_pad_cl_to_barrel_cl_0_degrees = 10.65;
+
+pad_diameter = 10.74;
+pad_height = 2.60;
+
+_dct_name_to_dimension = [
+    ["barrel diameter", measured_barrel_diameter],
+    ["barrel radius", measured_barrel_diameter/2],
+    ["air hose diameter", air_hose_diameter],
+    ["back length", barrel_back_to_air_hose],
+    ["bottom length", air_hose_barrel_length + measured_barrel_diameter/2],
+    ["trigger height", m_trigger_pad_cl_to_barrel_cl_0_degrees],
+];
+
+
+function master_air_brush(key) = find_in_dct(_dct_name_to_dimension, key, required=true);  
+
+assert(!is_undef(master_air_brush("barrel radius")));
+assert(!is_undef(master_air_brush("back length")));
+assert(!is_undef(master_air_brush("trigger height")));
+
+
+show_name = false;
+if (show_name) {
+    linear_extrude(2) text("master_airbrush_measurements.scad", halign="center");
+}
 
 barrel_diameter = measured_barrel_diameter + barrel_diameter_clearance;
 _trigger_pad_diameter = m_trigger_pad_diameter + 0.0;
@@ -50,15 +91,29 @@ module _air_hose_barrel() {
             cylinder(h=h, d=air_hose_diameter, center=false);
 }
 
-module _brace() {
-    // Entire block, before carve outs
-    x = brace_length + air_hose_diameter/2;
-    z = brace_height + barrel_diameter/2;
-    dx = barrel_back_to_air_hose + air_hose_diameter/2;
-    dz = -brace_height/2;
-    translate([dx, 0, dz]) rotate([90, 0, 0]) cube([brace_length, brace_width, z]);
+module _brace_cl_cl() {
+
+    brace_radius = brace_width/2;
+    brace_cl_l = brace_length + air_hose_diameter/2;
+    dy = -barrel_diameter/2;
+    brace_top_cl_l = air_hose_diameter/2 + 3;
+    dyt = -(brace_height + air_hose_diameter/2);
+    hull() {
+        translate([0, dy, 0])
+            rod(d=brace_width, l=brace_cl_l, center=FRONT);
+        translate([0, dyt, 0])
+            rod(d=brace_width, l=brace_top_cl_l, center=FRONT);
+    }
+    block([brace_cl_l, barrel_diameter/2, brace_width], center=FRONT+LEFT);
 }
 
+
+if (show_brace) {
+    _brace_cl_cl();
+}
+    
+    
+    
 module _trigger_piece(angle) {
     pivot_offset = 3; // This is a guess
     dy_pivot = m_trigger_pad_cl_to_barrel_cl_0_degrees + pivot_offset;
@@ -85,10 +140,10 @@ module air_brush(trigger_angle) {
         translate([dx, 0, 0]) {
             _barrel();
             _air_hose_barrel();
-            _brace();
             _trigger(trigger_angle);
         }
     }
+    _brace_cl_cl();
 }
 if (show_air_brush) {
     air_brush(trigger_angle=30);
