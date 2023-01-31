@@ -3,15 +3,20 @@
 
         use <small_pivot_vertical_rotation.scad>
     
+
         small_pivot_vertical_rotation(
-            h, w, lp, lg, allowance, angle=0)
+            h, w, lp, lg, allowance, range=[top, bottom], angle=0) {
+
         
     Arguments:
-        h           height of connecting linkages
-        w           width of the connecting linkages
-        lp          pintle length measured from the pivot center.
-        lg          gudgeon length measured from the pivot center.
-        allowance   size of gaps in the part for printability.
+        h           Height of connecting linkages
+        w           Width of the connecting linkages
+        lp          Pintle length measured from the pivot center.
+        lg          Gudgeon length measured from the pivot center.
+        allowance   Size of gaps in the part for printability.
+        range       Range of motion above and below the horizontal plain.
+                    Defaults to [135, 135]
+        angle       Angle for positioning the pintle.  
            
     Notes:
     
@@ -39,6 +44,29 @@ $fs = 0.4;
 eps = 0.001;
 
 infinity = 1000;
+
+/* [Example] */
+
+show_example = true;
+// Height of connecting linkages
+h_example = 4; // [4 : 10]
+//Width of the connecting linkages
+w_example = 4; // [4 : 10]           
+// Pintle length measured from the pivot center.
+lp_example = 10; // [0 : 20]          
+// Gudgeon length measured from the pivot center.
+lg_example = 20; // [0 : 20]              
+// Size of gaps in the part for printability.
+allowance_example = 0.4; // [0.4 : 0.05 : 0.6] 
+// Range of motion above and below the horizontal plain.
+top_range_example = 135; //[60 : 5: 175] 
+bottom_range_example = 135; //[60 : 5: 175]  
+// Angle for positioning the pintle.
+angle_example = 0; // [-180 : 5 : +180]   
+
+
+
+module end_of_customization() {}
 
 function _nominal_diameter(h, w, l, al) = h/2;
 function _pin_od(h, w, l, al)           = _nominal_diameter(h, w, l, al) - al;
@@ -164,4 +192,13 @@ module small_pivot_vertical_rotation(
     gudgeon(h, w, lg, al, gudgeon_stops);
 }
 
-small_pivot_vertical_rotation(5, 10, 20, 30, 0.3, range=[150, 135], angle=0);
+if (show_example) {
+    small_pivot_vertical_rotation(
+        h_example, 
+        w_example, 
+        lp_example, 
+        lg_example, 
+        allowance_example, 
+        range=[top_range_example, bottom_range_example], 
+        angle=angle_example);    
+}

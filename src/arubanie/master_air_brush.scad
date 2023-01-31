@@ -1,3 +1,20 @@
+/*
+
+Usage:
+
+use <master_air_brush.scad>
+
+air_brush(trigger_angle);
+
+Note: The air brush is oriented on its side, with the coordinate 
+      system centered on the intersection of the axis for the 
+      main barrel and the air barrel.  
+
+      The tip of the gun is in the positive x direction.
+      The trigger is in the positive y direction.
+
+*/ 
+
 include <master_airbrush_measurements.scad>;
 
 /* [Boiler Plate] */
@@ -92,5 +109,5 @@ module _trigger_cap_clearance() {
     }  
 }
 
-*_trigger_cap_clearance();
+* _trigger_cap_clearance();
 

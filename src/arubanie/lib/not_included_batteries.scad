@@ -147,9 +147,34 @@ module rod(d, l, center=0, hollow=false) {
                 cylinder(d=d, h=l, center=true);
                 cylinder(d=hollow, h=2*l, center=true);
             }
-        }
+        } else {
+            assert(false, str("Don't know how to handle hollow=", hollow));
+        } 
     }  
     
+}
+
+/*
+    Can  is a cylinder on its end, with a specific translation 
+    about the origin.
+    
+*/
+module can(d,h, center=0, hollow=false) {
+    bv = _center_to_bitvector(center);
+    size = [d, d, h];
+    disp = _center_to_displacement(center, size);
+    translate(disp) {
+        if (hollow == false) {
+            cylinder(d=d, h=h, center=true); 
+        } else if (is_num(hollow)) {
+            render() difference() {
+                cylinder(d=d, h=h, center=true);
+                cylinder(d=hollow, h=2*h, center=true);
+            }
+        } else {
+            assert(false, str("Don't know how to handle hollow=", hollow));
+        }  
+    }  
 }
 
 
