@@ -34,7 +34,7 @@ barrel_diameter_clearance = 0.75;
 module end_of_customization() {}
 
 
-measured_barrel_diameter = 12.01; 
+barrel_diameter = 12.01; 
 barrel_length = 68.26;
 barrel_back_to_air_hose = 21.27;
 brace_height = 6.9;
@@ -50,11 +50,12 @@ pad_diameter = 10.74;
 pad_height = 2.60;
 
 _dct_name_to_dimension = [
-    ["barrel diameter", measured_barrel_diameter],
-    ["barrel radius", measured_barrel_diameter/2],
-    ["air hose diameter", air_hose_diameter],
+    ["barrel diameter", barrel_diameter],
+    ["barrel radius", barrel_diameter/2],
+    ["air barrel diameter", air_hose_diameter],
+    ["air barrel radius", air_hose_diameter/2],
     ["back length", barrel_back_to_air_hose],
-    ["bottom length", air_hose_barrel_length + measured_barrel_diameter/2],
+    ["bottom length", air_hose_barrel_length + barrel_diameter/2],
     ["trigger height", m_trigger_pad_cl_to_barrel_cl_0_degrees],
 ];
 
@@ -71,7 +72,6 @@ if (show_name) {
     linear_extrude(2) text("master_airbrush_measurements.scad", halign="center");
 }
 
-barrel_diameter = measured_barrel_diameter + barrel_diameter_clearance;
 _trigger_pad_diameter = m_trigger_pad_diameter + 0.0;
 _trigger_pad_thickness = m_trigger_pad_thickness + 0.0;
 
@@ -92,19 +92,19 @@ module _air_hose_barrel() {
 }
 
 module _brace_cl_cl() {
-
-    brace_radius = brace_width/2;
-    brace_cl_l = brace_length + air_hose_diameter/2;
-    dy = -barrel_diameter/2;
-    brace_top_cl_l = air_hose_diameter/2 + 3;
-    dyt = -(brace_height+barrel_diameter/2);
-    hull() {
-        translate([0, dy, 0])
-            rod(d=brace_width, l=brace_cl_l, center=FRONT);
-        translate([0, dyt, 0])
-            rod(d=brace_width, l=brace_top_cl_l, center=FRONT+RIGHT);
+    x_long = brace_length - brace_width; // To center of radius
+    y_long = barrel_diameter/2;
+    x_tall = air_hose_diameter/2;
+    y_tall = barrel_diameter/2 + brace_height - brace_width/2; // To center of radius
+    $fn=50;
+    minkowski() {
+        union() {
+            block([x_long, y_long, 0.01], center=FRONT+LEFT);
+            block([x_tall, y_tall, 0.01], center=FRONT+LEFT);
+        }
+        sphere(d=brace_width);
     }
-    block([brace_cl_l, barrel_diameter/2, brace_width], center=FRONT+LEFT);
+    * block([x_tall, y_tall, eps], center=FRONT+LEFT);
 }
 
 
@@ -137,13 +137,16 @@ module air_brush(trigger_angle) {
 
     dx = -barrel_back_to_air_hose - air_hose_diameter/2;
     color("Red", alpha=0.25) {
-        translate([dx, 0, 0]) {
-            _barrel();
-            _air_hose_barrel();
-            _trigger(trigger_angle);
+        render() {
+        _brace_cl_cl();
+            translate([dx, 0, 0]) {
+                _barrel();
+                _air_hose_barrel();
+                _trigger(trigger_angle);
+            }
         }
     }
-    _brace_cl_cl();
+    
 }
 if (show_air_brush) {
     air_brush(trigger_angle=30);

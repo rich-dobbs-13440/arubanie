@@ -14,6 +14,8 @@ infinity = 1000;
 show_air_brush = false;
 show_main_pivot = true;
 show_air_barrel_clip = true;
+show_constructions = false;
+show_vectors = false;
 //show_air_barrel_
 
 orient_for_build = true;
@@ -47,28 +49,55 @@ FOR_BUILD = [180, 0, 0];  // TBD
 
 viewing_orientation = orient_for_build ? FOR_BUILD : FOR_DESIGN;
 
-module main_pivot() {
-    dy = master_air_brush("barrel radius") 
+
+dy_trigger_pivot_offset = 
+        master_air_brush("barrel radius") 
         + barrel_allowance
-        + pivot_w/2
-        + barrel_clearance;
+        + barrel_clearance
+        + pivot_w/2;
+
+V_CL_TRG_PVT = [
+            dx_trigger_pivot_offset, 
+            dy_trigger_pivot_offset, 
+            dz_trigger_pivot_offset];
+V_CL_TRG_BLD_PLT = V_CL_TRG_PVT + [0, 0, pivot_h/2];
+
+V_AIR_BARREL_TOP = [0, 0, -master_air_brush("bottom length")];
+V_AIR_BARREL_BACK = [-master_air_brush("air barrel radius"), 0, 0];
+V_AIR_BARREL_RIGHT = [0, master_air_brush("air barrel radius"), 0];
+V_BARREL_BACK = [-master_air_brush("back length"), 0, 0];
+V_BARREL_RIGHT = [0, master_air_brush("barrel radius"), 0];
+
+V_TRIGGER_TOP = [0, 0, master_air_brush("trigger height")];
+
+
+
+
+
+module main_pivot() {
+
     
-    dx = dx_trigger_pivot_offset;
-    dz = dz_trigger_pivot_offset;
-    pivot_lenth_pintle = master_air_brush("back length");
+    // = dx_trigger_pivot_offset;
+    // = dz_trigger_pivot_offset;
+    pivot_lenth_pintle = abs(V_BARREL_BACK.x);
     pivot_length_gudgeon = 
-        master_air_brush("trigger height")
+        + V_TRIGGER_TOP.z
         + gudgeon_extension;
-    translate([dx, dy, dz])
-        rotate([0, 0, 180]) // Want the pintle toward the read
-            small_pivot_vertical_rotation(
-                pivot_h, 
-                pivot_w, 
-                pivot_lenth_pintle, 
-                pivot_length_gudgeon, 
-                pivot_allowance, 
-                range=[pivot_top_range_of_motion, pivot_bottom_range_of_motion], 
-                angle=pintle_angle);
+    color("salmon", alpha=0.2)
+        translate(V_CL_TRG_PVT)
+            rotate([0, 0, 180]) // Want the pintle toward the read
+                small_pivot_vertical_rotation(
+                    pivot_h, 
+                    pivot_w, 
+                    pivot_lenth_pintle, 
+                    pivot_length_gudgeon, 
+                    pivot_allowance, 
+                    range=[pivot_top_range_of_motion, pivot_bottom_range_of_motion], 
+                    angle=pintle_angle);
+                    
+    // Pivot to air barrel mounting
+    h_ptabm = V_BARREL_RIGHT.y;
+    //d(d=pivot_w, h=h_ptabm);
     
     // Pivot bridge
     x = master_air_brush("back length");
@@ -77,8 +106,9 @@ module main_pivot() {
         + 2 * barrel_clearance
         + 2 * eps;
     z = master_air_brush("barrel radius") + wall_thickness  ; 
-    dxb = dx_trigger_pivot_offset + pivot_h/2; 
+    dxb = dx_trigger_pivot_offset; 
     dzb = dz_trigger_pivot_offset + pivot_h/2;
+    color("Goldenrod") 
     render() difference() {
         translate([dxb, 0, dzb]) 
             block([x, y, z], center=BEHIND+BELOW);
@@ -91,14 +121,14 @@ module main_pivot() {
     zgb = pivot_h;
     
     dxgb = pivot_length_gudgeon - xgb/2;
-    dzgb = dz;
-    
-    translate([dxgb, 0, dzgb]) block([xgb, ygb, zgb]);
+    dzgb = V_TRIGGER_TOP.z;
+    color("DarkSalmon")
+        translate([dxgb, 0, dzgb]) block([xgb, ygb, zgb]);
 }
 
 module air_barrel_clip() {
     //air_hose_diameter
-    id = master_air_brush("air hose diameter") + air_hose_allowance + air_hose_clearance;
+    id = master_air_brush("air barrel diameter") + air_hose_allowance + air_hose_clearance;
     od = id + wall_thickness;
     h = master_air_brush("bottom length"); 
     render() difference() {
@@ -113,21 +143,47 @@ module air_brush_trigger_on_top() {
 
 rotate(viewing_orientation) {
 
-    if (show_main_pivot) {
-        main_pivot();
-        mirror([0, 1, 0]) main_pivot();
+    if (show_main_pivot) { 
+            main_pivot(); 
+            mirror([0, 1, 0]) main_pivot();
     }
     if (show_air_barrel_clip) {
-        air_barrel_clip();
+        color("BurlyWood") air_barrel_clip();
     }
         
         
     if (show_air_brush) {          
         air_brush_trigger_on_top();
     }
+    
+    if (show_constructions) {
+        
+        display_vV_CL_TRG_PVT, "HotPink");
+        show_vector(V_AIR_BARREL_TOP, "Orchid");
+        
+        
+        construct_plane(V_BARREL_BACK, [1, 0, 0], 40);
+        construct_plane(V_BARREL_RIGHT, [0, 1, 0], 100);
+        construct_plane(V_AIR_BARREL_BACK, [1, 0, 0], 40);  
+        construct_plane(V_AIR_BARREL_TOP, [0, 0, 1], 100);
+        construct_plane(V_AIR_BARREL_RIGHT, [0, 1, 0], 100); 
+        construct_plane(V_CL_TRG_PVT, [0, 0, 1], 100); 
+        construct_plane(V_CL_TRG_PVT, [1, 0, 0], 40); 
+        construct_plane(V_CL_TRG_BLD_PLT, [0, 0, 1], 100);
+        
+
+        
+//        V_CL_TRG_PVT = [dx_trigger_pivot_offset, 0, dz_trigger_pivot_offset];
+//
+//
+
+//
+//V_TRIGGER_TOP = [0, 0, master_air_brush("trigger height")];
+    }
 }
 
-//module 
+
+
 
 
 

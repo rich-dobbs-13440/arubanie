@@ -230,3 +230,22 @@ module _visual_test_all_octants(d, l, use_sideways, alpha) {
     
 }
 * _visual_test_all_octants(10, 20, false, 0.5);
+
+
+module construct_plane(vector, orientation, extent=100) {
+    axis_offset = v_o_dot(vector, orientation);
+    normal = [1, 1, 1] - orientation;
+    plane_size = v_mul_scalar(normal, extent) + [0.1, 0.1, 0.1];
+    color("gray", alpha=0.05) translate(axis_offset) cube(plane_size, center=true);
+}
+
+module display_vector(vector, color_of_v) {
+    color("black") hull() {
+        sphere(r= 0.1);
+        translate(vector) sphere(0.1);
+    }
+    color(color_of_v, alpha=0.50) hull() {
+        sphere(r=eps);
+        translate(vector) sphere(1);
+    }
+}

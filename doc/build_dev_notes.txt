@@ -2,6 +2,16 @@ git update-index --chmod=+x *.sh
 chmod +x *.sh
 
 
+ERROR: CGAL error in CGALUtils::applyBinaryOperator union: CGAL ERROR: assertion violation! Expr: itl != it->second.end() 
+
+
+File: /usr/include/CGAL/Nef_3/SNC_external_structure.h Line: 1144
+
+
+
+
+
+
 (.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ openscad -o ../../../build/logging.stl logging.scad
 Current top level object is empty.
 \(.venv) rich@rich-amd-5600x-b550M:~/code/arubanie/src/arubanie/lib$ echo $?
