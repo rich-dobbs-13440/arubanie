@@ -97,12 +97,12 @@ module _brace_cl_cl() {
     brace_cl_l = brace_length + air_hose_diameter/2;
     dy = -barrel_diameter/2;
     brace_top_cl_l = air_hose_diameter/2 + 3;
-    dyt = -(brace_height + air_hose_diameter/2);
+    dyt = -(brace_height+barrel_diameter/2);
     hull() {
         translate([0, dy, 0])
             rod(d=brace_width, l=brace_cl_l, center=FRONT);
         translate([0, dyt, 0])
-            rod(d=brace_width, l=brace_top_cl_l, center=FRONT);
+            rod(d=brace_width, l=brace_top_cl_l, center=FRONT+RIGHT);
     }
     block([brace_cl_l, barrel_diameter/2, brace_width], center=FRONT+LEFT);
 }
