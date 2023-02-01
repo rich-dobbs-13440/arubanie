@@ -19,8 +19,8 @@ include <lib/not_included_batteries.scad>
 
 /* [Boiler Plate] */
 
-$fa = 1;
-$fs = 0.4;
+$fa = 5;
+$fs = 0.8;
 eps = 0.001;
 
 infinity = 1000;

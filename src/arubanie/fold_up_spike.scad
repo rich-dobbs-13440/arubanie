@@ -4,8 +4,8 @@ use <master_air_brush.scad>
 
 /* [Boiler Plate] */
 
-$fa = 1;
-$fs = 0.4;
+$fa = 5;
+$fs = 0.8;
 eps = 0.001;
 
 infinity = 1000;
@@ -14,6 +14,23 @@ infinity = 1000;
 show_air_brush = false;
 show_main_pivot = true;
 show_air_barrel_clip = true;
+
+
+/* [Part Colors] */
+
+main_pivot_color = "Tomato"; // [DodgerBlue, Tomato, LightSalmon, DarkSalmon, Salmon, Coral]
+pintle_bridge_color = "DarkSalmon"; // [DodgerBlue, LightSalmon, DarkSalmon, Salmon, Coral]
+gudgeon_bridge_color = "LightSalmon"; // [DodgerBlue, LightSalmon, DarkSalmon, Salmon, Coral]
+air_barrel_clip_color = "Coral"; // [DodgerBlue, LightSalmon, DarkSalmon, Salmon, Coral]
+
+/* [Transparency] */
+main_pivot_alpha = 1; // [0:0.05:1]
+pintle_bridge_alpha = 1; // [0:0.05:1]
+gudgeon_bridge_alpha = 1; // [0:0.05:1]
+air_barrel_clip_alpha = 1; // [0:0.05:1]
+
+air_brush_alpha = 0.10; // [0:0.05:1]
+
 
 /* [Constructions] */
 show_constructions = false;
@@ -66,6 +83,8 @@ D_CL_TRG_PVT = [
             dy_trigger_pivot_offset, 
             dz_trigger_pivot_offset];
 D_CL_TRG_BLD_PLT = D_CL_TRG_PVT + [0, 0, pivot_h/2];
+        
+
 
 D_AIR_BARREL_TOP = [0, 0, -master_air_brush("bottom length")];
 D_AIR_BARREL_BACK = [-master_air_brush("air barrel radius"), 0, 0];
@@ -74,6 +93,10 @@ D_BARREL_BACK = [-master_air_brush("back length"), 0, 0];
 D_BARREL_RIGHT = [0, master_air_brush("barrel radius"), 0];
 
 D_TRIGGER_TOP = [0, 0, master_air_brush("trigger height")];
+
+pivot_length_gudgeon = + D_TRIGGER_TOP.z + gudgeon_extension;
+D_GUDGEON_FRONT_BLD_PLT = D_CL_TRG_BLD_PLT + [pivot_length_gudgeon, 0, 0];
+
 
 IDX_DISP_LABEL = 0;
 IDX_DISP_VAL = 1;
@@ -87,6 +110,7 @@ displacements = [
     ["D_BARREL_RIGHT", D_BARREL_RIGHT, "Blue"],
     ["D_BARREL_RIGHT", D_BARREL_RIGHT, "Indigo"],
     ["D_TRIGGER_TOP", D_TRIGGER_TOP, "Violet"],
+    ["D_GUDGEON_FRONT_BLD_PLT", D_GUDGEON_FRONT_BLD_PLT, "Aqua"],
 ];
 
 
@@ -113,17 +137,34 @@ module display_construction_planes() {
 }
 
 
+module gudgeon_bridge() {
+    size = [pivot_h, D_GUDGEON_FRONT_BLD_PLT.y + eps, pivot_h];
+    color(gudgeon_bridge_color, alpha=gudgeon_bridge_alpha)
+        translate(D_GUDGEON_FRONT_BLD_PLT) block(size, center=LEFT+BEHIND+BELOW);
+}
+
+module pintle_bridge() {
+    x = master_air_brush("back length");
+    y = master_air_brush("barrel diameter") 
+        + 2 * barrel_allowance
+        + 2 * barrel_clearance
+        + 2 * eps;
+    z = master_air_brush("barrel radius") + wall_thickness  ; 
+    dxb = dx_trigger_pivot_offset; 
+    dzb = dz_trigger_pivot_offset + pivot_h/2;
+    color(pintle_bridge_color, alpha=pintle_bridge_alpha) { 
+        render() difference() {
+            translate([dxb, 0, dzb]) 
+                block([x, y, z], center=BEHIND+BELOW);
+            air_brush_trigger_on_top();
+        }    
+    }
+}
 
 module main_pivot() {
-
-    
-    // = dx_trigger_pivot_offset;
-    // = dz_trigger_pivot_offset;
     pivot_lenth_pintle = abs(D_BARREL_BACK.x);
-    pivot_length_gudgeon = 
-        + D_TRIGGER_TOP.z
-        + gudgeon_extension;
-    color("salmon", alpha=0.2)
+
+    color(main_pivot_color, alpha=main_pivot_alpha)
         translate(D_CL_TRG_PVT)
             rotate([0, 0, 180]) // Want the pintle toward the read
                 small_pivot_vertical_rotation(
@@ -134,36 +175,9 @@ module main_pivot() {
                     pivot_allowance, 
                     range=[pivot_top_range_of_motion, pivot_bottom_range_of_motion], 
                     angle=pintle_angle);
-                    
-    // Pivot to air barrel mounting
-    h_ptabm = D_BARREL_RIGHT.y;
-    //d(d=pivot_w, h=h_ptabm);
     
-    // Pivot bridge
-    x = master_air_brush("back length");
-    y = master_air_brush("barrel diameter") 
-        + 2 * barrel_allowance
-        + 2 * barrel_clearance
-        + 2 * eps;
-    z = master_air_brush("barrel radius") + wall_thickness  ; 
-    dxb = dx_trigger_pivot_offset; 
-    dzb = dz_trigger_pivot_offset + pivot_h/2;
-    color("Goldenrod", alpha=0.25) 
-        render() difference() {
-            translate([dxb, 0, dzb]) 
-                block([x, y, z], center=BEHIND+BELOW);
-            air_brush_trigger_on_top();
-        }
-    
-    // Gudgeon bridge
-    xgb = pivot_h;
-    ygb = y;
-    zgb = pivot_h;
-    
-    dxgb = pivot_length_gudgeon - xgb/2;
-    dzgb = D_TRIGGER_TOP.z;
-    color("DarkSalmon")
-        translate([dxgb, 0, dzgb]) block([xgb, ygb, zgb]);
+    gudgeon_bridge();
+    pintle_bridge();
 }
 
 module air_barrel_clip() {
@@ -171,7 +185,7 @@ module air_barrel_clip() {
     id = master_air_brush("air barrel diameter") + air_hose_allowance + air_hose_clearance;
     od = id + wall_thickness;
     h = master_air_brush("bottom length"); 
-    color("BurlyWood" , alpha=0.25) {
+    color(air_barrel_clip_color , alpha=air_barrel_clip_alpha) {
         render() difference() {
             can(d=od, h=h, hollow=id, center=BELOW);
             air_brush_trigger_on_top();
@@ -180,7 +194,7 @@ module air_barrel_clip() {
 }
 
 module air_brush_trigger_on_top() {
-    rotate([90, 0, 0]) air_brush(trigger_angle, alpha=0.1);
+    rotate([90, 0, 0]) air_brush(trigger_angle, alpha=air_brush_alpha);
 }
 
 rotate(viewing_orientation) {
