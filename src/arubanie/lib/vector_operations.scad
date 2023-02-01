@@ -26,6 +26,8 @@ function v_sub_scalar(v, s) = [ for (e = v) e - s ];
     
 function v_mul_scalar(v, s) = [ for (e = v) e * s ];
 
+function v_shorten(v, places) = [ for (idx = [0 : 1: places-1]) v[idx]];
+
 // The add operation is reasonably as the + operator in the language itself. 
  
 

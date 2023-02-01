@@ -15,7 +15,9 @@ Note: The air brush is oriented on its side, with the coordinate
 
 */ 
 
-include <lib/not_included_batteries.scad>
+use <lib/not_included_batteries.scad>
+
+include <lib/shapes.scad>
 
 /* [Boiler Plate] */
 

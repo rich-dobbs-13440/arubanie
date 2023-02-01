@@ -1,4 +1,5 @@
-include <lib/not_included_batteries.scad>
+
+include <lib/centerable.scad>
 use <lib/small_pivot_vertical_rotation.scad>
 use <master_air_brush.scad>
 
