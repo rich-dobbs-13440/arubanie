@@ -19,13 +19,15 @@ show_air_barrel_clip = true;
 
 /* [Part Colors] */
 
-main_pivot_color = "Tomato"; // [DodgerBlue, Tomato, LightSalmon, DarkSalmon, Salmon, Coral]
+main_pintle_color = "Tomato"; // [DodgerBlue, Tomato, LightSalmon, DarkSalmon, Salmon, Coral]
+main_gudgeon_color = "Chocolate"; // [DodgerBlue, Tomato, LightSalmon, DarkSalmon, Salmon, Coral]
 pintle_bridge_color = "DarkSalmon"; // [DodgerBlue, LightSalmon, DarkSalmon, Salmon, Coral]
 gudgeon_bridge_color = "LightSalmon"; // [DodgerBlue, LightSalmon, DarkSalmon, Salmon, Coral]
 air_barrel_clip_color = "Coral"; // [DodgerBlue, LightSalmon, DarkSalmon, Salmon, Coral]
 
 /* [Transparency] */
-main_pivot_alpha = 1; // [0:0.05:1]
+main_pintle_alpha = 1; // [0:0.05:1]
+main_gudgeon_alpha = 1; // [0:0.05:1]
 pintle_bridge_alpha = 1; // [0:0.05:1]
 gudgeon_bridge_alpha = 1; // [0:0.05:1]
 air_barrel_clip_alpha = 1; // [0:0.05:1]
@@ -47,12 +49,11 @@ orient_for_build = true;
 
 trigger_angle = 0; //[-45:15:+45]
 pivot_top_range_of_motion = 135;
-pivot_bottom_range_of_motion = 135; // [45:5:90]
-pintle_angle = 0; // [0, 45, 90, 135, 145]
+gudgeon_angle = 0; // [-145, -135, -90, -45, 0]
 
 pivot_h = 4; //[4:0.5:6]
 pivot_w = 4; //[1:15]
-gudgeon_extension = 20; //[0:30]
+gudgeon_extension = 0; //[-5:5]
 // This controls printablity vs play in the pivot.
 pivot_allowance = 0.4;
 dx_trigger_pivot_offset = 0; // [-3:0.25:+3]
@@ -95,8 +96,9 @@ D_BARREL_RIGHT = [0, master_air_brush("barrel radius"), 0];
 
 D_TRIGGER_TOP = [0, 0, master_air_brush("trigger height")];
 
-pivot_length_gudgeon = + D_TRIGGER_TOP.z + gudgeon_extension;
-D_GUDGEON_FRONT_BLD_PLT = D_CL_TRG_BLD_PLT + [pivot_length_gudgeon, 0, 0];
+pivot_length_gudgeon = 
+    D_TRIGGER_TOP.z + D_CL_TRG_PVT.z + gudgeon_extension + wall_thickness;
+D_GUDGEON_BRIDGE_FRONT = [pivot_length_gudgeon, 0, 0];
 
 
 IDX_DISP_LABEL = 0;
@@ -111,7 +113,7 @@ displacements = [
     ["D_BARREL_RIGHT", D_BARREL_RIGHT, "Blue"],
     ["D_BARREL_RIGHT", D_BARREL_RIGHT, "Indigo"],
     ["D_TRIGGER_TOP", D_TRIGGER_TOP, "Violet"],
-    ["D_GUDGEON_FRONT_BLD_PLT", D_GUDGEON_FRONT_BLD_PLT, "Aqua"],
+//    ["D_GUDGEON_FRONT_BLD_PLT", D_GUDGEON_FRONT_BLD_PLT, "Aqua"],
 ];
 
 
@@ -138,11 +140,7 @@ module display_construction_planes() {
 }
 
 
-module gudgeon_bridge() {
-    size = [pivot_h, D_GUDGEON_FRONT_BLD_PLT.y + eps, pivot_h];
-    color(gudgeon_bridge_color, alpha=gudgeon_bridge_alpha)
-        translate(D_GUDGEON_FRONT_BLD_PLT) block(size, center=LEFT+BEHIND+BELOW);
-}
+
 
 module pintle_bridge() {
     x = master_air_brush("back length");
@@ -162,23 +160,56 @@ module pintle_bridge() {
     }
 }
 
-module main_pivot() {
-    pivot_lenth_pintle = abs(D_BARREL_BACK.x);
+module main_gudgeon() {
+    color(main_gudgeon_color, alpha=main_gudgeon_alpha) {
+        rotate([0, 0, 180]) { 
+           gudgeon(
+                pivot_h, 
+                pivot_w, 
+                pivot_length_gudgeon, 
+                pivot_allowance, 
+                range_of_motion=[pivot_top_range_of_motion, pivot_top_range_of_motion]);  
+        }   
+    }
+}
 
-    color(main_pivot_color, alpha=main_pivot_alpha)
-        translate(D_CL_TRG_PVT)
-            rotate([0, 0, 180]) // Want the pintle toward the read
-                small_pivot_vertical_rotation(
+module gudgeon_assembly() {
+    translate(D_CL_TRG_PVT) {
+        rotate([0, gudgeon_angle, 0]) {
+            main_gudgeon();
+            gudgeon_bridge();
+        }
+    }
+}
+
+module gudgeon_bridge() {
+    size = [pivot_h, D_CL_TRG_PVT.y + eps, pivot_h];
+    color(gudgeon_bridge_color, alpha=gudgeon_bridge_alpha)
+        translate([pivot_length_gudgeon, 0, 0]) 
+            block(size, center=LEFT+BEHIND);
+}
+
+module main_pintle() {
+    pivot_lenth_pintle = abs(D_BARREL_BACK.x);
+    color(main_pintle_alpha, alpha=main_pintle_alpha) {
+        translate(D_CL_TRG_PVT) {
+            rotate([0, 0, 180]) { // Want the pintle toward the read
+                pintle(
                     pivot_h, 
                     pivot_w, 
                     pivot_lenth_pintle, 
-                    pivot_length_gudgeon, 
                     pivot_allowance, 
-                    range=[pivot_top_range_of_motion, pivot_bottom_range_of_motion], 
-                    angle=pintle_angle);
-    
-    gudgeon_bridge();
+                    range_of_motion=[pivot_top_range_of_motion, pivot_top_range_of_motion]);
+            }
+        }
+    } 
+}
+
+module main_pivot() {
+    main_pintle();
     pintle_bridge();
+
+    gudgeon_assembly();
 }
 
 module air_barrel_clip() {

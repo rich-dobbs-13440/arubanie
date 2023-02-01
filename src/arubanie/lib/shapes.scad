@@ -7,6 +7,12 @@ $fa = 1;
 $fs = 0.4;
 eps = 0.001;
 
+/* [Visual Tests] */
+
+show_test_rod_all_octants = true;
+show_test_rod_rod_single_attribute = false;
+show_visual_test_for_crank = false;
+
 /* 
     Block is a cube with a specific translation about the origin.
     
@@ -87,55 +93,61 @@ module can(d,h, center=0, hollow=false) {
     }  
 }
 
-module crank(size, hole=false, center=0, crank=0) {
+module crank(size, hole=false, center=0, rotation=0) {
     hole_d = is_num(hole) ? hole : 0;
     pivot_size = [size.z, size.y, size.z];
     
     center_translation(pivot_size, center) {
-        center_rotation(crank) {
+        center_rotation(rotation) {
             difference() {
                 union() {
                     block(size, center=FRONT);
-                    rod(d=size.z, l=size.z, center=SIDEWISE);
+                    rod(d=size.z, l=size.y, center=SIDEWISE);
                 }
-                rod(d=hole_d, l=size.z + 2*eps, center=SIDEWISE);
+                rod(d=hole_d, l=size.y + 2*eps, center=SIDEWISE);
             }
         }
     } 
 }
 
+module _visual_test_for_crank() {
 
+    translate([0, -80, 0]) crank([10, 4, 4], hole=2, center=BEHIND);
 
-//translate([0, -80, 0]) crank([10, 4, 4], hole=2, center=BEHIND);
-//
-//translate([0, -70, 0]) crank([10, 4, 4], hole=2, center=FRONT);
-//
-//translate([0, -60, 0]) crank([10, 4, 4], hole=2, center=LEFT);
-//
-//translate([0, -50, 0]) crank([10, 4, 4], hole=2, center=RIGHT);
-//
-//translate([0, -40, 0]) crank([10, 4, 4], hole=2, center=ABOVE);
-//
-//translate([0, -30, 0]) crank([10, 4, 4], hole=2, center=BELOW);
-//
-//translate([0, -20, 0]) crank([10, 4, 4]);
+    translate([0, -70, 0]) crank([10, 4, 4], hole=2, center=FRONT);
 
-translate([0, -10, 0]) crank([10, 4, 4], hole=2);
+    translate([0, -60, 0]) crank([10, 4, 4], hole=2, center=LEFT);
 
+    translate([0, -50, 0]) crank([10, 4, 4], hole=2, center=RIGHT);
 
-translate([0, 20, 0]) crank([10, 4, 4], hole=2, crank=ABOVE);
+    translate([0, -40, 0]) crank([10, 4, 4], hole=2, center=ABOVE);
 
-translate([0, 30, 0]) crank([10, 4, 4], hole=2, crank=BELOW);
+    translate([0, -30, 0]) crank([10, 4, 4], hole=2, center=BELOW);
 
-translate([0, 40, 0]) crank([10, 4, 4], hole=2, crank=FRONT);
+    translate([0, -20, 0]) crank([10, 4, 4]);
 
-translate([0, 50, 0]) crank([10, 4, 4], hole=2, crank=BEHIND);
+    translate([0, -10, 0]) crank([10, 4, 4], hole=2);
 
-translate([0, 70, 0]) crank([10, 4, 4], hole=2, crank=LEFT);
+    translate([0, 20, 0]) crank([10, 4, 4], hole=2, rotation=ABOVE);
 
-translate([0, 80, 0]) crank([10, 4, 4], hole=2, crank=RIGHT);
+    translate([0, 30, 0]) crank([10, 4, 4], hole=2, rotation=BELOW);
 
-translate([0, 100, 0]) crank([10, 4, 4], hole=2, crank=ABOVE+RIGHT);
+    translate([0, 40, 0]) crank([10, 4, 4], hole=2, rotation=FRONT);
+
+    translate([0, 50, 0]) crank([10, 4, 4], hole=2, rotation=BEHIND);
+
+    translate([0, 70, 0]) crank([10, 4, 4], hole=2, rotation=LEFT);
+
+    translate([0, 80, 0]) crank([10, 4, 4], hole=2, rotation=RIGHT);
+
+    translate([0, 100, 0]) crank([10, 4, 4], hole=2, rotation=ABOVE+RIGHT);
+    
+}
+
+if (show_visual_test_for_crank) {
+    _visual_test_for_crank();   
+}
+
 
 module _visual_test_rod_single_attribute(d, l, a) {
     
@@ -157,7 +169,10 @@ module _visual_test_rod_single_attribute(d, l, a) {
     color("blue", alpha = a)        
     rod(d=d, l=l, center=BELOW);
 }
- * _visual_test_rod_single_attribute(10, 20, 0.5);
+
+if (show_test_rod_rod_single_attribute) {
+    _visual_test_rod_single_attribute(10, 20, 0.5);
+}
 
 module _visual_test_all_octants(d, l, use_sideways, alpha) {
     colors = [
@@ -188,7 +203,9 @@ module _visual_test_all_octants(d, l, use_sideways, alpha) {
     
 }
 
+if (show_test_rod_all_octants) {
+    _visual_test_all_octants(10, 20, false, 0.5);
+}
 
- * _visual_test_all_octants(10, 20, false, 0.5);
 
 

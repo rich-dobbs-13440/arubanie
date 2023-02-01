@@ -49,6 +49,9 @@ infinity = 1000;
 /* [Example] */
 
 show_example = true;
+show_gudgeon = false;
+show_pintle = false;
+
 // Height of connecting linkages
 h_example = 4; // [4 : 10]
 //Width of the connecting linkages
@@ -70,8 +73,8 @@ angle_example = 0; // [-180 : 5 : +180]
 module end_of_customization() {}
 
 function _nominal_diameter(h, w, l, al) = h/2;
-function _pin_od(h, w, l, al)           = _nominal_diameter(h, w, l, al) - al;
-function _bushing_id(h, w, l, al)       = _nominal_diameter(h, w, l, al) + al;
+function _pin_od(h, w, l, al)           = _nominal_diameter(h, w, l, al) - al/2;
+function _bushing_id(h, w, l, al)       = _nominal_diameter(h, w, l, al) + al/2;
 
 function _bushing_width(h, w, l, al)    = w/2 - al;
 function _leaf_width_total(h, w, l, al) = w/2 - al;
@@ -97,7 +100,7 @@ module cutout_for_rotation_stops(h, w, l, al, stops) {
 }
 
 
-module pintle(h, w, l, al, stops) {
+module pintle(h, w, l, al, range_of_motion=[135, 135]) {
 
     leaf_width = _leaf_width(h, w, l, al);
     leaf_disp = _leaf_disp(h, w, l, al);
@@ -119,6 +122,11 @@ module pintle(h, w, l, al, stops) {
     } 
    
     // Block joining the leafs
+    assert(is_num(range_of_motion[0]));
+    assert(is_num(range_of_motion[1]));
+    top_stop = range_of_motion[0]-180;
+    bottom_stop = 180-range_of_motion[1];
+    stops =  [bottom_stop, top_stop];
     difference() {
         block([l, w, h], center=FRONT);
         cutout_for_rotation_stops(h, w, l, al, stops);
@@ -126,21 +134,19 @@ module pintle(h, w, l, al, stops) {
 }
 
 
-module gudgeon(h, w, l, al, stops) {
+module gudgeon(h, w, l, al, range_of_motion) {
        
     bushing_id = _bushing_id(h, w, l, al); 
-    bushing_od = h;
     bushing_width = _bushing_width(h, w, l, al);
-
-    rod(bushing_od, l=bushing_width, center=SIDEWISE, hollow=bushing_id);
-    
-    // Center leaf
-    difference() {
-        block([l, bushing_width, h], center=BEHIND);
-        rod(bushing_od, l=2*w, center=SIDEWISE);
-    } 
+    echo(bushing_width);
+    size = [l, bushing_width, h];
+    echo(size);
+    crank(size, hole=bushing_id, rotation=BEHIND);
     
     // Connector body  
+    top_stop = -range_of_motion[0];
+    bottom_stop = range_of_motion[1];
+    stops = [bottom_stop, top_stop];   
     difference() {
         block([l, w, h], center=BEHIND);
         cutout_for_rotation_stops(h, w, l, al, stops);
@@ -180,17 +186,9 @@ module small_pivot_vertical_rotation(
 //    );
 //    
 
-    top_gudgeon = -range[0];
-    bottom_gudgeon = range[1];
-    assert(!is_undef(bottom_gudgeon));
-    top_pintle = range[0]-180;
-    bottom_pintle = 180-range[0];
-    gudgeon_stops = [bottom_gudgeon, top_gudgeon];
-    pintle_stops =  [bottom_pintle, top_pintle];
-    
     al = allowance;
-    rotate([0, angle, 0]) pintle(h, w, lp, al, pintle_stops);
-    gudgeon(h, w, lg, al, gudgeon_stops);
+    rotate([0, angle, 0]) pintle(h, w, lp, al, range);
+    gudgeon(h, w, lg, al, range);
 }
 
 if (show_example) {
@@ -202,4 +200,25 @@ if (show_example) {
         allowance_example, 
         range=[top_range_example, bottom_range_example], 
         angle=angle_example);    
+}
+
+if (show_gudgeon) {
+    color("ForestGreen", alpha=0.5) 
+        gudgeon(
+            h_example, 
+            w_example, 
+            lg_example, 
+            allowance_example, 
+            [top_range_example, bottom_range_example]);
+}
+
+
+if (show_pintle) {
+    color("CornflowerBlue", alpha=0.5) 
+        pintle(
+            h_example, 
+            w_example, 
+            lp_example, 
+            allowance_example, 
+            [top_range_example, bottom_range_example]);    
 }
