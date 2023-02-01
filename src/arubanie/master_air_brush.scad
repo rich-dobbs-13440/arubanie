@@ -97,14 +97,15 @@ module _brace_cl_cl() {
     x_tall = air_hose_diameter/2;
     y_tall = barrel_diameter/2 + brace_height - brace_width/2; // To center of radius
     $fn=50;
-    minkowski() {
-        union() {
-            block([x_long, y_long, 0.01], center=FRONT+LEFT);
-            block([x_tall, y_tall, 0.01], center=FRONT+LEFT);
+    color("blue") {
+        minkowski() {
+            union() {
+                block([x_long, y_long, 0.01], center=FRONT+LEFT);
+                block([x_tall, y_tall, 0.01], center=FRONT+LEFT);
+            }
+            sphere(d=brace_width);
         }
-        sphere(d=brace_width);
     }
-    * block([x_tall, y_tall, eps], center=FRONT+LEFT);
 }
 
 
@@ -133,27 +134,6 @@ module _trigger(angle) {
     translate([dx, 0, 0]) _trigger_piece(angle);
 }
 
-module air_brush(trigger_angle) {
-
-    dx = -barrel_back_to_air_hose - air_hose_diameter/2;
-    color("Red", alpha=0.25) {
-        render() {
-        _brace_cl_cl();
-            translate([dx, 0, 0]) {
-                _barrel();
-                _air_hose_barrel();
-                _trigger(trigger_angle);
-            }
-        }
-    }
-    
-}
-if (show_air_brush) {
-    air_brush(trigger_angle=30);
-}
-
-
-
 module _trigger_cap_clearance() {
     width = 40;
     bottom_radius = 8;
@@ -168,4 +148,28 @@ module _trigger_cap_clearance() {
 }
 
 * _trigger_cap_clearance();
+
+module air_brush(trigger_angle=0, color_value="SlateGray", alpha=1.0) {
+    dx = -(barrel_back_to_air_hose + air_hose_diameter/2);
+    color(color_value, alpha=alpha) {
+         render() { 
+            _brace_cl_cl();
+            translate([dx, 0, 0]) {
+                _barrel();
+                _air_hose_barrel();
+                _trigger(trigger_angle);
+            }
+        }
+    }
+    
+}
+    
+
+if (show_air_brush) {
+    air_brush(trigger_angle=30);
+}
+
+
+
+
 

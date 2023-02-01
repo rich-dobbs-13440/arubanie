@@ -10,14 +10,19 @@ eps = 0.001;
 
 infinity = 1000;
 
-/* [Show] */
+/* [Show Parts] */
 show_air_brush = false;
 show_main_pivot = true;
 show_air_barrel_clip = true;
-show_constructions = false;
-show_vectors = false;
-//show_air_barrel_
 
+/* [Constructions] */
+show_constructions = false;
+// Note: show_constructions must be enabled!
+show_construction_displacements = false;
+// Note: show_constructions must be enabled!
+show_construction_planes = false;
+
+/* [Build vs Design] */
 orient_for_build = true;
 
 /* [Pivot Design] */
@@ -56,21 +61,56 @@ dy_trigger_pivot_offset =
         + barrel_clearance
         + pivot_w/2;
 
-V_CL_TRG_PVT = [
+D_CL_TRG_PVT = [
             dx_trigger_pivot_offset, 
             dy_trigger_pivot_offset, 
             dz_trigger_pivot_offset];
-V_CL_TRG_BLD_PLT = V_CL_TRG_PVT + [0, 0, pivot_h/2];
+D_CL_TRG_BLD_PLT = D_CL_TRG_PVT + [0, 0, pivot_h/2];
 
-V_AIR_BARREL_TOP = [0, 0, -master_air_brush("bottom length")];
-V_AIR_BARREL_BACK = [-master_air_brush("air barrel radius"), 0, 0];
-V_AIR_BARREL_RIGHT = [0, master_air_brush("air barrel radius"), 0];
-V_BARREL_BACK = [-master_air_brush("back length"), 0, 0];
-V_BARREL_RIGHT = [0, master_air_brush("barrel radius"), 0];
+D_AIR_BARREL_TOP = [0, 0, -master_air_brush("bottom length")];
+D_AIR_BARREL_BACK = [-master_air_brush("air barrel radius"), 0, 0];
+D_AIR_BARREL_RIGHT = [0, master_air_brush("air barrel radius"), 0];
+D_BARREL_BACK = [-master_air_brush("back length"), 0, 0];
+D_BARREL_RIGHT = [0, master_air_brush("barrel radius"), 0];
 
-V_TRIGGER_TOP = [0, 0, master_air_brush("trigger height")];
+D_TRIGGER_TOP = [0, 0, master_air_brush("trigger height")];
+
+IDX_DISP_LABEL = 0;
+IDX_DISP_VAL = 1;
+IDX_DISP_CLR = 2;
+
+displacements = [
+    ["D_CL_TRG_PVT", D_CL_TRG_PVT, "Red"],
+    ["D_CL_TRG_BLD_PLT", D_AIR_BARREL_TOP, "Orange"], 
+    ["D_AIR_BARREL_TOP", D_AIR_BARREL_TOP, "Yellow"], 
+    ["D_AIR_BARREL_BACK", D_AIR_BARREL_BACK, "Green"],
+    ["D_BARREL_RIGHT", D_BARREL_RIGHT, "Blue"],
+    ["D_BARREL_RIGHT", D_BARREL_RIGHT, "Indigo"],
+    ["D_TRIGGER_TOP", D_TRIGGER_TOP, "Violet"],
+];
 
 
+
+module display_construction_displacements() {
+    for (d = displacements) {
+        display_displacement(
+            d[IDX_DISP_VAL], 
+            barb_color=d[IDX_DISP_CLR],
+            shaft_color=d[IDX_DISP_CLR],
+            label=d[IDX_DISP_LABEL]);
+    }
+}
+
+module display_construction_planes() {
+    construct_plane(D_BARREL_BACK, [1, 0, 0], 40);
+    construct_plane(D_BARREL_RIGHT, [0, 1, 0], 100);
+    construct_plane(D_AIR_BARREL_BACK, [1, 0, 0], 40);  
+    construct_plane(D_AIR_BARREL_TOP, [0, 0, 1], 100);
+    construct_plane(D_AIR_BARREL_RIGHT, [0, 1, 0], 100); 
+    construct_plane(D_CL_TRG_PVT, [0, 0, 1], 100); 
+    construct_plane(D_CL_TRG_PVT, [1, 0, 0], 40); 
+    construct_plane(D_CL_TRG_BLD_PLT, [0, 0, 1], 100);
+}
 
 
 
@@ -79,12 +119,12 @@ module main_pivot() {
     
     // = dx_trigger_pivot_offset;
     // = dz_trigger_pivot_offset;
-    pivot_lenth_pintle = abs(V_BARREL_BACK.x);
+    pivot_lenth_pintle = abs(D_BARREL_BACK.x);
     pivot_length_gudgeon = 
-        + V_TRIGGER_TOP.z
+        + D_TRIGGER_TOP.z
         + gudgeon_extension;
     color("salmon", alpha=0.2)
-        translate(V_CL_TRG_PVT)
+        translate(D_CL_TRG_PVT)
             rotate([0, 0, 180]) // Want the pintle toward the read
                 small_pivot_vertical_rotation(
                     pivot_h, 
@@ -96,7 +136,7 @@ module main_pivot() {
                     angle=pintle_angle);
                     
     // Pivot to air barrel mounting
-    h_ptabm = V_BARREL_RIGHT.y;
+    h_ptabm = D_BARREL_RIGHT.y;
     //d(d=pivot_w, h=h_ptabm);
     
     // Pivot bridge
@@ -108,12 +148,12 @@ module main_pivot() {
     z = master_air_brush("barrel radius") + wall_thickness  ; 
     dxb = dx_trigger_pivot_offset; 
     dzb = dz_trigger_pivot_offset + pivot_h/2;
-    color("Goldenrod") 
-    render() difference() {
-        translate([dxb, 0, dzb]) 
-            block([x, y, z], center=BEHIND+BELOW);
-        air_brush_trigger_on_top();
-    }
+    color("Goldenrod", alpha=0.25) 
+        render() difference() {
+            translate([dxb, 0, dzb]) 
+                block([x, y, z], center=BEHIND+BELOW);
+            air_brush_trigger_on_top();
+        }
     
     // Gudgeon bridge
     xgb = pivot_h;
@@ -121,7 +161,7 @@ module main_pivot() {
     zgb = pivot_h;
     
     dxgb = pivot_length_gudgeon - xgb/2;
-    dzgb = V_TRIGGER_TOP.z;
+    dzgb = D_TRIGGER_TOP.z;
     color("DarkSalmon")
         translate([dxgb, 0, dzgb]) block([xgb, ygb, zgb]);
 }
@@ -131,54 +171,38 @@ module air_barrel_clip() {
     id = master_air_brush("air barrel diameter") + air_hose_allowance + air_hose_clearance;
     od = id + wall_thickness;
     h = master_air_brush("bottom length"); 
-    render() difference() {
-        can(d=od, h=h, hollow=id, center=BELOW);
-        air_brush_trigger_on_top();
+    color("BurlyWood" , alpha=0.25) {
+        render() difference() {
+            can(d=od, h=h, hollow=id, center=BELOW);
+            air_brush_trigger_on_top();
+        }
     }
 }
 
 module air_brush_trigger_on_top() {
-    rotate([90, 0, 0]) air_brush(trigger_angle);
+    rotate([90, 0, 0]) air_brush(trigger_angle, alpha=0.1);
 }
 
 rotate(viewing_orientation) {
+    
+    if (show_constructions && show_construction_displacements) {
+            display_construction_displacements();
+    }
 
     if (show_main_pivot) { 
             main_pivot(); 
             mirror([0, 1, 0]) main_pivot();
     }
     if (show_air_barrel_clip) {
-        color("BurlyWood") air_barrel_clip();
+        air_barrel_clip();
+        
     }
-        
-        
     if (show_air_brush) {          
         air_brush_trigger_on_top();
     }
     
-    if (show_constructions) {
-        
-        display_vV_CL_TRG_PVT, "HotPink");
-        show_vector(V_AIR_BARREL_TOP, "Orchid");
-        
-        
-        construct_plane(V_BARREL_BACK, [1, 0, 0], 40);
-        construct_plane(V_BARREL_RIGHT, [0, 1, 0], 100);
-        construct_plane(V_AIR_BARREL_BACK, [1, 0, 0], 40);  
-        construct_plane(V_AIR_BARREL_TOP, [0, 0, 1], 100);
-        construct_plane(V_AIR_BARREL_RIGHT, [0, 1, 0], 100); 
-        construct_plane(V_CL_TRG_PVT, [0, 0, 1], 100); 
-        construct_plane(V_CL_TRG_PVT, [1, 0, 0], 40); 
-        construct_plane(V_CL_TRG_BLD_PLT, [0, 0, 1], 100);
-        
-
-        
-//        V_CL_TRG_PVT = [dx_trigger_pivot_offset, 0, dz_trigger_pivot_offset];
-//
-//
-
-//
-//V_TRIGGER_TOP = [0, 0, master_air_brush("trigger height")];
+    if (show_constructions && show_construction_planes) {
+            display_construction_planes();
     }
 }
 

@@ -22,6 +22,14 @@ include <TOUL.scad>
 include <logging.scad>
 use <vector_operations.scad>
 
+/* [Boiler Plate] */
+
+$fa = 1;
+$fs = 0.4;
+eps = 0.001;
+
+infinity = 50;
+
 module end_of_customization() {}
 
 show_name = false;
@@ -239,13 +247,20 @@ module construct_plane(vector, orientation, extent=100) {
     color("gray", alpha=0.05) translate(axis_offset) cube(plane_size, center=true);
 }
 
-module display_vector(vector, color_of_v) {
-    color("black") hull() {
-        sphere(r= 0.1);
-        translate(vector) sphere(0.1);
+module display_displacement(displacement, barb_color="black", shaft_color="black", label=undef) {
+    barb_length = 3;
+    barb_diameter = 0.5;
+    fraction = 1-barb_length/norm(displacement);
+    displacement_minus_barb = v_mul_scalar(displacement, fraction);
+
+    color(shaft_color) hull() {
+        sphere(r=0.3);
+        translate(displacement_minus_barb) sphere(0.3);
     }
-    color(color_of_v, alpha=0.50) hull() {
-        sphere(r=eps);
-        translate(vector) sphere(1);
+
+    color(barb_color) hull() {
+        translate(displacement) sphere(eps);
+        translate(displacement_minus_barb) sphere(barb_diameter);
     }
+
 }
