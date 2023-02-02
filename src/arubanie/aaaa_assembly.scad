@@ -1,7 +1,8 @@
-
 include <lib/centerable.scad>
 use <lib/small_pivot_vertical_rotation.scad>
+use <lib/not_included_batteries.scad>
 use <master_air_brush.scad>
+
 
 /* [Boiler Plate] */
 
@@ -15,7 +16,7 @@ infinity = 1000;
 show_air_brush = false;
 show_main_pivot = true;
 show_air_barrel_clip = true;
-
+show_trigger_cage = true;
 
 /* [Part Colors] */
 
@@ -53,7 +54,7 @@ gudgeon_angle = 0; // [-145, -135, -90, -45, 0]
 
 pivot_h = 4; //[4:0.5:6]
 pivot_w = 4; //[1:15]
-gudgeon_extension = 0; //[-5:5]
+gudgeon_extension = 10; //[-15:15]
 // This controls printablity vs play in the pivot.
 pivot_allowance = 0.4;
 dx_trigger_pivot_offset = 0; // [-3:0.25:+3]
@@ -65,6 +66,13 @@ barrel_clearance = 1.0;
 air_hose_allowance = 0.2;
 air_hose_clearance = 0.5;
 wall_thickness = 2;
+
+/* [Trigger Cage Design] */
+trigger_cage_height = 7;
+cage_allowance = 0.2;
+trigger_cap_clearance = 1.0;
+dx_trigger_cage_for_build = 30; // [10:10:100]
+
 
 module end_of_customization() {}
 
@@ -139,7 +147,46 @@ module display_construction_planes() {
     construct_plane(D_CL_TRG_BLD_PLT, [0, 0, 1], 100);
 }
 
+module trigger_bridge() {
+    
+    y = D_CL_TRG_PVT.y + pivot_w/2 + 2*cage_allowance + wall_thickness;
+    size = [wall_thickness, 2*y, trigger_cage_height];
+    dx = pivot_w/2 + cage_allowance + wall_thickness/2;
+    translate([dx, 0, 0]) color("DeepPink") {
+        block(size);  
+    }
+    translate([-dx, 0, 0]) color("HotPink") {
+        block(size);  
+    }
+    // Joiners
+    x_joiner = pivot_h + 2*wall_thickness + 2*cage_allowance;
+    joiner_size = [x_joiner, wall_thickness, trigger_cage_height];
+    dy = y-wall_thickness/2;
+    translate([0, dy, 0]) color("Orchid") {
+        block(joiner_size); 
+    }
+    translate([0, -dy, 0]) color("Orchid") {
+        block(joiner_size); 
+    }  
+}
 
+module trigger_cage(orient_for_build) {
+    d = master_air_brush("trigger pad diameter") + trigger_cap_clearance;
+    dx = orient_for_build ? dx_trigger_cage_for_build : 0;
+    dz = orient_for_build ? 
+        D_CL_TRG_BLD_PLT.z - trigger_cage_height/2: 
+        master_air_brush("barrel diameter");
+    translate([dx, 0, dz]) {
+        rotate([0,180, 0]) {
+            difference() {
+                trigger_bridge();
+                translate([0, 0, wall_thickness]) can(d=d, h=trigger_cage_height);
+            }
+        }
+    }
+        
+    
+}
 
 
 module pintle_bridge() {
@@ -249,6 +296,10 @@ rotate(viewing_orientation) {
     
     if (show_constructions && show_construction_planes) {
             display_construction_planes();
+    }
+    
+    if (show_trigger_cage) {
+        trigger_cage(orient_for_build);
     }
 }
 

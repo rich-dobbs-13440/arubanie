@@ -59,6 +59,7 @@ _dct_name_to_dimension = [
     ["back length", barrel_back_to_air_hose],
     ["bottom length", air_hose_barrel_length + barrel_diameter/2],
     ["trigger height", m_trigger_pad_cl_to_barrel_cl_0_degrees],
+    ["trigger pad diameter", m_trigger_pad_diameter],
 ];
 
 

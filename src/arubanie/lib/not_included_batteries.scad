@@ -20,8 +20,8 @@
 
 include <TOUL.scad>
 include <logging.scad>
-
 use <centerable.scad>
+use <vector_operations.scad>
 
 /* [Boiler Plate] */
 

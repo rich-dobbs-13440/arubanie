@@ -138,9 +138,7 @@ module gudgeon(h, w, l, al, range_of_motion) {
        
     bushing_id = _bushing_id(h, w, l, al); 
     bushing_width = _bushing_width(h, w, l, al);
-    echo(bushing_width);
     size = [l, bushing_width, h];
-    echo(size);
     crank(size, hole=bushing_id, rotation=BEHIND);
     
     // Connector body  
