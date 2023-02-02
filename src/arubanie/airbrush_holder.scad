@@ -235,13 +235,19 @@ module servo_mounting(y_inside, y_outside, bar_thickness) {
         servo_mounting_block(screw_allowance, screw_length, pilot_diameter, servo_block_depth, servo_width, bar_thickness);
     }
     translate([servo_edge_x2, dy_servo, 0]) {
-        servo_mounting_block(screw_allowance, screw_length, pilot_diameter, servo_block_depth, servo_width, bar_thickness);
+        servo_mounting_block(
+            screw_allowance, 
+            screw_length, 
+            pilot_diameter, 
+            servo_block_depth, 
+            servo_width, 
+            bar_thickness);
     }
-   
-    
 }
+
+
 // Test code for servo mounting
-* servo_mounting(13, 17, 4);
+servo_mounting(13, 17, 4);
 
 * servo_mounting_block(8, 10, 11.73, 4);
 
@@ -291,7 +297,7 @@ module rotation_bracket() {
 * translate([-50, 15, 0]) color("green") screw_cut_out(true);
 
 // Holder side one
-holder_side(true);
+* holder_side(true);
 
 // Holder side two
 * translate([50, 0, 0]) mirror([1, 0, 0]) holder_side(false);
