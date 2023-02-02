@@ -50,9 +50,11 @@ m_trigger_pad_thickness = 2.63;
 m_trigger_pad_cl_to_barrel_cl_0_degrees = 10.65;
 m_trigger_shaft_width = 3.39;
 m_trigger_shaft_diameter = 3.93;
-
 pad_diameter = 10.74;
 pad_height = 2.60;
+m_bucket_diameter = 25.28;
+m_bucket_flat_height = 17.82;
+m_bucket_cl_base_to_air_barrel_cl = 37.03;
 
 _dct_name_to_dimension = [
     ["barrel diameter", barrel_diameter],
@@ -80,6 +82,18 @@ if (show_name) {
 
 _trigger_pad_diameter = m_trigger_pad_diameter + 0.0;
 _trigger_pad_thickness = m_trigger_pad_thickness + 0.0;
+
+module _bucket() {
+    dx = m_bucket_cl_base_to_air_barrel_cl - 5;
+    dy = m_bucket_diameter/2 + barrel_diameter/2 -3;
+    translate([dx, dy, 0])
+        rotate([0, 0, 36]) {
+            sphere(m_bucket_diameter/2);
+            rod(d=m_bucket_diameter, l=m_bucket_flat_height, center=SIDEWISE+RIGHT);
+        }
+}
+
+
 
 module _barrel() {
     // Display horizontal zero 
@@ -170,6 +184,7 @@ module air_brush(trigger_angle=0, color_value="SlateGray", alpha=1.0) {
     color(color_value, alpha=alpha) {
          render() { 
             _brace_cl_cl();
+             _bucket();
             translate([dx, 0, 0]) {
                 _barrel();
                 _air_hose_barrel();
