@@ -61,17 +61,17 @@ dx_trigger_pivot_offset = 0; // [-3:0.25:+3]
 dz_trigger_pivot_offset = -3; // [-5:0.05:0]
 
 barrel_allowance = 0.2;
-barrel_clearance = 1.0;
+barrel_clearance = 0.1;
 /* [Air Hose Clip Design] */
 air_hose_allowance = 0.2;
 air_hose_clearance = 0.5;
 wall_thickness = 2;
 
 /* [Trigger Cage Design] */
-trigger_cage_height = 7;
+trigger_cage_height = 5;
 cage_allowance = 0.2;
 trigger_cap_clearance = 1.0;
-dx_trigger_cage_for_build = 30; // [10:10:100]
+dx_trigger_cage_for_build = 60; // [10:10:100]
 
 
 module end_of_customization() {}
@@ -220,11 +220,31 @@ module main_gudgeon() {
     }
 }
 
+module trigger_servo_yoke() {
+    
+    spreader_size = [4, wall_thickness + 4*cage_allowance + eps, pivot_h];
+    dy = pivot_w/2;
+    color("aqua")
+    translate([6, dy, 0]) {
+        block(spreader_size, center=RIGHT+FRONT);
+    }
+    servo_uprights_size = [40, pivot_w, pivot_h];
+    dyu = dy + spreader_size.y;
+    translate([6, dyu, 0]) {
+        block(servo_uprights_size, center=RIGHT+FRONT);
+    }
+    bridge_size = [pivot_w, 20, pivot_h];
+    dxb = servo_uprights_size.x + 6;
+    color("Navy") 
+    translate([dxb, 0, 0]) block(bridge_size, center=BEHIND);
+}
+
 module gudgeon_assembly() {
     translate(D_CL_TRG_PVT) {
         rotate([0, gudgeon_angle, 0]) {
             main_gudgeon();
             gudgeon_bridge();
+            trigger_servo_yoke();
         }
     }
 }
