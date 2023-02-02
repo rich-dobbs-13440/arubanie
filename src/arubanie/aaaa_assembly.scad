@@ -1,4 +1,5 @@
 include <lib/centerable.scad>
+use <lib/shapes.scad>
 use <lib/small_pivot_vertical_rotation.scad>
 use <lib/9g_servo.scad>
 use <lib/not_included_batteries.scad>
@@ -50,20 +51,25 @@ orient_for_build = true;
 
 /* [Pivot Design] */
 
-trigger_angle = 0; //[-45:15:+45]
-pivot_top_range_of_motion = 135;
-gudgeon_angle = 0; // [-145, -135, -90, -45, 0]
 
-pivot_h = 4; //[4:0.5:6]
-pivot_w = 4; //[1:15]
-gudgeon_extension = 10; //[-15:15]
-// This controls printablity vs play in the pivot.
-pivot_allowance = 0.4;
+gudgeon_angle = 0; // [-145:5: 0]
+trigger_angle = 245 - gudgeon_angle; //135-gudgeon_angle ; 
+//gudgeon_extension = 10; //[-15:15]
+
+
+
 dx_trigger_pivot_offset = 0; // [-3:0.25:+3]
 dz_trigger_pivot_offset = -3; // [-5:0.05:0]
 
 barrel_allowance = 0.2;
 barrel_clearance = 0.1;
+
+// This controls printablity vs play in the pivot.
+pivot_allowance = 0.4;
+
+pivot_top_range_of_motion = 135;
+pivot_h = 4; //[4, 5]
+pivot_w = 4; //[4, 5]
 /* [Air Hose Clip Design] */
 air_hose_allowance = 0.2;
 air_hose_clearance = 0.5;
@@ -110,8 +116,7 @@ D_BARREL_RIGHT = [0, master_air_brush("barrel radius"), 0];
 
 D_TRIGGER_TOP = [0, 0, master_air_brush("trigger height")];
 
-pivot_length_gudgeon = 
-    D_TRIGGER_TOP.z + D_CL_TRG_PVT_ADJUSTMENT.z + gudgeon_extension + wall_thickness;
+pivot_length_gudgeon = master_air_brush("barrel radius") - dz_trigger_pivot_offset;
 D_GUDGEON_BRIDGE_FRONT = [pivot_length_gudgeon, 0, 0];
 
 
@@ -176,21 +181,7 @@ module trigger_bridge() {
     }  
 }
 
-module trigger_cage(orient_for_build) {
-    d = master_air_brush("trigger pad diameter") + trigger_cap_clearance;
-    dx = orient_for_build ? dx_trigger_cage_for_build : 0;
-    dz = orient_for_build ? 
-        D_CL_TRG_BLD_PLT.z - trigger_cage_height/2: 
-        master_air_brush("barrel diameter");
-    translate([dx, 0, dz]) {
-        rotate([0,180, 0]) {
-            difference() {
-                trigger_bridge();
-                translate([0, 0, wall_thickness]) can(d=d, h=trigger_cage_height);
-            }
-        }
-    }
-}
+
 
 module main_gudgeon() {
     color(main_gudgeon_color, alpha=main_gudgeon_alpha) {
@@ -207,24 +198,24 @@ module main_gudgeon() {
     }
 }
 
-module trigger_servo_yoke() {
-    
-    spreader_size = [4, wall_thickness + 4*cage_allowance + eps, pivot_h];
-    dy = pivot_w/2;
-    color("aqua")
-    translate([6, dy, 0]) {
-        block(spreader_size, center=RIGHT+FRONT);
-    }
-    servo_uprights_size = [40, pivot_w, pivot_h];
-    dyu = dy + spreader_size.y;
-    translate([6, dyu, 0]) {
-        block(servo_uprights_size, center=RIGHT+FRONT);
-    }
-    bridge_size = [pivot_w, 20, pivot_h];
-    dxb = servo_uprights_size.x + 6;
-    color("Navy") 
-    translate([dxb, 0, 0]) block(bridge_size, center=BEHIND);
-}
+//module trigger_servo_yoke() {
+//    
+//    spreader_size = [4, wall_thickness + 4*cage_allowance + eps, pivot_h];
+//    dy = pivot_w/2;
+//    color("aqua")
+//    translate([6, dy, 0]) {
+//        block(spreader_size, center=RIGHT+FRONT);
+//    }
+//    servo_uprights_size = [40, pivot_w, pivot_h];
+//    dyu = dy + spreader_size.y;
+//    translate([6, dyu, 0]) {
+//        block(servo_uprights_size, center=RIGHT+FRONT);
+//    }
+//    bridge_size = [pivot_w, 20, pivot_h];
+//    dxb = servo_uprights_size.x + 6;
+//    color("Navy") 
+//    translate([dxb, 0, 0]) block(bridge_size, center=BEHIND);
+//}
 
 module air_flow_servo() {
     9g_motor_sprocket_at_origin(); 
@@ -237,20 +228,101 @@ module gudgeon_bridge() {
             block(size, center=LEFT+BEHIND);
 }
 
+
+
+// *********************************************************************
+module cage_barrel(inner=false, outer=false) {
+    id = master_air_brush("trigger pad diameter") + trigger_cap_clearance;
+    od = id + wall_thickness; // We want thin tubes here!
+    id_2 = od + cage_allowance;
+    od_2 = id_2 + wall_thickness; // We want thin tubes here!
+    dx_cage_inner =  pivot_length_gudgeon + 2;
+    dx_cage_outer = pivot_length_gudgeon + 7;
+    trigger_cage_height = 7.5;
+    render() difference() {
+        rotate([0, 18, 0]) {
+            if (inner) {
+                translate([dx_cage_inner, 0, 0]) { 
+                    rod(d=od, hollow=id, l=2*trigger_cage_height, center=FRONT);
+                    
+                }
+            }
+            if (outer) {
+                translate([dx_cage_outer, 0, 0]) rod(d=od_2, hollow=id_2, l=trigger_cage_height, center=FRONT);
+            }
+            
+        }
+        translate([0, 0, pivot_h/2]) block([30, 30, 10], center=ABOVE+FRONT);  
+    }
+}
+
+module trigger_cage_section() {
+    cage_barrel(outer=true);
+    
+    if (orient_for_build) {
+        translate([50, 0, (pivot_length_gudgeon + 2 + pivot_h/2)])
+            rotate([0,90-18,0]) 
+                cage_barrel(inner=true);
+    } else {
+        cage_barrel(inner=true);
+    }
+    
+    trigger_cage_section_length = 15;
+    size = [trigger_cage_section_length + 2* eps, pivot_w, pivot_h];
+    dx = pivot_length_gudgeon - eps;
+    translate(D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
+    translate(-D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
+    y = 2*D_MIRROR_SIDES.y; 
+    bridge_size = [6.5, y, pivot_h];
+    dx_bridge = dx + trigger_cage_section_length;
+    difference() {
+        translate([dx_bridge, 0, 0]) block(bridge_size, center=BEHIND);
+        hull() cage_barrel(outer=true);
+    }
+    
+}
+
+module trigger_cage(orient_for_build) {
+    
+    
+    d = master_air_brush("trigger pad diameter") + trigger_cap_clearance;
+    dx = orient_for_build ? dx_trigger_cage_for_build : 0;
+    dz = orient_for_build ? 
+        D_CL_TRG_BLD_PLT.z - trigger_cage_height/2: 
+        master_air_brush("barrel diameter");
+    translate([dx, 0, dz]) {
+        rotate([0,180, 0]) {
+            difference() {
+                trigger_bridge();
+                translate([0, 0, wall_thickness]) can(d=d, h=trigger_cage_height);
+            }
+        }
+    }
+}
+
+// *********************************************************************
+
 module gudgeon_assembly_side() {
     translate(D_MIRROR_SIDES) {
         main_gudgeon();
-        gudgeon_bridge();
-        trigger_servo_yoke();
+        * gudgeon_bridge();
+        //trigger_servo_yoke();
     } 
+}
+
+module gudgeon_assembly_sides() {
+    gudgeon_assembly_side();
+    mirror([0, 1, 0]) gudgeon_assembly_side();
 }
 
 module gudgeon_assembly() {
     translate(D_CL_TRG_PVT_ADJUSTMENT) {
         rotate([0, gudgeon_angle, 0]) {
-            gudgeon_assembly_side();
-            mirror([0, 1, 0]) gudgeon_assembly_side();
-            air_flow_servo();
+            gudgeon_assembly_sides();
+            trigger_cage_section();
+            if (show_air_flow_servo) {
+                air_flow_servo();
+            }
         }
     }
 }

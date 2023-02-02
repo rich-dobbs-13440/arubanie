@@ -16,8 +16,8 @@ Note: The air brush is oriented on its side, with the coordinate
 */ 
 
 use <lib/not_included_batteries.scad>
-
-include <lib/shapes.scad>
+include <lib/centerable.scad>
+use <lib/shapes.scad>
 
 /* [Boiler Plate] */
 
@@ -30,6 +30,7 @@ infinity = 1000;
 /* [Show] */
 
 show_air_brush = true;
+example_trigger_angle = 0; // [-45: 5: 45]
 show_brace = false;
 barrel_diameter_clearance = 0.75;
 
@@ -47,6 +48,8 @@ air_hose_barrel_length = 10.34;
 m_trigger_pad_diameter = 10.18;
 m_trigger_pad_thickness = 2.63;
 m_trigger_pad_cl_to_barrel_cl_0_degrees = 10.65;
+m_trigger_shaft_width = 3.39;
+m_trigger_shaft_diameter = 3.93;
 
 pad_diameter = 10.74;
 pad_height = 2.60;
@@ -124,7 +127,17 @@ module _trigger_piece(angle) {
     translate([0, -pivot_offset, 0])
     rotate([0, 0, angle]) {
         translate([0, dy_pivot, 0]) rotate([90, 0, 0]) {
-            cylinder(h=_trigger_pad_thickness, d=_trigger_pad_diameter, center=true);
+            cylinder(
+                h=_trigger_pad_thickness, 
+                d=_trigger_pad_diameter, 
+                center=true);
+            block(
+                [
+                    m_trigger_shaft_diameter, 
+                    m_trigger_shaft_width, 
+                    m_trigger_pad_cl_to_barrel_cl_0_degrees
+                ], 
+                center=ABOVE);
         }
     }
 }
@@ -169,7 +182,7 @@ module air_brush(trigger_angle=0, color_value="SlateGray", alpha=1.0) {
     
 
 if (show_air_brush) {
-    air_brush(trigger_angle=30);
+    air_brush(trigger_angle=example_trigger_angle);
 }
 
 
