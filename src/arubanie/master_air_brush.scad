@@ -21,8 +21,8 @@ use <lib/shapes.scad>
 
 /* [Boiler Plate] */
 
-$fa = 5;
-$fs = 0.8;
+$fa = 15;
+$fs = 2;
 eps = 0.001;
 
 infinity = 1000;
@@ -83,13 +83,16 @@ if (show_name) {
 _trigger_pad_diameter = m_trigger_pad_diameter + 0.0;
 _trigger_pad_thickness = m_trigger_pad_thickness + 0.0;
 
+
+
 module _bucket() {
+    fa_for_arg = $fa;
     dx = m_bucket_cl_base_to_air_barrel_cl - 5;
     dy = m_bucket_diameter/2 + barrel_diameter/2 -3;
     translate([dx, dy, 0])
         rotate([0, 0, 36]) {
             sphere(m_bucket_diameter/2);
-            rod(d=m_bucket_diameter, l=m_bucket_flat_height, center=SIDEWISE+RIGHT);
+            rod(d=m_bucket_diameter, l=m_bucket_flat_height, center=SIDEWISE+RIGHT, fa=fa_for_arg);
         }
 }
 
@@ -116,7 +119,8 @@ module _brace_cl_cl() {
     y_long = barrel_diameter/2;
     x_tall = air_hose_diameter/2;
     y_tall = barrel_diameter/2 + brace_height - brace_width/2; // To center of radius
-    $fn=50;
+    $fn=12;
+    fa_for_arg = $fa;
     color("blue") {
         minkowski() {
             union() {

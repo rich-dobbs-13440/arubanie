@@ -44,7 +44,9 @@ module block(size, center=0) {
 
 */
 
-module rod(d, l, center=0, hollow=false) {
+module rod(d, l, center=0, hollow=false, fa=undef) {
+    echo("fa", fa);
+    $fa = is_undef(fa) ? $fa : fa;
     bv = _number_to_bitvector(center);
     is_sideways = bv[3] == 1;
     x = is_sideways ? d : l;

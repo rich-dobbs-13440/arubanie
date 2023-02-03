@@ -353,12 +353,6 @@ rotate(viewing_orientation) {
     if (show_constructions && show_construction_planes) {
             display_construction_planes();
     }
-    
-    if (show_trigger_cage) {
-        trigger_cage(orient_for_build);
-    }
-
-
 }
 
 
