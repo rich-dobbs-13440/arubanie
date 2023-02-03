@@ -3,7 +3,7 @@ include <centerable.scad>
 
 /* [Boiler Plate] */
 
-$fa = 1;
+$fa = 5;
 $fs = 0.4;
 eps = 0.001;
 
@@ -99,16 +99,20 @@ module crank(size, hole=false, center=0, rotation=0, fa=undef) {
     $fa = is_undef(fa) ? $fa : fa;
     hole_d = is_num(hole) ? hole : 0;
     pivot_size = [size.z, size.y, size.z];
-    
+    half_pivot = [pivot_size.x/2+eps,  pivot_size.y-eps, pivot_size.z-eps];
+    remainder =  [size.x - pivot_size.x/2+eps, size.y, size.z];
+
     center_translation(pivot_size, center) {
         center_rotation(rotation) {
-            difference() {
+            render() difference() {
                 union() {
-                    block(size, center=FRONT);
-                    rod(d=size.z, l=size.y, center=SIDEWISE);
+                    block(half_pivot, center=FRONT);
+                    rod(d=size.z, l=size.y+5*eps, center=SIDEWISE);
                 }
-                rod(d=hole_d, l=size.y + 2*eps, center=SIDEWISE);
+                rod(d=hole_d, l=size.y + 10, center=SIDEWISE);
             }
+            // Rest of block
+            translate([half_pivot.x, 0, 0]) block(remainder, center=FRONT);
         }
     } 
 }
@@ -127,9 +131,9 @@ module _visual_test_for_crank() {
 
     translate([0, -30, 0]) crank([10, 4, 4], hole=2, center=BELOW);
 
-    translate([0, -20, 0]) crank([10, 4, 4]);
+    translate([0, -10, 0]) crank([10, 4, 4]);
 
-    translate([0, -10, 0]) crank([10, 4, 4], hole=2);
+    translate([0, 0, 0]) crank([10, 4, 4], hole=2);
 
     translate([0, 20, 0]) crank([10, 4, 4], hole=2, rotation=ABOVE);
 

@@ -19,9 +19,20 @@ infinity = 1000;
 show_air_brush = false;
 show_pintle_assembly = true;
 show_gudgeon_assembly = true;
+show_gudgeon_subassembly = true;
+show_trigger_cage_section_subassembly = true;
+show_trigger_shaft_subassemby = true;
 show_air_barrel_clip = true;
-//show_trigger_cage = true;
 show_air_flow_servo = true;
+
+/* [Servo Design] */
+
+servo_dx = 60; // [20 : 1 : 60]
+servo_dy = 0; // [-20 : 1 : 20]
+servo_dz = -16; // [-20 : 1 :20]
+servo_rx = 0; // [-180 : 15 : +180]
+servo_ry = 0; // [-180 : 15 : +180]
+servo_rz = 0; // [-180 : 15 : +180]
 
 /* [Part Colors] */
 
@@ -50,6 +61,7 @@ show_construction_planes = false;
 
 /* [Build vs Design] */
 orient_for_build = true;
+permanent_pin=true; 
 
 /* [Pivot Design] */
 
@@ -66,13 +78,13 @@ barrel_clearance = 0.1;
 // This controls printablity vs play in the pivot.
 pivot_allowance = 0.4;
 
-pivot_top_range_of_motion = 150;
+pivot_top_range_of_motion = 145;
 pivot_bottom_range_of_motion = 90;
 pivot_h = 8; 
 pivot_w = 4; //[4, 5]
 /* [Air Barrel Clip Design] */
 air_barrel_allowance = 0.3;
-air_barrel_clearance = 0.5;
+air_barrel_clearance = 0.4;
 wall_thickness = 2;
 
 /* [Trigger Cage Design] */
@@ -141,17 +153,19 @@ dy_trigger_pivot_cl =
     barrel_clip_outside_diameter/2 
     + pivot_w/2;
     
+pivot_length_gudgeon = 16; // Function of range of motion, but just kludging it for now.
+    
+// Calculate Displacement vectors in attempt to make code cleaner.  
+// Note: not sure that this is working out.
+    
 D_MIRROR_SIDES = [0, dy_trigger_pivot_cl, 0];
 
 D_CL_TRG_PVT_ADJUSTMENT = [
             dx_trigger_pivot_offset, 
             0, 
             dz_trigger_pivot_offset];
-
 D_CL_TRG_BLD_PLT = D_CL_TRG_PVT_ADJUSTMENT + [0, 0, pivot_h/2];
-        
-
-
+ 
 D_AIR_BARREL_TOP = [0, 0, -master_air_brush("bottom length")];
 D_AIR_BARREL_BACK = [-master_air_brush("air barrel radius"), 0, 0];
 D_AIR_BARREL_RIGHT = [0, master_air_brush("air barrel radius"), 0];
@@ -160,9 +174,10 @@ D_BARREL_RIGHT = [0, master_air_brush("barrel radius"), 0];
 
 D_TRIGGER_TOP = [0, 0, master_air_brush("trigger height")];
 
-pivot_length_gudgeon = 16; // Function of range of motion, but just kludging it for now.
 D_GUDGEON_BRIDGE_FRONT = [pivot_length_gudgeon, 0, 0];
 
+
+D_SERVO = [servo_dx, servo_dy , servo_dz];
 
 IDX_DISP_LABEL = 0;
 IDX_DISP_VAL = 1;
@@ -203,6 +218,8 @@ module display_construction_planes() {
 }
 
 module build_plane_clearance() {
+    // This is in terms of the origin at
+    // the centerlines for the air barrel and main barrel.
     dz = dz_trigger_pivot_offset + pivot_h/2;
     translate([0, 0, dz]) block([100, 100, 50], center=ABOVE);
 }
@@ -221,7 +238,6 @@ module air_brush_simple_clearance() {
     block(
         [brace_length, brace_inside_diameter, brace_height], 
         center=BELOW+FRONT);
-    
 }
 
 
@@ -238,9 +254,10 @@ module main_gudgeon() {
     }
 }
 
-
+// ******************************************************
 module air_flow_servo() {
-    translate([60, 0, -16]) rotate([0, 180, 0]) 9g_motor_sprocket_at_origin(); 
+    translate(D_SERVO) 
+        rotate([servo_rx, servo_ry, servo_rz]) 9g_motor_sprocket_at_origin(); 
 }
 
 
@@ -273,21 +290,18 @@ module trigger_catch() {
 
 module trigger_shaft_bearing_wall(dx_offset) {
     fa_as_arg = $fa;
-    size = [wall_thickness, 2*D_MIRROR_SIDES.y, pivot_h];
+    size = [wall_thickness, 2*D_MIRROR_SIDES.y, pivot_h- 5*eps];
     dx = pivot_length_gudgeon + dx_offset;
     
-    translate([dx, 0, 0]) 
-    render() difference() {
-        union() {
-            block(size, center=BEHIND);
-        }
-        rod(d=trigger_bearing_id, l=2*trigger_shaft_length, center=FRONT, fa=fa_as_arg); // 
+    translate([dx-2*eps, 0, 0]) 
+    difference() {
+        block(size, center=BEHIND);
+        rod(d=trigger_bearing_id, l=2*trigger_shaft_length, fa=fa_as_arg); // 
     }
 }
 
 module trigger_cage_section() {
 
-    translate([shaft_position_above_pivot, 0, 0]) trigger_catch();
     
     size = [trigger_cage_section_length + 2* eps, pivot_w, pivot_h];
     dx = pivot_length_gudgeon - eps;
@@ -313,17 +327,21 @@ module gudgeon_assembly_sides() {
 module gudgeon_assembly() {
     translate(D_CL_TRG_PVT_ADJUSTMENT) {
         rotate([0, gudgeon_angle, 0]) {
-            gudgeon_assembly_sides();
-            trigger_cage_section();
+            if (show_gudgeon_subassembly) {
+                gudgeon_assembly_sides();
+            }
+            if (show_trigger_cage_section_subassembly) {
+                trigger_cage_section();
+            }
+            if (show_trigger_shaft_subassemby) {
+            translate([shaft_position_above_pivot, 0, 0]) trigger_catch();
+        }
             if (show_air_flow_servo) {
                 air_flow_servo();
             }
         }
     }
 }
-
-
-
 
 
 module pintle_bridge_side() {
@@ -362,7 +380,8 @@ module main_pintle_side() {
                     pivot_w, 
                     pivot_lenth_pintle, 
                     pivot_allowance, 
-                    range_of_motion=pivot_ranges);
+                    range_of_motion=pivot_ranges,
+                    permanent_pin=permanent_pin);
             }
         }
     } 

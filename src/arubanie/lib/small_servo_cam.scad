@@ -1,11 +1,37 @@
+/*
+
+Usage:
+    
+    use <lib/small_servo_cam.scad>
+    
+    horn(h=4);
+    
+    first_small_servo_cam();
+    
+Note: 
+
+    The origin is place at the center of the sprocket, where the horn arms 
+    start to go out.
+
+*/
+
+/* [Boiler Plate] */
+
 $fa = 1;
 $fs = 0.4;
+eps = 0.001;
 
-include_follower = true;
-follower_diameter = 3.0;
-follower_outer_rim_thickness = 2;
-follower_inner_rim_thickness = 2;
-follower_lip = 0.7;
+/* [Show] */
+
+show_horn = false;
+show_first_small_servo_cam = true;
+
+
+module end_of_customization() {}
+
+
+
+
 
 module horn_arm(h) {
     outer_clearance = 0.50;
@@ -16,14 +42,14 @@ module horn_arm(h) {
     dy1 = 5.32/2 + outer_clearance;
     dy2 = 4.0/2 + inner_clearance;
     horn_points = [
-  [ 0,  -dy1,  0 ],  //0
-  [ x,  -dy2,  0 ],  //1
-  [ x,  dy2,  0 ],  //2
-  [  0,  dy1,  0 ],  //3
-  [  0,  -dy1,  h ],  //4
-  [ x,  -dy2,  h ],  //5
-  [ x,  dy2,  h ],  //6
-  [  0,  dy1,  h ]]; //7
+        [ 0,  -dy1,  0 ],  //0
+        [ x,  -dy2,  0 ],  //1
+        [ x,  dy2,  0 ],  //2
+        [  0,  dy1,  0 ],  //3
+        [  0,  -dy1,  h ],  //4
+        [ x,  -dy2,  h ],  //5
+        [ x,  dy2,  h ],  //6
+        [  0,  dy1,  h ]]; //7
     
     faces = [
       [0,1,2,3],  // bottom
@@ -35,7 +61,7 @@ module horn_arm(h) {
     polyhedron( horn_points, faces);
 }
 
-* horn_arm(h=4);
+
 
 module horn(h) {
     horn_arm(h);
@@ -46,7 +72,10 @@ module horn(h) {
     translate([0, 0, h/2]) cylinder(d=8.2 + 3, h=h, center=true);
 }
 
-* horn(h=4);
+if (show_horn) {
+    color("AntiqueWhite") horn(h=1.40);
+}
+
 
 module cylinder_arc(r1, r2, h, angle) {
     difference() {
@@ -105,31 +134,31 @@ module latch(base_diameter, horn_thickness) {
 }
 
 module latches(base_diameter, horn_thickness) {
-    latch(base_diameter, horn_thickness);
-    rotate([0,0,90]) latch(base_diameter, horn_thickness);
-    rotate([0,0,180]) latch(base_diameter, horn_thickness);
-    rotate([0,0,270]) latch(base_diameter, horn_thickness);
+    color("Turquoise") {
+        latch(base_diameter, horn_thickness);
+        rotate([0,0,90]) latch(base_diameter, horn_thickness);
+        rotate([0,0,180]) latch(base_diameter, horn_thickness);
+        rotate([0,0,270]) latch(base_diameter, horn_thickness);
+    }
 }
 
 * latches(23.7);
 
 module hub(horn_thickness) {
-    
     inner_hub = 5.32;
     hub_clearance = 1.5;
     hub_diameter = 23.8;
-
-    
-    difference() {
-        // Basic wheel
-        cylinder(d=hub_diameter, h=2*horn_thickness, center=true);
-        // Cutout for hub
-        cylinder(d=inner_hub+hub_clearance, h=4*horn_thickness, center=true);
-        // cutout for horn
-        horn(h=2*horn_thickness);
+    color("PaleTurquoise") {
+        difference() {
+            // Basic wheel
+            cylinder(d=hub_diameter, h=2*horn_thickness, center=true);
+            // Cutout for hub
+            cylinder(d=inner_hub+hub_clearance, h=4*horn_thickness, center=true);
+            // cutout for horn
+            horn(h=2*horn_thickness);
+        }
     }
     latches(hub_diameter, horn_thickness);
-    
 }
 
 * hub();
@@ -163,7 +192,17 @@ module cylinder_arc2(r1, r2, h, angle) {
 //
 //* cam_base_ring();
 
-module linear_cam_surface(r_0, r_1, r_2, h, angle) {
+module linear_cam_surface(
+        r_0, 
+        r_1, 
+        r_2, 
+        h, 
+        angle, 
+        include_follower=true,
+        follower_diameter=3.0,
+        follower_outer_rim_thickness=2,
+        follower_inner_rim_thickness = 2,
+        follower_lip = 0.7) {
     
     s = (r_2 - r_1) / angle;  
     da = 1;
@@ -201,18 +240,24 @@ module linear_cam_surface(r_0, r_1, r_2, h, angle) {
 }
 
 
-module entire_component() {
+module first_small_servo_cam(include_follower=true) {
     horn_thickness = 1.46;
     hub(horn_thickness);
     r_min = 16;
-    translate([0, 0, -horn_thickness]) rotate([0,0,40]) linear_cam_surface(15, r_min, 19, h=4, angle=195);
+    color("LightCyan") {
+        translate([0, 0, -horn_thickness]) rotate([0,0,40]) linear_cam_surface(15, r_min, 19, h=4, angle=195);
+    }
     // connectors
-    h_connector=3;
+    h_connector=3 - 0.1;
     r_inside_hub = 9;
-    rotate([0, 0, 40]) cylinder_arc2(r_inside_hub, r_min, h=h_connector, angle=30);
-    rotate([0, 0, 40+90]) cylinder_arc2(r_inside_hub, r_min, h=h_connector, angle=30);
-    rotate([0, 0, 40+180]) cylinder_arc2(r_inside_hub, r_min, h=h_connector, angle=15);
+    color("MediumTurquoise") {
+        rotate([0, 0, 40]) cylinder_arc2(r_inside_hub, r_min, h=h_connector, angle=30);
+        rotate([0, 0, 40+90]) cylinder_arc2(r_inside_hub, r_min, h=h_connector, angle=30);
+        rotate([0, 0, 40+180]) cylinder_arc2(r_inside_hub, r_min, h=h_connector, angle=15);
+    }
     
 }
 
-entire_component();
+if (show_first_small_servo_cam) {
+    first_small_servo_cam();
+}

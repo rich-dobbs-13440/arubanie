@@ -65,8 +65,10 @@ allowance_example = 0.4; // [0.4 : 0.05 : 0.6]
 // Range of motion above and below the horizontal plain.
 top_range_example = 135; //[60 : 5: 175] 
 bottom_range_example = 135; //[60 : 5: 175]  
+permanent_pin_example = true;
 // Angle for positioning the pintle.
 angle_example = 0; // [-180 : 5 : +180]   
+
 
 
 
@@ -100,26 +102,28 @@ module cutout_for_rotation_stops(h, w, l, al, stops) {
 }
 
 
-module pintle(h, w, l, al, range_of_motion=[135, 135]) {
+module pintle(h, w, l, al, range_of_motion=[135, 135], permanent_pin=true) {
 
     leaf_width = _leaf_width(h, w, l, al);
     leaf_disp = _leaf_disp(h, w, l, al);
     pin_od = _pin_od(h, w, l, al);
     
     // The pin
-    rod(pin_od, l=w, center=SIDEWISE);
-    
-    // Left outer leaf
-    translate([0, -leaf_disp, 0]) {
-        block([l, leaf_width, h], center=LEFT+FRONT);
-        rod(h, l=leaf_width, center=SIDEWISE+LEFT);
+    if (permanent_pin) {
+        rod(pin_od, l=w, center=SIDEWISE);
     }
     
-    // Right outer leaf
-    translate([0, leaf_disp, 0]) {
-        block([l, leaf_width, h], center=RIGHT+FRONT);
-        rod(h, l=leaf_width, center=SIDEWISE+RIGHT);
-    } 
+    // The leafs
+    size = [l, leaf_width+2*eps, h];
+    for (disp_sign = [-1, 1]) {
+    translate([0, disp_sign*(leaf_disp + leaf_width/2) , 0]) {
+            if (permanent_pin) {
+                crank(size);
+            } else {
+                crank(size, hole=pin_od+al/2);
+            }
+        }
+    }
    
     // Block joining the leafs
     assert(is_num(range_of_motion[0]));
@@ -138,7 +142,7 @@ module gudgeon(h, w, l, al, range_of_motion) {
        
     bushing_id = _bushing_id(h, w, l, al); 
     bushing_width = _bushing_width(h, w, l, al);
-    size = [l, bushing_width, h];
+    size = [l, bushing_width+2*eps, h];
     crank(size, hole=bushing_id, rotation=BEHIND);
     
     // Connector body  
@@ -146,7 +150,7 @@ module gudgeon(h, w, l, al, range_of_motion) {
     bottom_stop = range_of_motion[1];
     stops = [bottom_stop, top_stop];   
     difference() {
-        block([l, w, h], center=BEHIND);
+        block([l+eps, w+eps, h+eps], center=BEHIND);
         cutout_for_rotation_stops(h, w, l, al, stops);
     }
 }
@@ -218,5 +222,6 @@ if (show_pintle) {
             w_example, 
             lp_example, 
             allowance_example, 
-            [top_range_example, bottom_range_example]);    
+            [top_range_example, bottom_range_example],
+            permanent_pin=permanent_pin_example);    
 }
