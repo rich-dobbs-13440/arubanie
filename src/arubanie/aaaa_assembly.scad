@@ -56,8 +56,6 @@ gudgeon_angle = 0; // [-145:5: 0]
 trigger_angle = 245 - gudgeon_angle; //135-gudgeon_angle ; 
 //gudgeon_extension = 10; //[-15:15]
 
-
-
 dx_trigger_pivot_offset = 0; // [-3:0.25:+3]
 dz_trigger_pivot_offset = -3; // [-5:0.05:0]
 
@@ -76,10 +74,10 @@ air_hose_clearance = 0.5;
 wall_thickness = 2;
 
 /* [Trigger Cage Design] */
-trigger_cage_height = 5;
-cage_allowance = 0.2;
+cage_cant_angle = 18;
+trigger_cage_height = 7.5;
+cage_allowance = 0.4;
 trigger_cap_clearance = 1.0;
-dx_trigger_cage_for_build = 60; // [10:10:100]
 
 
 module end_of_customization() {}
@@ -158,30 +156,6 @@ module display_construction_planes() {
     construct_plane(D_CL_TRG_BLD_PLT, [0, 0, 1], 100);
 }
 
-module trigger_bridge() {
-    
-    y = D_MIRROR_SIDES.y + pivot_w/2 + 2*cage_allowance + wall_thickness;
-    size = [wall_thickness, 2*y, trigger_cage_height];
-    dx = pivot_w/2 + cage_allowance + wall_thickness/2;
-    translate([dx, 0, 0]) color("DeepPink") {
-        block(size);  
-    }
-    translate([-dx, 0, 0]) color("HotPink") {
-        block(size);  
-    }
-    // Joiners
-    x_joiner = pivot_h + 2*wall_thickness + 2*cage_allowance;
-    joiner_size = [x_joiner, wall_thickness, trigger_cage_height];
-    dy = y-wall_thickness/2;
-    translate([0, dy, 0]) color("Orchid") {
-        block(joiner_size); 
-    }
-    translate([0, -dy, 0]) color("Orchid") {
-        block(joiner_size); 
-    }  
-}
-
-
 
 module main_gudgeon() {
     color(main_gudgeon_color, alpha=main_gudgeon_alpha) {
@@ -198,28 +172,12 @@ module main_gudgeon() {
     }
 }
 
-//module trigger_servo_yoke() {
-//    
-//    spreader_size = [4, wall_thickness + 4*cage_allowance + eps, pivot_h];
-//    dy = pivot_w/2;
-//    color("aqua")
-//    translate([6, dy, 0]) {
-//        block(spreader_size, center=RIGHT+FRONT);
-//    }
-//    servo_uprights_size = [40, pivot_w, pivot_h];
-//    dyu = dy + spreader_size.y;
-//    translate([6, dyu, 0]) {
-//        block(servo_uprights_size, center=RIGHT+FRONT);
-//    }
-//    bridge_size = [pivot_w, 20, pivot_h];
-//    dxb = servo_uprights_size.x + 6;
-//    color("Navy") 
-//    translate([dxb, 0, 0]) block(bridge_size, center=BEHIND);
-//}
 
 module air_flow_servo() {
-    9g_motor_sprocket_at_origin(); 
+    rotate([0, cage_cant_angle, 0])
+    translate([60, 0, -16]) rotate([0, 180, 0]) 9g_motor_sprocket_at_origin(); 
 }
+
 
 module gudgeon_bridge() {
     size = [pivot_h, D_MIRROR_SIDES.y + eps, pivot_h];
@@ -236,15 +194,14 @@ module cage_barrel(inner=false, outer=false) {
     od = id + wall_thickness; // We want thin tubes here!
     id_2 = od + cage_allowance;
     od_2 = id_2 + wall_thickness; // We want thin tubes here!
-    dx_cage_inner =  pivot_length_gudgeon + 2;
-    dx_cage_outer = pivot_length_gudgeon + 7;
-    trigger_cage_height = 7.5;
+    dx_cage_inner =  pivot_length_gudgeon;
+    dx_cage_outer = pivot_length_gudgeon + 10;
+    
     render() difference() {
-        rotate([0, 18, 0]) {
+        rotate([0, cage_cant_angle, 0]) {
             if (inner) {
                 translate([dx_cage_inner, 0, 0]) { 
-                    rod(d=od, hollow=id, l=2*trigger_cage_height, center=FRONT);
-                    
+                    rod(d=od, hollow=id, l=10, center=FRONT);
                 }
             }
             if (outer) {
@@ -260,20 +217,20 @@ module trigger_cage_section() {
     cage_barrel(outer=true);
     
     if (orient_for_build) {
-        translate([50, 0, (pivot_length_gudgeon + 2 + pivot_h/2)])
-            rotate([0,90-18,0]) 
+        translate([50, 0, (pivot_length_gudgeon + 0.0 + pivot_h/2)])
+            rotate([0,90-cage_cant_angle,0]) 
                 cage_barrel(inner=true);
     } else {
         cage_barrel(inner=true);
     }
     
-    trigger_cage_section_length = 15;
+    trigger_cage_section_length = 18.2;
     size = [trigger_cage_section_length + 2* eps, pivot_w, pivot_h];
     dx = pivot_length_gudgeon - eps;
     translate(D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
     translate(-D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
     y = 2*D_MIRROR_SIDES.y; 
-    bridge_size = [6.5, y, pivot_h];
+    bridge_size = [6.6, y, pivot_h];
     dx_bridge = dx + trigger_cage_section_length;
     difference() {
         translate([dx_bridge, 0, 0]) block(bridge_size, center=BEHIND);
@@ -282,31 +239,12 @@ module trigger_cage_section() {
     
 }
 
-module trigger_cage(orient_for_build) {
-    
-    
-    d = master_air_brush("trigger pad diameter") + trigger_cap_clearance;
-    dx = orient_for_build ? dx_trigger_cage_for_build : 0;
-    dz = orient_for_build ? 
-        D_CL_TRG_BLD_PLT.z - trigger_cage_height/2: 
-        master_air_brush("barrel diameter");
-    translate([dx, 0, dz]) {
-        rotate([0,180, 0]) {
-            difference() {
-                trigger_bridge();
-                translate([0, 0, wall_thickness]) can(d=d, h=trigger_cage_height);
-            }
-        }
-    }
-}
 
 // *********************************************************************
 
 module gudgeon_assembly_side() {
     translate(D_MIRROR_SIDES) {
         main_gudgeon();
-        * gudgeon_bridge();
-        //trigger_servo_yoke();
     } 
 }
 
