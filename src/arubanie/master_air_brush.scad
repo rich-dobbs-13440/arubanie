@@ -51,7 +51,7 @@ m_trigger_pad_cl_to_barrel_cl_0_degrees = 10.65;
 m_trigger_shaft_width = 3.39;
 m_trigger_shaft_diameter = 3.93;
 pad_diameter = 10.74;
-pad_height = 2.60;
+//pad_height = 2.60;
 m_bucket_diameter = 25.28;
 m_bucket_flat_height = 17.82;
 m_bucket_cl_base_to_air_barrel_cl = 37.03;
@@ -65,6 +65,10 @@ _dct_name_to_dimension = [
     ["bottom length", air_hose_barrel_length + barrel_diameter/2],
     ["trigger height", m_trigger_pad_cl_to_barrel_cl_0_degrees],
     ["trigger pad diameter", m_trigger_pad_diameter],
+    ["trigger pad thickness", m_trigger_pad_thickness],
+    ["brace width", brace_width],
+    ["brace length", brace_length],
+    ["brace height", brace_height],
 ];
 
 

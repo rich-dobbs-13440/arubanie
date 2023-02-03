@@ -45,7 +45,6 @@ module block(size, center=0) {
 */
 
 module rod(d, l, center=0, hollow=false, fa=undef) {
-    echo("fa", fa);
     $fa = is_undef(fa) ? $fa : fa;
     bv = _number_to_bitvector(center);
     is_sideways = bv[3] == 1;
@@ -77,7 +76,8 @@ module rod(d, l, center=0, hollow=false, fa=undef) {
     about the origin.
     
 */
-module can(d,h, center=0, hollow=false) {
+module can(d,h, center=0, hollow=false, fa=undef) {
+    $fa = is_undef(fa) ? $fa : fa;
     bv = _number_to_bitvector(center);
     size = [d, d, h];
     disp = _center_to_displacement(center, size);
@@ -95,7 +95,8 @@ module can(d,h, center=0, hollow=false) {
     }  
 }
 
-module crank(size, hole=false, center=0, rotation=0) {
+module crank(size, hole=false, center=0, rotation=0, fa=undef) {
+    $fa = is_undef(fa) ? $fa : fa;
     hole_d = is_num(hole) ? hole : 0;
     pivot_size = [size.z, size.y, size.z];
     

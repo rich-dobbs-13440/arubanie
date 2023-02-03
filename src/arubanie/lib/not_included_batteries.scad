@@ -25,11 +25,11 @@ use <vector_operations.scad>
 
 /* [Boiler Plate] */
 
-$fa = 1;
+$fa = 5;
 $fs = 0.4;
 eps = 0.001;
 
-infinity = 50;
+infinity = 100;
 
 module end_of_customization() {}
 
