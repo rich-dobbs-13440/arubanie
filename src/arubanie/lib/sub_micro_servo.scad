@@ -4,8 +4,12 @@
 Usage:
 
 use <lib/sub_micro_servo.scad>
+use <lib/9g_servo.scad>
 
-sub_micro_servo_mounting(bar_thickness=4);
+sub_micro_servo_mounting(include_children=if_designing) {
+    9g_motor_centered_for_mounting();
+}
+
 
 */
 include <centerable.scad>
@@ -22,26 +26,26 @@ show_with_back = false;
 show_translation_test = false;
 
 if (show_default) {
-    mounting();
+    sub_micro_servo_mounting();
     
 }
 
 if (show_with_servo) {
-    mounting() {
+    sub_micro_servo_mounting() {
         9g_motor_centered_for_mounting();
     }
 }
 
 if (show_with_back) {
-    mounting(size=[18, 32, 18]);
+    sub_micro_servo_mounting(size=[18, 32, 18]);
 }
 
 
 if (show_translation_test) {
-    color("red") mounting(center=ABOVE);
-    color("blue") mounting(omit_top=false, center=BELOW);
-    color("green") mounting(center=LEFT);
-    color("yellow") mounting(center=RIGHT);
+    color("red") sub_micro_servo_mounting(center=ABOVE);
+    color("blue") sub_micro_servo_mounting(omit_top=false, center=BELOW);
+    color("green") sub_micro_servo_mounting(center=LEFT);
+    color("yellow") sub_micro_servo_mounting(center=RIGHT);
 }
 
 module end_of_customization() {}
@@ -128,7 +132,7 @@ module base_and_top(extent, servo_clearance, remainder, omit_top) {
 }
 
 
-module mounting(
+module sub_micro_servo_mounting(
     size=undef, 
     screw_offset=1.5, 
     clearance = [0.5, 1, 1],

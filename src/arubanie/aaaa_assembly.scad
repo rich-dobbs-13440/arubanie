@@ -1,14 +1,18 @@
 include <lib/centerable.scad>
 use <lib/shapes.scad>
 use <lib/small_pivot_vertical_rotation.scad>
+use <lib/sub_micro_servo.scad>
 use <lib/9g_servo.scad>
+
+
 use <lib/small_servo_cam.scad>
 use <lib/not_included_batteries.scad>
-use <lib/sub_micro_servo.scad>
 use <master_air_brush.scad>
 use <trigger_holder.scad>
 
-
+// sub_micro_servomounting(include_children=if_designing) {
+//     9g_motor_centered_for_mounting();
+// }
 
 /* [Boiler Plate] */
 
@@ -26,16 +30,20 @@ show_gudgeon_subassembly = true;
 show_trigger_cage_section_subassembly = true;
 show_trigger_shaft_subassemby = true;
 show_air_barrel_clip = true;
-show_air_flow_servo = true;
+show_air_flow_servo_mount = true;
+show_air_flow_servo = false;
+show_paint_flow_servo_mount = true;
+show_paint_flow_servo = false;
+show_paint_servo_pivot = true;
 
 /* [Servo Design] */
 
-servo_dx = 100; // [20 : 1 : 120]
-servo_dy = 0.0; // [-20 : 1 : 20]
+servo_dx = 65; // [20 : 1 : 150]
+servo_dy = -12; // [-20 : 1 : 20]
 servo_dz = 0; // [-20 : 1 :20]
-servo_rx = 0; // [-180 : 15 : +180]
-servo_ry = 0; // [-180 : 15 : +180]
-servo_rz = 0; // [-180 : 15 : +180]
+size_air_servo_mount = [10, 34, 32];
+
+
 
 /* [Part Colors] */
 
@@ -95,14 +103,14 @@ wall_thickness = 2;
 /* [Trigger Cage Design] */
 
 
-shaft_position_above_pivot = 22; // [10 : 0.25 : 22]
+shaft_position_above_pivot = 16; // [13 : 0.25 : 21]
 
 trigger_cage_section_length = 16;
 trigger_cage_height = 7.5;
 trigger_shaft_length_clearance = 6;
 trigger_shaft_bearing_clearance = 0.4;
 trigger_shaft_diameter = 5;
-trigger_cage_lower_offset = 8;
+trigger_cage_lower_offset = 22;
 
 module end_of_customization() {}
 
@@ -157,7 +165,9 @@ dy_trigger_pivot_cl =
     barrel_clip_outside_diameter/2 
     + pivot_w/2;
     
-pivot_length_gudgeon = 16; // Function of range of motion, but just kludging it for now.
+pivot_length_gudgeon = trigger_cage_lower_offset + pivot_w; 
+
+
     
 // Calculate Displacement vectors in attempt to make code cleaner.  
 // Note: not sure that this is working out.
@@ -232,6 +242,13 @@ module air_brush_simple_clearance() {
     fa_as_arg = $fa;
     can(d=air_barrel_clip_inside_diameter, h=80, fa=fa_as_arg);
     rod(d=barrel_clip_inside_diameter, l=120, fa=fa_as_arg);
+    // The nut at the end of the barrel:
+    d_nut = 11.95+2;
+    l_nut_exc = 4;
+    dx_nut = 
+        master_air_brush("back length") 
+        + master_air_brush("barrel radius");
+    translate([-dx_nut, 0, 0]) rod(d=d_nut, l=l_nut_exc, fa=fa_as_arg, center=FRONT);
     // A very rough approximation to the brace
     translate([0, 0, -brace_height]) 
         rod(
@@ -244,6 +261,8 @@ module air_brush_simple_clearance() {
         center=BELOW+FRONT);
 }
 
+* air_brush_simple_clearance();
+
 
 module main_gudgeon() {
     color(main_gudgeon_color, alpha=main_gudgeon_alpha) {
@@ -254,17 +273,52 @@ module main_gudgeon() {
                 pivot_length_gudgeon, 
                 pivot_allowance, 
                 range_of_motion=pivot_ranges);
-        }   
+        }
     }
 }
 
-// ******************************************************
-module air_flow_servo() {
+
+module air_flow_servo_mount_joiner(anchor_size) {
+    dx_inner = pivot_length_gudgeon; 
+    dy_inner = -(dy_trigger_pivot_cl - pivot_w/2);
+    dz_inner = pivot_h/2;
+  
+    dx_outer = D_SERVO.x - size_air_servo_mount.y/2; 
+    dy_outer = D_SERVO.y;
+    dz_outer = pivot_h/2;
     
-    translate(D_SERVO) {
-        translate([0,0,4]) rotate([0,180,0]) sub_micro_servo_mounting(bar_thickness=4);
-        rotate([servo_rx, servo_ry, servo_rz]) 9g_motor_sprocket_at_origin(); 
-    }
+    hull() {
+        translate([dx_inner, dy_inner, dz_inner]) 
+            block(anchor_size, center=FRONT+BELOW+LEFT); 
+        translate([dx_outer, dy_outer, dz_inner]) 
+            block(anchor_size, center=FRONT+BELOW+LEFT); 
+    }  
+    
+}
+
+
+module air_flow_servo_mount() {
+    floor_anchor_size = [5, pivot_w, wall_thickness];
+    air_flow_servo_mount_joiner(floor_anchor_size);
+    
+    wall_anchor_size = [1, wall_thickness, pivot_h];
+    air_flow_servo_mount_joiner(wall_anchor_size);
+}
+    
+
+module air_flow_servo() {
+    if_designing = true;
+    translate(D_SERVO) 
+    translate([0, 0, pivot_h/2]) // To make it on the build plate
+    rotate([0,180,0])  // To handle building toward negative z
+    sub_micro_servo_mounting(
+        size=size_air_servo_mount,
+        include_children=show_air_flow_servo,
+        center=ABOVE,
+        rotation=LEFT) {
+            rotate([180,0,0])
+            9g_motor_centered_for_mounting();
+    }  
 }
 
 
@@ -274,6 +328,7 @@ module gudgeon_bridge() {
         translate([pivot_length_gudgeon, 0, 0]) 
             block(size, center=LEFT+BEHIND);
 }
+
 
 module trigger_shaft() {
     fa_as_arg = $fa;
@@ -302,27 +357,33 @@ module trigger_catch() {
 }
 
 
-module trigger_shaft_bearing_wall(dx_offset) {
+module trigger_shaft_bearing_wall(dx_offset, size) {
     fa_as_arg = $fa;
-    size = [wall_thickness, 2*D_MIRROR_SIDES.y, pivot_h- 5*eps];
-    dx = pivot_length_gudgeon + dx_offset;
-    
-    translate([dx-2*eps, 0, 0]) 
-    difference() {
-        block(size, center=BEHIND);
-        rod(d=trigger_bearing_id, l=2*trigger_shaft_length, fa=fa_as_arg); // 
+    dx = dx_offset;
+    translate([dx-2*eps, 0, 0]) {
+        difference() {
+            block(size, center=FRONT);
+            rod(d=trigger_bearing_id, l=2*trigger_shaft_length, fa=fa_as_arg); // 
+        }
     }
 }
 
 module trigger_cage_section() {
-    size = [trigger_cage_section_length + 2* eps, 1.5 * wall_thickness, pivot_h];
-    dx = pivot_length_gudgeon - eps;
-    translate(D_MIRROR_SIDES + [dx, -pivot_w/2, 0]) block(size, center=FRONT+RIGHT);
-    //translate(-D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
-    translate(-D_MIRROR_SIDES + [dx, pivot_w/2, 0]) block(size, center=FRONT+LEFT);
     
-    trigger_shaft_bearing_wall(trigger_cage_section_length);
-    trigger_shaft_bearing_wall(trigger_cage_lower_offset);
+    
+//    size = [trigger_cage_section_length + 2* eps, 1.5 * wall_thickness, pivot_h];
+//    dx = pivot_length_gudgeon - eps;
+//    translate(D_MIRROR_SIDES + [dx, -pivot_w/2, 0]) block(size, center=FRONT+RIGHT);
+//    //translate(-D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
+//    translate(-D_MIRROR_SIDES + [dx, pivot_w/2, 0]) block(size, center=FRONT+LEFT);
+    
+    distance_between_pivots = 2 * D_MIRROR_SIDES.y;
+    size_lower = [pivot_w, distance_between_pivots, pivot_h];
+    size_upper = [pivot_w, 1.5*trigger_bearing_id, pivot_h];
+    upper_offset = trigger_cage_lower_offset + size_lower.x - 3* eps;
+    
+    trigger_shaft_bearing_wall(trigger_cage_lower_offset, size_lower);
+    trigger_shaft_bearing_wall(upper_offset, size_upper);
 }
 
 
@@ -330,11 +391,15 @@ module gudgeon_assembly_side() {
     translate(D_MIRROR_SIDES) {
         main_gudgeon();
     } 
+    
 }
 
 module gudgeon_assembly_sides() {
     gudgeon_assembly_side();
     mirror([0, 1, 0]) gudgeon_assembly_side();
+}
+
+module paint_servo_pivot() {
 }
 
 module gudgeon_assembly() {
@@ -343,14 +408,18 @@ module gudgeon_assembly() {
             if (show_gudgeon_subassembly) {
                 gudgeon_assembly_sides();
             }
+            if (show_paint_servo_pivot) {
+               paint_servo_pivot();
+            }
             if (show_trigger_cage_section_subassembly) {
                 trigger_cage_section();
             }
             if (show_trigger_shaft_subassemby) {
             translate([shaft_position_above_pivot, 0, 0]) trigger_catch();
         }
-            if (show_air_flow_servo) {
+            if (show_air_flow_servo_mount) {
                 air_flow_servo();
+                air_flow_servo_mount();
             }
         }
     }
@@ -366,7 +435,7 @@ module pintle_bridge_side() {
     
     id = barrel_clip_inside_diameter;
     od = barrel_clip_outside_diameter;
-    l = master_air_brush("back length") + master_air_brush("barrel radius");
+    l = master_air_brush("back length") + master_air_brush("air barrel radius");
     fa_as_arg = $fa;
     color(pintle_bridge_color, alpha=pintle_bridge_alpha) { 
         render() difference() {
@@ -402,6 +471,33 @@ module main_pintle_side() {
     } 
 }
 
+// *********************************************************************************************
+
+module paint_flow_servo() {
+    size_paint_servo_mount = [9, 36, 32];
+    dx = 
+        - size_paint_servo_mount.y/2 
+        - air_barrel_clip_outside_diameter/2; 
+    dz = 1; 
+    difference() {
+        translate([dx, 0, dz]) { 
+            rotate([0,180,0]) { // To handle building toward negative z
+
+                sub_micro_servo_mounting(
+                    size=size_paint_servo_mount,
+                    center=ABOVE,
+                    rotation=LEFT,
+                    include_children=show_paint_flow_servo
+                    ) {
+                        //rotate([180,0,0])
+                        9g_motor_centered_for_mounting();
+                }
+            }
+        }
+        air_brush_simple_clearance();
+    }  
+}
+
 module pintle_assembly() {
     main_pintle_side();
     mirror([0, 1, 0]) main_pintle_side();
@@ -410,10 +506,6 @@ module pintle_assembly() {
 }
 
 
-module main_assembly() {
-    pintle_assembly();
-    
-}
 
 
 module air_barrel_clip() {
@@ -443,6 +535,10 @@ rotate(viewing_orientation) {
     if (show_pintle_assembly) { 
         pintle_assembly();
     }
+    if (show_paint_flow_servo_mount) {
+        paint_flow_servo();
+    }
+    
     if (show_gudgeon_assembly) { 
         gudgeon_assembly();
     }
