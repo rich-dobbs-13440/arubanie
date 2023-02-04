@@ -10,18 +10,32 @@ sub_micro_servo_mounting(bar_thickness=4);
 */
 include <centerable.scad>
 use <shapes.scad>
+use <9g_servo.scad>
 
 eps =0.001;
 
 /* [Show] */
 
 show_default = true;
+show_with_servo = false;
+show_with_back = false;
 show_translation_test = false;
-
 
 if (show_default) {
     mounting();
+    
 }
+
+if (show_with_servo) {
+    mounting() {
+        9g_motor_centered_for_mounting();
+    }
+}
+
+if (show_with_back) {
+    mounting(size=[18, 32, 18]);
+}
+
 
 if (show_translation_test) {
     color("red") mounting(center=ABOVE);
@@ -64,59 +78,84 @@ module drill_pilot_hole(screw_offset, screw_block) {
 }
 
 
-module mounting(size=undef, screw_offset=1.5, omit_top=true, center=0, rotation=0) {
-    extent = is_undef(size) ? [16, 32, 18] : size;
-    clearance = [0.5, 1, 1];
-    servo_clearance = servo_size + clearance + clearance;
-    remainder = extent - servo_clearance;
-    echo("remainder", remainder);
-    
+module back_wall(extent, servo_clearance, remainder) {
     back_wall = [
         remainder.x, 
         extent.y, 
         min(extent.z, servo_clearance.z)];
-    dx_back_wall = servo_clearance.x/2; 
+    dx_back_wall = servo_clearance.x/2;
+   
+    servo_connector_window = [4, 7, 9];
+    dy_window = servo_clearance.y/2; 
     
+    translate([dx_back_wall, 0, 0])
+        difference() {
+            cube(back_wall, center=true);
+            translate([0, dy_window, 0]) cube(servo_connector_window, center=true);
+            translate([0, -dy_window, 0]) cube(servo_connector_window, center=true);
+        } 
+}
+
+module screw_blocks(screw_offset, extent, servo_clearance, remainder) {
     screw_block = [
-        extent.x, 
+        min(extent.x, servo_clearance.x)+eps, 
         remainder.y/2, 
-        min(extent.z, servo_clearance.z)];
+        min(extent.z, servo_clearance.z)+eps];
+    dx_screw_block = -(extent.x - screw_block.x)/2;
     dy_screw_block = servo_clearance.y/2 + screw_block.y/2;
     
+    center_reflect([0,1,0]) 
+        translate([dx_screw_block, dy_screw_block, 0]) 
+            drill_pilot_hole(screw_offset, screw_block) 
+                cube(screw_block, center=true);  
+}
+
+module base_and_top(extent, servo_clearance, remainder, omit_top) {
     base = [
         extent.x, 
         extent.y,
         remainder.z/2
     ];
     dz_base = -servo_clearance.z/2- base.z/2;
-
     
+    translate([0, 0, dz_base]) 
+    cube(base, center=true);
+
+    if (!omit_top) {
+        translate([0, 0, -dz_base]) 
+            cube(base, center=true);
+    }
+}
+
+
+module mounting(
+    size=undef, 
+    screw_offset=1.5, 
+    clearance = [0.5, 1, 1],
+    omit_top=true, 
+    center=0, 
+    rotation=0,
+    include_children=true) {
+        
+    extent = is_undef(size) ? [16, 32, 18] : size;
+    
+    servo_clearance = servo_size + clearance + clearance;
+    remainder = extent - servo_clearance;
+
     center_translation(extent, center) {
         center_rotation(rotation) {
-            
             translate([extent.x/2, 0, 0]) {
-//                % cube(servo_size, center=true);
-//                % cube(servo_clearance, center=true);
-//                % cube(extent, center=true);
-                
-                translate([dx_back_wall, 0, 0])
-                    cube(back_wall, center=true);
-                
-                center_reflect([0,1,0]) 
-                    translate([0, dy_screw_block, 0]) 
-                        drill_pilot_hole(screw_offset, screw_block) {
-                            cube(screw_block, center=true);
-                        }
-                
-                translate([0, 0, dz_base]) 
-                    cube(base, center=true);
-
-                if (!omit_top) {
-                    translate([0, 0, -dz_base]) 
-                        cube(base, center=true);
-                }
+                back_wall(extent, servo_clearance, remainder);
+                screw_blocks(screw_offset, extent, servo_clearance, remainder);
+                base_and_top(extent, servo_clearance, remainder, omit_top);
+                // Dev Code:
+                //% cube(servo_size, center=true);
+                //% cube(servo_clearance, center=true);
+                //% cube(extent, center=true);
             }
-            * cube(remainder);
+            if (include_children) {
+                children();  // Show mounted servo, if any
+            }
         }
     } 
 }

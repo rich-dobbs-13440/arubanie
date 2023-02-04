@@ -9,6 +9,13 @@ and there was no easy way to determine where to mount the servo and
 install a servo horn.
 
 
+Usage: 
+
+    use <9g_servo.scad>
+
+
+
+
 */
 
 * 9g_motor();
@@ -29,7 +36,7 @@ function 9g_motor() =
     
 [
     [
-        ["offset_for_sprocket_orgin", offset_sprkt_origin],
+        ["offset_for_sprocket_origin", offset_sprkt_origin],
         ["mount_cl_bottom_translation", tran_mnt_cl]
     ],
     [
@@ -42,14 +49,26 @@ function 9g_motor() =
 ];
 
 
-9g_motor_sprocket_at_origin();
+* 9g_motor_sprocket_at_origin();
 
 module 9g_motor_sprocket_at_origin() {
     offset_for_sprocket_orgin = 9g_motor()[0][0][1];
     tran_mnt_cl = 9g_motor()[0][1][1];
     color("black") translate(tran_mnt_cl) sphere(1);
-    color("green", alpha=0.5)  translate(offset_for_sprocket_orgin)     9g_motor();  
+    color("green", alpha=0.5)  translate(offset_for_sprocket_orgin)  9g_motor();  
 }
+
+
+
+
+module 9g_motor_centered_for_mounting() {
+    t_mnt = 9g_motor()[1][2][1] ;
+    s_mnt = 9g_motor()[1][3][1];
+    rotate([-90,0,90]) 
+        translate(-t_mnt+[0,0,s_mnt.z/2] ) 9g_motor();  
+}
+
+9g_motor_centered_for_mounting();
 
 module 9g_motor(alpha=1){
     body_color = "SteelBlue";
