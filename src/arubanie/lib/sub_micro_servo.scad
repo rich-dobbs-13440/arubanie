@@ -1,64 +1,125 @@
-module sub_micro_servo_mounting_block(
-        screw_allowance, 
-        screw_length, 
-        pilot_diameter, 
-        block_depth, 
-        block_width, 
-        bar_thickness) {
+/* 
 
-    dz = bar_thickness  + block_width/2;
-    dx = screw_allowance/2;
+
+Usage:
+
+use <lib/sub_micro_servo.scad>
+
+sub_micro_servo_mounting(bar_thickness=4);
+
+*/
+include <centerable.scad>
+use <shapes.scad>
+
+eps =0.001;
+
+/* [Show] */
+
+show_default = true;
+show_translation_test = false;
+
+
+if (show_default) {
+    mounting();
+}
+
+if (show_translation_test) {
+    color("red") mounting(center=ABOVE);
+    color("blue") mounting(omit_top=false, center=BELOW);
+    color("green") mounting(center=LEFT);
+    color("yellow") mounting(center=RIGHT);
+}
+
+module end_of_customization() {}
+
+
+servo_size = [15.45, 23.54, 11.73];
+
+servo_lip = 4;
+pilot_diameter = 2;
+screw_length = 8;
+screw_length_allowance = 2;
+
+//minimum_size = [ 4*pilot_diameter, servo_length + 2 * servo_lip, 4*pilot_diameter];
+
+//minimum_size_err_msg = text("The servo size is below the minimum allowed of ", minimum_size);
+
+module pilot_hole(screw_offset, screw_block) {
+    t = [
+        -(screw_block.x/2 + eps), 
+        -screw_block.y/2 + screw_offset, 
+        0
+    ];
+    l = screw_length+screw_length_allowance;
+    d = pilot_diameter;
+    translate(t) rod(d=d, l=l, center=FRONT);    
+}
+
+
+module drill_pilot_hole(screw_offset, screw_block) {
     difference() {
-        cube([screw_allowance, block_depth, block_width + bar_thickness]);
-        color("red") translate([dx, 0, dz]) {
-            rotate([90,0,0]) cylinder(h=2 * screw_length, d=pilot_diameter, center=true);
+        children();
+        pilot_hole(screw_offset, screw_block);
+    }
+}
+
+
+module mounting(size=undef, screw_offset=1.5, omit_top=true, center=0, rotation=0) {
+    extent = is_undef(size) ? [16, 32, 18] : size;
+    clearance = [0.5, 1, 1];
+    servo_clearance = servo_size + clearance + clearance;
+    remainder = extent - servo_clearance;
+    echo("remainder", remainder);
+    
+    back_wall = [
+        remainder.x, 
+        extent.y, 
+        min(extent.z, servo_clearance.z)];
+    dx_back_wall = servo_clearance.x/2; 
+    
+    screw_block = [
+        extent.x, 
+        remainder.y/2, 
+        min(extent.z, servo_clearance.z)];
+    dy_screw_block = servo_clearance.y/2 + screw_block.y/2;
+    
+    base = [
+        extent.x, 
+        extent.y,
+        remainder.z/2
+    ];
+    dz_base = -servo_clearance.z/2- base.z/2;
+
+    
+    center_translation(extent, center) {
+        center_rotation(rotation) {
+            
+            translate([extent.x/2, 0, 0]) {
+//                % cube(servo_size, center=true);
+//                % cube(servo_clearance, center=true);
+//                % cube(extent, center=true);
+                
+                translate([dx_back_wall, 0, 0])
+                    cube(back_wall, center=true);
+                
+                center_reflect([0,1,0]) 
+                    translate([0, dy_screw_block, 0]) 
+                        drill_pilot_hole(screw_offset, screw_block) {
+                            cube(screw_block, center=true);
+                        }
+                
+                translate([0, 0, dz_base]) 
+                    cube(base, center=true);
+
+                if (!omit_top) {
+                    translate([0, 0, -dz_base]) 
+                        cube(base, center=true);
+                }
+            }
+            * cube(remainder);
         }
-    }
-}
-
-module sub_micro_servo_mounting(y_inside, y_outside, bar_thickness) {
-    servo_width = 11.73;
-    servo_length = 23.54;
-    servo_lip = 4;
-    servo_horn_offset = 8;
-    screw_allowance = servo_lip;
-    screw_length = 8;
-    pilot_diameter = 2;
-    
-    min_servo_block_depth = screw_length + 2;
-
-    servo_block_depth = max(y_outside - y_inside, min_servo_block_depth);
-    servo_edge_x1 = 0;
-    servo_edge_x2 = servo_length + screw_allowance;
-    dy_servo = y_inside + servo_block_depth/2;
-    bar_dx = servo_edge_x1 + servo_edge_x2 + screw_allowance;
-    
-    //bar
-    translate([0, dy_servo, 0]) cube([bar_dx, bar_thickness, bar_thickness]);
-    // Mounting blocks
-    * echo("server_mounting_block(", screw_allowance, servo_block_depth, servo_width, bar_thickness);
-    translate([servo_edge_x1, dy_servo, 0]) {
-        sub_micro_servo_mounting_block(
-            screw_allowance, 
-            screw_length, 
-            pilot_diameter, 
-            servo_block_depth, 
-            servo_width, 
-            bar_thickness);
-    }
-    translate([servo_edge_x2, dy_servo, 0]) {
-        sub_micro_servo_mounting_block(
-            screw_allowance, 
-            screw_length, 
-            pilot_diameter, 
-            servo_block_depth, 
-            servo_width, 
-            bar_thickness);
-    }
+    } 
 }
 
 
-// Test code for servo mounting
-sub_micro_servo_mounting(y_inside=13, y_outside=17, bar_thickness=4);
 
-* servo_mounting_block(8, 10, 11.73, 4);

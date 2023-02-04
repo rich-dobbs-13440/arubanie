@@ -4,8 +4,10 @@ use <lib/small_pivot_vertical_rotation.scad>
 use <lib/9g_servo.scad>
 use <lib/small_servo_cam.scad>
 use <lib/not_included_batteries.scad>
+use <lib/sub_micro_servo.scad>
 use <master_air_brush.scad>
 use <trigger_holder.scad>
+
 
 
 /* [Boiler Plate] */
@@ -28,9 +30,9 @@ show_air_flow_servo = true;
 
 /* [Servo Design] */
 
-servo_dx = 60; // [20 : 1 : 60]
-servo_dy = 0; // [-20 : 1 : 20]
-servo_dz = -16; // [-20 : 1 :20]
+servo_dx = 100; // [20 : 1 : 120]
+servo_dy = 0.0; // [-20 : 1 : 20]
+servo_dz = 0; // [-20 : 1 :20]
 servo_rx = 0; // [-180 : 15 : +180]
 servo_ry = 0; // [-180 : 15 : +180]
 servo_rz = 0; // [-180 : 15 : +180]
@@ -258,8 +260,11 @@ module main_gudgeon() {
 
 // ******************************************************
 module air_flow_servo() {
-    translate(D_SERVO) 
+    
+    translate(D_SERVO) {
+        translate([0,0,4]) rotate([0,180,0]) sub_micro_servo_mounting(bar_thickness=4);
         rotate([servo_rx, servo_ry, servo_rz]) 9g_motor_sprocket_at_origin(); 
+    }
 }
 
 
