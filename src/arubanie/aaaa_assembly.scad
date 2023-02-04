@@ -2,6 +2,7 @@ include <lib/centerable.scad>
 use <lib/shapes.scad>
 use <lib/small_pivot_vertical_rotation.scad>
 use <lib/9g_servo.scad>
+use <lib/small_servo_cam.scad>
 use <lib/not_included_batteries.scad>
 use <master_air_brush.scad>
 use <trigger_holder.scad>
@@ -69,6 +70,8 @@ permanent_pin=true;
 gudgeon_angle = 0; // [-145:5: 0]
 trigger_angle = 270 - gudgeon_angle; //135-gudgeon_angle ; 
 
+pivot_length_pintle = 10; // [10:1:20]
+
 dx_trigger_pivot_offset = 0; // [-3:0.25:+3]
 dz_trigger_pivot_offset = -3; // [-5:0.05:0]
 
@@ -81,7 +84,7 @@ pivot_allowance = 0.4;
 pivot_top_range_of_motion = 145;
 pivot_bottom_range_of_motion = 90;
 pivot_h = 8; 
-pivot_w = 4; //[4, 5]
+pivot_w = 6; //[4, 5]
 /* [Air Barrel Clip Design] */
 air_barrel_allowance = 0.3;
 air_barrel_clearance = 0.4;
@@ -94,10 +97,10 @@ shaft_position_above_pivot = 22; // [10 : 0.25 : 22]
 
 trigger_cage_section_length = 16;
 trigger_cage_height = 7.5;
-trigger_shaft_length_clearance = 1;
-trigger_shaft_bearing_clearance = 0.5;
+trigger_shaft_length_clearance = 6;
+trigger_shaft_bearing_clearance = 0.4;
 trigger_shaft_diameter = 5;
-trigger_cage_lower_offset = 9;
+trigger_cage_lower_offset = 8;
 
 module end_of_customization() {}
 
@@ -119,7 +122,6 @@ trigger_shaft_length =
 trigger_bearing_id =
     trigger_shaft_diameter 
     + 2 * trigger_shaft_bearing_clearance;
-echo("trigger_bearing_id", trigger_bearing_id);
 
 air_barrel_clip_inside_diameter = 
     master_air_brush("air barrel diameter")
@@ -274,15 +276,22 @@ module trigger_shaft() {
         d=trigger_shaft_diameter, 
         l=trigger_shaft_length, 
         center=FRONT);
-    translate([trigger_shaft_length, 0, 0]) 
-        block([1,2,pivot_h/2], center=ABOVE+BEHIND);
+    gudgeon_length = wall_thickness + pivot_h/2;
+    translate([trigger_shaft_length+gudgeon_length, 0, 0]) 
+        gudgeon(
+            pivot_h, 
+            trigger_shaft_diameter, 
+            gudgeon_length, 
+            pivot_allowance, 
+            range_of_motion=[90, 90]);
+    
 }
 
 
 module trigger_catch() {
     trigger_shaft();
     difference() {
-        rotate([-90, 0, 90]) master_air_brush_trigger_catch();
+        rotate([-90, 180, 90]) master_air_brush_trigger_catch();
         translate([0, 0, -dz_trigger_pivot_offset]) build_plane_clearance();
     }
 }
@@ -301,12 +310,11 @@ module trigger_shaft_bearing_wall(dx_offset) {
 }
 
 module trigger_cage_section() {
-
-    
-    size = [trigger_cage_section_length + 2* eps, pivot_w, pivot_h];
+    size = [trigger_cage_section_length + 2* eps, 1.5 * wall_thickness, pivot_h];
     dx = pivot_length_gudgeon - eps;
-    translate(D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
-    translate(-D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
+    translate(D_MIRROR_SIDES + [dx, -pivot_w/2, 0]) block(size, center=FRONT+RIGHT);
+    //translate(-D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
+    translate(-D_MIRROR_SIDES + [dx, pivot_w/2, 0]) block(size, center=FRONT+LEFT);
     
     trigger_shaft_bearing_wall(trigger_cage_section_length);
     trigger_shaft_bearing_wall(trigger_cage_lower_offset);
@@ -345,22 +353,24 @@ module gudgeon_assembly() {
 
 
 module pintle_bridge_side() {
-    x = master_air_brush("back length");
+    x = pivot_length_pintle; // master_air_brush("barrel radius") + ;
     y = barrel_clip_outside_diameter;
     z = master_air_brush("barrel radius") + wall_thickness  ; 
     dxb = dx_trigger_pivot_offset; 
     dzb = dz_trigger_pivot_offset + pivot_h/2;
     
-    
     id = barrel_clip_inside_diameter;
     od = barrel_clip_outside_diameter;
+    l = master_air_brush("back length") + master_air_brush("barrel radius");
     fa_as_arg = $fa;
     color(pintle_bridge_color, alpha=pintle_bridge_alpha) { 
-        difference() {
+        render() difference() {
             union() {
-                translate([dxb, 0, dzb]) 
+                translate([dxb, 0, dzb]) {
                     block([x, y, z], center=BEHIND+BELOW);
-                rod(d=od, hollow=id, l=x, center=BEHIND, fa=fa_as_arg);
+                    crank([x, y, z], center=BELOW, rotation=BEHIND);
+                }
+                rod(d=od, hollow=id, l=l, center=BEHIND, fa=fa_as_arg);
             }
             union() {
                 air_brush_simple_clearance();
@@ -370,15 +380,15 @@ module pintle_bridge_side() {
     }
 }
 
+
 module main_pintle_side() {
-    pivot_lenth_pintle = abs(D_BARREL_BACK.x);
     color(main_pintle_alpha, alpha=main_pintle_alpha) {
         translate(D_CL_TRG_PVT_ADJUSTMENT + D_MIRROR_SIDES) {
             rotate([0, 0, 180]) { // Want the pintle toward the read
                 pintle(
                     pivot_h, 
                     pivot_w, 
-                    pivot_lenth_pintle, 
+                    pivot_length_pintle, 
                     pivot_allowance, 
                     range_of_motion=pivot_ranges,
                     permanent_pin=permanent_pin);

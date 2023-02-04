@@ -6,7 +6,7 @@ Usage:
     
     horn(h=4);
     
-    first_small_servo_cam();
+    linear_small_servo_cam(travel=4, include_follower=true);
     
 Note: 
 
@@ -25,12 +25,12 @@ eps = 0.001;
 
 show_horn = false;
 show_first_small_servo_cam = true;
+show_linear_small_servo_cam = true;
 
+example_travel = 4; //[1:1:8]
+include_follower_example = true;
 
 module end_of_customization() {}
-
-
-
 
 
 module horn_arm(h) {
@@ -240,12 +240,16 @@ module linear_cam_surface(
 }
 
 
-module first_small_servo_cam(include_follower=true) {
+module linear_small_servo_cam(travel, include_follower=true) {
+    
+    assert(is_num(travel));
     horn_thickness = 1.46;
     hub(horn_thickness);
     r_min = 16;
+    r2 = r_min + travel;
     color("LightCyan") {
-        translate([0, 0, -horn_thickness]) rotate([0,0,40]) linear_cam_surface(15, r_min, 19, h=4, angle=195);
+        translate([0, 0, -horn_thickness]) rotate([0,0,40]) 
+            linear_cam_surface(15, r_min, r2, h=4, angle=195, include_follower=include_follower);
     }
     // connectors
     h_connector=3 - 0.1;
@@ -258,6 +262,6 @@ module first_small_servo_cam(include_follower=true) {
     
 }
 
-if (show_first_small_servo_cam) {
-    first_small_servo_cam();
+if (show_linear_small_servo_cam) {
+    linear_small_servo_cam(travel=example_travel, include_follower=include_follower_example);
 }
