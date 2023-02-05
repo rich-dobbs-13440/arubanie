@@ -158,7 +158,7 @@ module sub_micro_servo_mounting(
                 //% cube(extent, center=true);
             }
             if (include_children) {
-                children();  // Show mounted servo, if any
+                # children();  // Show mounted servo, if any
             }
         }
     } 

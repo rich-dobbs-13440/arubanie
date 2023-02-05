@@ -94,7 +94,6 @@ module rotation_stop(h, w, angle, al) {
 
 
 module cutout_for_rotation_stops(h, w, l, al, stops) {
-
     assert(is_list(stops));
     for (stop = stops) {
         rotation_stop(h, w, stop, al); 
@@ -102,7 +101,16 @@ module cutout_for_rotation_stops(h, w, l, al, stops) {
 }
 
 
-module pintle(h, w, l, al, range_of_motion=[135, 135], permanent_pin=true) {
+module pintle(
+        h, 
+        w, 
+        l, 
+        al, 
+        range_of_motion=[135, 135], 
+        permanent_pin=true, 
+        fa=undef) {
+
+    $fa = is_undef(fa) ? $fa : fa;
 
     leaf_width = _leaf_width(h, w, l, al);
     leaf_disp = _leaf_disp(h, w, l, al);
@@ -110,7 +118,7 @@ module pintle(h, w, l, al, range_of_motion=[135, 135], permanent_pin=true) {
     
     // The pin
     if (permanent_pin) {
-        rod(pin_od, l=w, center=SIDEWISE);
+        rod(pin_od, l=w, center=SIDEWISE, fa=fa);
     }
     
     // The leafs
@@ -138,12 +146,14 @@ module pintle(h, w, l, al, range_of_motion=[135, 135], permanent_pin=true) {
 }
 
 
-module gudgeon(h, w, l, al, range_of_motion) {
+module gudgeon(h, w, l, al, range_of_motion, fa=undef) {
+
+    $fa = is_undef(fa) ? $fa : fa;
        
     bushing_id = _bushing_id(h, w, l, al); 
     bushing_width = _bushing_width(h, w, l, al);
     size = [l, bushing_width+2*eps, h];
-    crank(size, hole=bushing_id, rotation=BEHIND);
+    crank(size, hole=bushing_id, rotation=BEHIND, fa=fa);
     
     // Connector body  
     top_stop = -range_of_motion[0];
