@@ -10,9 +10,7 @@ use <lib/not_included_batteries.scad>
 use <master_air_brush.scad>
 use <trigger_holder.scad>
 
-// sub_micro_servomounting(include_children=if_designing) {
-//     9g_motor_centered_for_mounting();
-// }
+
 
 /* [Boiler Plate] */
 
@@ -23,15 +21,24 @@ eps = 0.001;
 
 infinity = 1000;
 
+
+
+
 /* [Air Barrel Clip Design] */
+show_air_barrel_clip = true;
+
 air_barrel_allowance = 0.3;
 air_barrel_clearance = 0.4;
 wall_thickness = 2;
 
+air_barrel_clip_color = "LawnGreen"; // [DodgerBlue, LawnGreen, Coral]
+air_barrel_clip_alpha = 1; // [0:0.05:1]
+
+
 air_barrel_clip_inside_diameter = 
     master_air_brush("air barrel diameter")
     + air_barrel_allowance 
-    + air_barrel_clearance;
+    + air_barrel_clearance; 
 
 air_barrel_clip_outside_diameter = 
     air_barrel_clip_inside_diameter + 2 * wall_thickness; 
@@ -48,7 +55,15 @@ brace_height = master_air_brush("brace height")
     + master_air_brush("barrel diameter")/2
     - master_air_brush("brace width") /2;
 
+air_barrel_cl_to_back_length = 
+    master_air_brush("back length") + master_air_brush("air barrel radius");
+
+
 /* [Master Air Brush Design] */
+show_air_brush = false;
+
+air_brush_alpha = 0.10; // [0:0.05:1]
+
 barrel_allowance = 0.2;
 barrel_clearance = 0.1;
 
@@ -60,11 +75,17 @@ barrel_clip_inside_diameter =
 barrel_clip_outside_diameter = 
     barrel_clip_inside_diameter + 2 * wall_thickness;
 
+
+
+
 /* [Paint Pivot Design] */
+
 // Relative to CL of air barrel
 dx_paint_pivot_offset = 0; // [-3:0.25:+3]
 // Relative to CL of main barrel
 dz_paint_pivot_offset = -3; // [-5:0.05:0]
+
+
 
 paint_pivot_h = 8; 
 paint_pivot_w = 6; 
@@ -83,13 +104,21 @@ paint_pivot_ranges = [
 paint_pivot_cl_dy = paint_pivot_inside_dy + paint_pivot_w/2;
 paint_pivot_outside_dy = paint_pivot_inside_dy + paint_pivot_w;
 
+disp_air_brush_relative_paint_pivot_cl = 
+    [dx_paint_pivot_offset, 0, paint_pivot_h/2 + dz_paint_pivot_offset];
+
+
+
 
 /* [ Paint Pintle Design] */
 show_paint_pivot_pintle_yoke = true;
-paint_pivot_length_pintle = air_barrel_clip_outside_diameter; // 
+paint_pivot_length_pintle = 14;
 
 paint_pintle_color = "MediumSeaGreen"; // [DodgerBlue, MediumSeaGreen, Coral]
 paint_pintle_alpha = 1; // [0:0.05:1]
+
+
+
 
 /* [ Paint Gudgeon Design] */
 show_paint_pivot_gudgeon_yoke = true;
@@ -97,12 +126,18 @@ show_paint_pivot_gudgeon_yoke = true;
 // Set to clear the trigger, at depressed with clearance for trigger cap.
 paint_pivot_length_gudgeon = 18;
 
+gudgeon_angle = 0; // [-145:5: 0]
+trigger_angle = 270 - gudgeon_angle; //135-gudgeon_angle ;
+
 paint_pivot_top_of_yoke =  
     paint_pivot_length_gudgeon 
     + paint_pivot_bridge_thickness;
 
 paint_gudgeon_color = "Chocolate"; // [DodgerBlue, Chocolate, Coral]
 paint_gudgeon_alpha = 1; // [0:0.05:1]
+
+
+
 
 /* [Trigger Shaft Design] */
 show_trigger_shaft_assembly = true;
@@ -131,12 +166,18 @@ trigger_shaft_dx =
 trigger_shaft_color = "PaleGreen"; // [DodgerBlue, PaleGreen, Coral]
 trigger_shaft_alpha = 1; // [0:0.05:1]
 
+
+
+
 /* [Trigger Slider Design] */
 show_trigger_slider = true;
 trigger_slider_clearance = 1;
 trigger_slider_length = trigger_shaft_range - trigger_slider_clearance;
 trigger_slider_color = "LightSteelBlue"; // [DodgerBlue, LightSteelBlue, Coral]
 trigger_slider_alpha = 1; // [0:0.05:1]
+
+
+
 
 /* [Air Flow Servo Design] */
 show_air_flow_servo = true;
@@ -157,6 +198,8 @@ air_flow_servo_alpha = 1; // [0:0.05:1]
 module end_of_customization() {}
 
 
+
+
 /* [Build vs Design] */
 orient_for_build = true;
 permanent_pin=true; 
@@ -169,33 +212,26 @@ FOR_BUILD = [180, 0, 0];
 viewing_orientation = orient_for_build ? FOR_BUILD : FOR_DESIGN;
 
 
+module air_barrel_clip() {
+    id = air_barrel_clip_inside_diameter;
+    od = air_barrel_clip_outside_diameter;
+    h = master_air_brush("bottom length"); 
+    fa_as_arg = $fa;
+    translate(disp_air_brush_relative_paint_pivot_cl) {
+        render() difference() {
+            can(d=od, h=h, hollow=id, center=BELOW, fa=fa_as_arg);
+            air_brush_simple_clearance();
+        }
+    }
 
-module air_brush_simple_clearance() {
-    dz = paint_pivot_h/2 + dz_paint_pivot_offset;
+}
 
-    translate([dx_paint_pivot_offset, 0, dz]) {
-    
-        can(d=air_barrel_clip_inside_diameter, h=80, fa=fa_as_arg);
-        rod(d=barrel_clip_inside_diameter, l=120, fa=fa_as_arg);
-        // The nut at the end of the barrel:
-        d_nut = 11.95+2;
-        l_nut_exc = 4;
-        dx_nut = 
-            master_air_brush("back length") 
-            + master_air_brush("barrel radius");
-        translate([-dx_nut, 0, 0]) rod(d=d_nut, l=l_nut_exc, fa=fa_as_arg, center=FRONT);
-        // A very rough approximation to the brace
-        translate([0, 0, -brace_height]) 
-            rod(
-                d=brace_inside_diameter, 
-                l=brace_length, 
-                center=FRONT, 
-                fa=fa_as_arg);
-        block(
-            [brace_length, brace_inside_diameter, brace_height], 
-            center=BELOW+FRONT);
+if (show_air_barrel_clip) {
+    color(air_barrel_clip_color , alpha=air_barrel_clip_alpha) {
+        air_barrel_clip();
     }
 }
+
 
 module air_flow_servo_joiner(anchor_size) {
     dx_inner = paint_pivot_top_of_yoke; 
@@ -367,20 +403,76 @@ if (show_paint_pivot_gudgeon_yoke) {
 //************************* Paint Pivot Pintle ***********************************
 
 
+//module pintle_bridge_side() {
+//    x = pivot_length_pintle; // master_air_brush("barrel radius") + ;
+//    y = barrel_clip_outside_diameter;
+//    z = master_air_brush("barrel radius") + wall_thickness  ; 
+//    dxb = dx_trigger_pivot_offset; 
+//    dzb = dz_trigger_pivot_offset + pivot_h/2;
+//    
+//    id = barrel_clip_inside_diameter;
+//    od = barrel_clip_outside_diameter;
+//    l = master_air_brush("back length") + master_air_brush("air barrel radius");
+//    fa_as_arg = $fa;
+//    color(pintle_bridge_color, alpha=pintle_bridge_alpha) { 
+//        render() difference() {
+//            union() {
+//                translate([dxb, 0, dzb]) {
+//                    block([x, y, z], center=BEHIND+BELOW);
+//                    crank([x, y, z], center=BELOW, rotation=BEHIND);
+//                }
+//                rod(d=od, hollow=id, l=l, center=BEHIND, fa=fa_as_arg);
+//            }
+//            union() {
+//                air_brush_simple_clearance();
+//                build_plane_clearance();
+//            }
+//        }
+//    }
+//}
+
+module pintle_barrel_clip() {
+    id = barrel_clip_inside_diameter;
+    od = barrel_clip_outside_diameter;
+    l = air_barrel_cl_to_back_length;
+    render() difference() {
+        translate(disp_air_brush_relative_paint_pivot_cl) {
+            rod(d=od, hollow=id, l=l, center=BEHIND, fa=fa_as_arg);
+        }
+        translate([0, 0, paint_pivot_h/2]) block([4*l, 2*od, 2*od], center=ABOVE);
+    }
+}
+
+//pintle_barrel_clip();
 
 module paint_pivot_pintle_bridge() {
-    //paint_pivot_pintle_bridge_bridge = barrel_clip_inside_diameter/2 - dz_paint_pivot_offset; 
+    
     x = paint_pivot_bridge_thickness;
-    y = 2 * paint_pivot_outside_dy;
+    // Make the pintle bridge go inside, so as to not interfere with 
+    // rotation stops:
+    y = 2 * paint_pivot_inside_dy + eps;
     z = barrel_clip_inside_diameter/2 - dz_paint_pivot_offset + wall_thickness;
-    dx = -paint_pivot_length_pintle + eps;
+    dx = -air_barrel_clip_outside_diameter/2;
     dz = paint_pivot_h/2;
-    difference() {
-        translate([dx, 0, dz]) block([x, y, z], center=BEHIND+BELOW); 
+    
+    x_crank = paint_pivot_h + paint_pivot_bridge_thickness;
+    y_crank = 2 * paint_pivot_inside_dy + eps;
+    z_crank = paint_pivot_h;
+    
+
+    render() difference() {
+        union() {
+            translate([dx, 0, dz]) block([x, y, z], center=BEHIND+BELOW);
+            translate([0, 0, dz]) 
+                crank([x_crank, y_crank, z_crank], center=BELOW, rotation=BEHIND);
+            pintle_barrel_clip(); 
+            
+        }
         air_brush_simple_clearance();
     }
 
 }
+
 
 module paint_pivot_pintles() {
     center_reflect([0, 1, 0]) {
@@ -399,21 +491,6 @@ module paint_pivot_pintles() {
     }
 }
 
-//module main_pintle_side() {
-//    color(main_pintle_alpha, alpha=main_pintle_alpha) {
-//        translate(D_CL_TRG_PVT_ADJUSTMENT + D_MIRROR_SIDES) {
-//            rotate([0, 0, 180]) { // Want the pintle toward the read
-//                pintle(
-//                    pivot_h, 
-//                    pivot_w, 
-//                    pivot_length_pintle, 
-//                    pivot_allowance, 
-//                    range_of_motion=pivot_ranges,
-//                    permanent_pin=permanent_pin);
-//            }
-//        }
-//    } 
-//}
 
 module paint_pivot_pintle_yoke() {
     paint_pivot_pintles();
@@ -424,6 +501,43 @@ module paint_pivot_pintle_yoke() {
 if (show_paint_pivot_pintle_yoke) {
     color(paint_pintle_color, alpha=paint_pintle_alpha) {
         paint_pivot_pintle_yoke();
+    }
+}
+
+
+module air_brush_trigger_on_top() {
+    translate(disp_air_brush_relative_paint_pivot_cl) {
+        rotate([90, 0, 0]) air_brush(trigger_angle, alpha=air_brush_alpha);
+    }
+}
+
+if (show_air_brush) {
+   air_brush_trigger_on_top(); 
+}
+
+module air_brush_simple_clearance() {
+
+    translate(disp_air_brush_relative_paint_pivot_cl) {
+    
+        can(d=air_barrel_clip_inside_diameter, h=80, fa=fa_as_arg);
+        rod(d=barrel_clip_inside_diameter, l=120, fa=fa_as_arg);
+        // The nut at the end of the barrel:
+        d_nut = 11.95+2;
+        l_nut_exc = 4;
+        dx_nut = 
+            master_air_brush("back length") 
+            + master_air_brush("barrel radius");
+        translate([-dx_nut, 0, 0]) rod(d=d_nut, l=l_nut_exc, fa=fa_as_arg, center=FRONT);
+        // A very rough approximation to the brace
+        translate([0, 0, -brace_height]) 
+            rod(
+                d=brace_inside_diameter, 
+                l=brace_length, 
+                center=FRONT, 
+                fa=fa_as_arg);
+        block(
+            [brace_length, brace_inside_diameter, brace_height], 
+            center=BELOW+FRONT);
     }
 }
 
@@ -446,27 +560,7 @@ if (show_paint_pivot_pintle_yoke) {
 
 
 ///* [Servo Design] */
-//
 
-//
-//
-//
-///* [Part Colors] */
-//
-//main_pintle_color = "Tomato"; // [DodgerBlue, Tomato, LightSalmon, DarkSalmon, Salmon, Coral]
-//main_gudgeon_color = "Chocolate"; // [DodgerBlue, Tomato, LightSalmon, DarkSalmon, Salmon, Coral]
-//pintle_bridge_color = "DarkSalmon"; // [DodgerBlue, LightSalmon, DarkSalmon, Salmon, Coral]
-//gudgeon_bridge_color = "LightSalmon"; // [DodgerBlue, LightSalmon, DarkSalmon, Salmon, Coral]
-//air_barrel_clip_color = "Coral"; // [DodgerBlue, LightSalmon, DarkSalmon, Salmon, Coral]
-//
-///* [Transparency] */
-//main_pintle_alpha = 1; // [0:0.05:1]
-//main_gudgeon_alpha = 1; // [0:0.05:1]
-//pintle_bridge_alpha = 1; // [0:0.05:1]
-//gudgeon_bridge_alpha = 1; // [0:0.05:1]
-//air_barrel_clip_alpha = 1; // [0:0.05:1]
-//
-//air_brush_alpha = 0.10; // [0:0.05:1]
 //
 //
 ///* [Constructions] */
@@ -481,40 +575,11 @@ if (show_paint_pivot_pintle_yoke) {
 ///* [Pivot Design] */
 //
 //
-//gudgeon_angle = 0; // [-145:5: 0]
-//trigger_angle = 270 - gudgeon_angle; //135-gudgeon_angle ; 
+
 //
 //pivot_length_pintle = 10; // [10:1:20]
 //
 
-//
-
-//
-//
-
-//
-
-
-
-/* [Show Parts] */
-
-
-
-
-//show_air_brush = false;
-//show_pintle_assembly = true;
-//show_gudgeon_assembly = true;
-//show_gudgeon_subassembly = true;
-//show_trigger_cage_section_subassembly = true;
-//show_trigger_shaft_subassemby = true;
-//show_air_barrel_clip = true;
-//show_air_flow_servo_mount = true;
-//show_air_flow_servo = false;
-//show_paint_flow_servo_mount = true;
-//show_paint_flow_servo = false;
-//show_paint_servo_pivot = true;
-
-//
 
     
 
@@ -700,33 +765,7 @@ IDX_DISP_CLR = 2;
 //}
 
 
-//module pintle_bridge_side() {
-//    x = pivot_length_pintle; // master_air_brush("barrel radius") + ;
-//    y = barrel_clip_outside_diameter;
-//    z = master_air_brush("barrel radius") + wall_thickness  ; 
-//    dxb = dx_trigger_pivot_offset; 
-//    dzb = dz_trigger_pivot_offset + pivot_h/2;
-//    
-//    id = barrel_clip_inside_diameter;
-//    od = barrel_clip_outside_diameter;
-//    l = master_air_brush("back length") + master_air_brush("air barrel radius");
-//    fa_as_arg = $fa;
-//    color(pintle_bridge_color, alpha=pintle_bridge_alpha) { 
-//        render() difference() {
-//            union() {
-//                translate([dxb, 0, dzb]) {
-//                    block([x, y, z], center=BEHIND+BELOW);
-//                    crank([x, y, z], center=BELOW, rotation=BEHIND);
-//                }
-//                rod(d=od, hollow=id, l=l, center=BEHIND, fa=fa_as_arg);
-//            }
-//            union() {
-//                air_brush_simple_clearance();
-//                build_plane_clearance();
-//            }
-//        }
-//    }
-//}
+
 //
 //
 
@@ -768,22 +807,7 @@ IDX_DISP_CLR = 2;
 //
 //
 //
-//module air_barrel_clip() {
-//    id = air_barrel_clip_inside_diameter;
-//    od = air_barrel_clip_outside_diameter;
-//    h = master_air_brush("bottom length"); 
-//    fa_as_arg = $fa;
-//    color(air_barrel_clip_color , alpha=air_barrel_clip_alpha) {
-//        render() difference() {
-//            can(d=od, h=h, hollow=id, center=BELOW, fa=fa_as_arg);
-//            air_brush_simple_clearance();
-//        }
-//    }
-//}
-//
-//module air_brush_trigger_on_top() {
-//    rotate([90, 0, 0]) air_brush(trigger_angle, alpha=air_brush_alpha);
-//}
+
 
 
 
@@ -802,9 +826,7 @@ rotate(viewing_orientation) {
 //    if (show_gudgeon_assembly) { 
 //        gudgeon_assembly();
 //    }
-//    if (show_air_barrel_clip) {
-//        air_barrel_clip();
-//    }
+
 //    if (show_air_brush) {          
 //        air_brush_trigger_on_top();
 //    }
