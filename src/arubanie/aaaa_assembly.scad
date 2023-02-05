@@ -31,7 +31,7 @@ air_barrel_allowance = 0.3;
 air_barrel_clearance = 0.4;
 wall_thickness = 2;
 
-air_barrel_clip_color = "LawnGreen"; // [DodgerBlue, LawnGreen, Coral]
+air_barrel_clip_color = "PaleGreen"; // [DodgerBlue, PaleGreen, Coral]
 air_barrel_clip_alpha = 1; // [0:0.05:1]
 
 
@@ -133,7 +133,7 @@ paint_pivot_top_of_yoke =
     paint_pivot_length_gudgeon 
     + paint_pivot_bridge_thickness;
 
-paint_gudgeon_color = "Chocolate"; // [DodgerBlue, Chocolate, Coral]
+paint_gudgeon_color = "LightSkyBlue"; // [DodgerBlue, LightSkyBlue, Coral]
 paint_gudgeon_alpha = 1; // [0:0.05:1]
 
 
@@ -180,7 +180,8 @@ trigger_slider_alpha = 1; // [0:0.05:1]
 
 
 /* [Air Flow Servo Design] */
-show_air_flow_servo = true;
+show_air_flow_servo_mount = true;
+show_air_flow_servo = false;
 
 air_flow_servo_dx = 65; // [20 : 1 : 150]
 air_flow_servo_dy = -12; // [-20 : 1 : 20]
@@ -191,11 +192,19 @@ air_flow_servo_disp =
     
 size_air_servo_mount = [10, 34, 32];
 air_flow_servo_color = "PaleTurquoise"; // [DodgerBlue, PaleTurquoise, Coral]
-
-
 air_flow_servo_alpha = 1; // [0:0.05:1]
 
-module end_of_customization() {}
+
+
+
+/* [Paint Flow Servo Design] */
+show_paint_flow_servo_mount = true;
+show_paint_flow_servo = false;
+
+size_paint_servo_mount = [10, 36, 36];
+
+paint_flow_servo_color = "MediumTurquoise"; // [DodgerBlue, MediumTurquoise, Coral]
+paint_flow_servo_alpha = 1; // [0:0.05:1]
 
 
 
@@ -206,6 +215,8 @@ permanent_pin=true;
 
 
 
+module end_of_customization() {}
+
 FOR_DESIGN = [0, 0, 0];
 FOR_BUILD = [180, 0, 0];  
 
@@ -214,7 +225,9 @@ viewing_orientation = orient_for_build ? FOR_BUILD : FOR_DESIGN;
 
 module air_barrel_clip() {
     id = air_barrel_clip_inside_diameter;
-    od = air_barrel_clip_outside_diameter;
+    // For now, oversize clip to strength connection to servo mount,
+    // rather than modeling a fillet for this section.
+    od = air_barrel_clip_outside_diameter + 1;
     h = master_air_brush("bottom length"); 
     fa_as_arg = $fa;
     translate(disp_air_brush_relative_paint_pivot_cl) {
@@ -224,12 +237,6 @@ module air_barrel_clip() {
         }
     }
 
-}
-
-if (show_air_barrel_clip) {
-    color(air_barrel_clip_color , alpha=air_barrel_clip_alpha) {
-        air_barrel_clip();
-    }
 }
 
 
@@ -248,6 +255,7 @@ module air_flow_servo_joiner(anchor_size) {
     
 }
 
+
 module air_flow_servo_attachment() {
     floor_anchor_size = [5, paint_pivot_w, wall_thickness];
     air_flow_servo_joiner(floor_anchor_size);
@@ -256,25 +264,19 @@ module air_flow_servo_attachment() {
     air_flow_servo_joiner(wall_anchor_size);
 }
 
-module air_flow_servo() {
+
+module air_flow_servo_mount(show_servo) {
     translate(air_flow_servo_disp) 
     translate([0, 0, paint_pivot_h/2]) // To make it on the build plate
     rotate([0,180,0])  // To handle building toward negative z
     sub_micro_servo_mounting(
         size=size_air_servo_mount,
-        include_children=show_air_flow_servo,
+        include_children=show_servo,
         center=ABOVE,
         rotation=LEFT) {
             rotate([180,0,0])
             9g_motor_centered_for_mounting();
     }  
-}
-
-if (show_air_flow_servo) {
-    color(air_flow_servo_color, alpha=air_flow_servo_alpha) {
-        air_flow_servo();
-        air_flow_servo_attachment();
-    }
 }
 
 
@@ -286,12 +288,6 @@ module trigger_slider() {
             hollow = trigger_bearing_id,
             center=FRONT,
             fa=fa_as_arg); 
-    }
-}
-
-if (show_trigger_slider) {
-    color(trigger_slider_color, alpha=trigger_slider_alpha) {
-        trigger_slider();
     }
 }
 
@@ -324,6 +320,7 @@ module trigger_catch() {
     }
 }
 
+
 module trigger_shaft() {
     fa_as_arg = $fa;
     
@@ -335,6 +332,7 @@ module trigger_shaft() {
             fa=fa_as_arg);    
 }
 
+
 module trigger_shaft_gudgeon() {
     dx = trigger_shaft_length + paint_pivot_h/2-eps;
     translate([dx, 0, 0]) 
@@ -345,16 +343,6 @@ module trigger_shaft_gudgeon() {
             paint_pivot_allowance, 
             range_of_motion=[90, 90],
             fa=fa_as_arg);
-}
-
-if (show_trigger_shaft_assembly) {
-    color(trigger_shaft_color, alpha=trigger_shaft_alpha) {
-        translate([trigger_shaft_dx, 0, 0]) {
-            trigger_shaft();
-            trigger_catch();
-            trigger_shaft_gudgeon();
-        }
-    }
 }
 
 
@@ -394,42 +382,6 @@ module paint_pivot_gudgeon_yoke() {
     paint_pivot_gudgeon_bridge(); 
 }
 
-if (show_paint_pivot_gudgeon_yoke) {
-    color(paint_gudgeon_color, alpha=paint_gudgeon_alpha) {
-        paint_pivot_gudgeon_yoke();
-    }
-}
-
-//************************* Paint Pivot Pintle ***********************************
-
-
-//module pintle_bridge_side() {
-//    x = pivot_length_pintle; // master_air_brush("barrel radius") + ;
-//    y = barrel_clip_outside_diameter;
-//    z = master_air_brush("barrel radius") + wall_thickness  ; 
-//    dxb = dx_trigger_pivot_offset; 
-//    dzb = dz_trigger_pivot_offset + pivot_h/2;
-//    
-//    id = barrel_clip_inside_diameter;
-//    od = barrel_clip_outside_diameter;
-//    l = master_air_brush("back length") + master_air_brush("air barrel radius");
-//    fa_as_arg = $fa;
-//    color(pintle_bridge_color, alpha=pintle_bridge_alpha) { 
-//        render() difference() {
-//            union() {
-//                translate([dxb, 0, dzb]) {
-//                    block([x, y, z], center=BEHIND+BELOW);
-//                    crank([x, y, z], center=BELOW, rotation=BEHIND);
-//                }
-//                rod(d=od, hollow=id, l=l, center=BEHIND, fa=fa_as_arg);
-//            }
-//            union() {
-//                air_brush_simple_clearance();
-//                build_plane_clearance();
-//            }
-//        }
-//    }
-//}
 
 module pintle_barrel_clip() {
     id = barrel_clip_inside_diameter;
@@ -443,7 +395,6 @@ module pintle_barrel_clip() {
     }
 }
 
-//pintle_barrel_clip();
 
 module paint_pivot_pintle_bridge() {
     
@@ -498,11 +449,31 @@ module paint_pivot_pintle_yoke() {
 }
 
 
-if (show_paint_pivot_pintle_yoke) {
-    color(paint_pintle_color, alpha=paint_pintle_alpha) {
-        paint_pivot_pintle_yoke();
-    }
+module paint_flow_servo_mount(show_servo) {
+    
+    dx = 
+        - size_paint_servo_mount.y/2 
+        - air_barrel_clip_outside_diameter/2; 
+    dz = paint_pivot_h/2; 
+    difference() {
+        translate([dx, 0, dz]) { 
+            rotate([0,180,0]) { // To handle building toward negative z
+
+                sub_micro_servo_mounting(
+                    size=size_paint_servo_mount,
+                    center=ABOVE,
+                    rotation=LEFT,
+                    include_children=show_servo
+                    ) {
+                        //rotate([180,0,0])
+                        9g_motor_centered_for_mounting();
+                }
+            }
+        }
+        air_brush_simple_clearance();
+    }  
 }
+
 
 
 module air_brush_trigger_on_top() {
@@ -511,9 +482,7 @@ module air_brush_trigger_on_top() {
     }
 }
 
-if (show_air_brush) {
-   air_brush_trigger_on_top(); 
-}
+
 
 module air_brush_simple_clearance() {
 
@@ -542,27 +511,86 @@ module air_brush_simple_clearance() {
 }
 
 
+module show_gudgeon_assembly(gudgeon_angle) {
+    rotate([0, gudgeon_angle, 0]) {
+
+        if (show_trigger_shaft_assembly) {
+            color(trigger_shaft_color, alpha=trigger_shaft_alpha) {
+                translate([trigger_shaft_dx, 0, 0]) {
+                    trigger_shaft();
+                    trigger_catch();
+                    trigger_shaft_gudgeon();
+                }
+            }
+        }
+        
+        if (show_trigger_slider) {
+            color(trigger_slider_color, alpha=trigger_slider_alpha) {
+                trigger_slider();
+            }
+        }
+            
+        if (show_paint_pivot_gudgeon_yoke) {
+            color(paint_gudgeon_color, alpha=paint_gudgeon_alpha) {
+            paint_pivot_gudgeon_yoke();
+            }
+        }  
+       
+        if (show_air_flow_servo_mount) {
+            show_servo = orient_for_build ? false : show_air_flow_servo;
+            color(air_flow_servo_color, alpha=air_flow_servo_alpha) {
+                air_flow_servo_mount(show_servo);
+                air_flow_servo_attachment();
+            }
+        }
+    }
+}
 
 
 
+rotate(viewing_orientation) {
 
-// Main Design Calculations
-//
-//trigger_shaft_length = 
-//    trigger_cage_section_length 
-//    + trigger_shaft_length_clearance;
+    angle = orient_for_build ? 0 : gudgeon_angle;
+    show_gudgeon_assembly(angle);
 
-//        difference() {
-//            block(size, center=FRONT);
-//            rod(d=trigger_bearing_id, l=2*trigger_shaft_length, fa=fa_as_arg); // 
-//        }
+    if (show_air_barrel_clip) {
+        color(air_barrel_clip_color , alpha=air_barrel_clip_alpha) {
+            air_barrel_clip();
+        }
+    }
+
+    if (show_paint_pivot_pintle_yoke) {
+        color(paint_pintle_color, alpha=paint_pintle_alpha) {
+            paint_pivot_pintle_yoke();
+        }
+    }    
+
+    if (show_paint_flow_servo_mount) {
+        show_servo = orient_for_build ? false : show_paint_flow_servo;
+        color(paint_flow_servo_color, alpha=paint_flow_servo_alpha) {
+            paint_flow_servo_mount(show_servo);
+        } 
+    }
+
+    if (show_air_brush && !orient_for_build) {
+       air_brush_trigger_on_top(); 
+    }
+}
+
+
+// Note construction and displacements need to be worked upon 
+// with labeling etc. prior to be re-enabled.
+
+//    if (show_constructions && show_construction_displacements) {
+//            display_construction_displacements();
 //    }
 
 
-///* [Servo Design] */
+//    if (show_constructions && show_construction_planes) {
+//            display_construction_planes();
+//    }
 
-//
-//
+
 ///* [Constructions] */
 //show_constructions = false;
 //// Note: show_constructions must be enabled!
@@ -570,31 +598,6 @@ module air_brush_simple_clearance() {
 //// Note: show_constructions must be enabled!
 //show_construction_planes = false;
 //
-
-//
-///* [Pivot Design] */
-//
-//
-
-//
-//pivot_length_pintle = 10; // [10:1:20]
-//
-
-
-    
-
-
-
-
-
-
-
-//dy_trigger_pivot_cl = 
-//    barrel_clip_outside_diameter/2 
-//    + pivot_w/2;
-    
-//pivot_length_gudgeon = trigger_cage_lower_offset + pivot_w; 
-
 
     
 // Calculate Displacement vectors in attempt to make code cleaner.  
@@ -621,9 +624,9 @@ module air_brush_simple_clearance() {
 //
 //D_SERVO = [servo_dx, servo_dy , servo_dz];
 
-IDX_DISP_LABEL = 0;
-IDX_DISP_VAL = 1;
-IDX_DISP_CLR = 2;
+//IDX_DISP_LABEL = 0;
+//IDX_DISP_VAL = 1;
+//IDX_DISP_CLR = 2;
 
 //displacements = [
 //    ["D_CL_TRG_PVT_ADJUSTMENT", D_CL_TRG_PVT_ADJUSTMENT, "Red"],
@@ -659,184 +662,4 @@ IDX_DISP_CLR = 2;
 //    construct_plane(D_CL_TRG_PVT, [1, 0, 0], 40); 
 //    construct_plane(D_CL_TRG_BLD_PLT, [0, 0, 1], 100);
 //}
-//
-
-//
-
-//
-//* air_brush_simple_clearance();
-//
-
-
-  
-
-
-//module main_gudgeon() {
-
-//}
-//
-//
-
-//    
-//
-
-//
-//
-//module gudgeon_bridge() {
-//    size = [pivot_h, D_MIRROR_SIDES.y + eps, pivot_h];
-//    color(gudgeon_bridge_color, alpha=gudgeon_bridge_alpha)
-//        translate([pivot_length_gudgeon, 0, 0]) 
-//            block(size, center=LEFT+BEHIND);
-//}
-
-//
-
-//
-//
-
-//
-//
-//module trigger_shaft_bearing_wall(dx_offset, size) {
-//    fa_as_arg = $fa;
-//    dx = dx_offset;
-//    translate([dx-2*eps, 0, 0]) {
-//        difference() {
-//            block(size, center=FRONT);
-//            rod(d=trigger_bearing_id, l=2*trigger_shaft_length, fa=fa_as_arg); // 
-//        }
-//    }
-//}
-
-//module trigger_cage_section() {
-//    
-//    
-////    size = [trigger_cage_section_length + 2* eps, 1.5 * wall_thickness, pivot_h];
-////    dx = pivot_length_gudgeon - eps;
-////    translate(D_MIRROR_SIDES + [dx, -pivot_w/2, 0]) block(size, center=FRONT+RIGHT);
-////    //translate(-D_MIRROR_SIDES + [dx, 0, 0]) block(size, center=FRONT);
-////    translate(-D_MIRROR_SIDES + [dx, pivot_w/2, 0]) block(size, center=FRONT+LEFT);
-//    
-//    distance_between_pivots = 2 * D_MIRROR_SIDES.y;
-//    size_lower = [pivot_w, distance_between_pivots, pivot_h];
-//    size_upper = [pivot_w, 1.5*trigger_bearing_id, pivot_h];
-//    upper_offset = trigger_cage_lower_offset + size_lower.x - 3* eps;
-//    
-//    trigger_shaft_bearing_wall(trigger_cage_lower_offset, size_lower);
-//    trigger_shaft_bearing_wall(upper_offset, size_upper);
-//}
-//
-//
-//module gudgeon_assembly_side() {
-//    translate(D_MIRROR_SIDES) {
-//        main_gudgeon();
-//    } 
-//    
-//}
-//
-//module gudgeon_assembly_sides() {
-//    gudgeon_assembly_side();
-//    mirror([0, 1, 0]) gudgeon_assembly_side();
-//}
-//
-//module paint_servo_pivot() {
-//}
-
-//module gudgeon_assembly() {
-//    translate(D_CL_TRG_PVT_ADJUSTMENT) {
-//        rotate([0, gudgeon_angle, 0]) {
-//            if (show_gudgeon_subassembly) {
-//                gudgeon_assembly_sides();
-//            }
-//            if (show_paint_servo_pivot) {
-//               paint_servo_pivot();
-//            }
-//            if (show_trigger_cage_section_subassembly) {
-//                trigger_cage_section();
-//            }
-//            if (show_trigger_shaft_subassemby) {
-//            translate([shaft_position_above_pivot, 0, 0]) trigger_catch();
-//        }
-//            if (show_air_flow_servo_mount) {
-//                air_flow_servo();
-//                air_flow_servo_mount();
-//            }
-//        }
-//    }
-//}
-
-
-
-//
-//
-
-
-// *********************************************************************************************
-//
-//module paint_flow_servo() {
-//    size_paint_servo_mount = [9, 36, 32];
-//    dx = 
-//        - size_paint_servo_mount.y/2 
-//        - air_barrel_clip_outside_diameter/2; 
-//    dz = 1; 
-//    difference() {
-//        translate([dx, 0, dz]) { 
-//            rotate([0,180,0]) { // To handle building toward negative z
-//
-//                sub_micro_servo_mounting(
-//                    size=size_paint_servo_mount,
-//                    center=ABOVE,
-//                    rotation=LEFT,
-//                    include_children=show_paint_flow_servo
-//                    ) {
-//                        //rotate([180,0,0])
-//                        9g_motor_centered_for_mounting();
-//                }
-//            }
-//        }
-//        air_brush_simple_clearance();
-//    }  
-//}
-//
-//module pintle_assembly() {
-//    main_pintle_side();
-//    mirror([0, 1, 0]) main_pintle_side();
-//    pintle_bridge_side();
-//    mirror([0, 1, 0]) pintle_bridge_side();
-//}
-//
-//
-//
-//
-
-
-
-
-rotate(viewing_orientation) {
-    
-//    if (show_constructions && show_construction_displacements) {
-//            display_construction_displacements();
-//    }
-//    if (show_pintle_assembly) { 
-//        pintle_assembly();
-//    }
-//    if (show_paint_flow_servo_mount) {
-//        paint_flow_servo();
-//    }
-    
-//    if (show_gudgeon_assembly) { 
-//        gudgeon_assembly();
-//    }
-
-//    if (show_air_brush) {          
-//        air_brush_trigger_on_top();
-//    }
-//    if (show_constructions && show_construction_planes) {
-//            display_construction_planes();
-//    }
-}
-
-
-
-
-
 
