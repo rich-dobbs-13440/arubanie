@@ -10,6 +10,7 @@ use <arb_saduri_trigger_capture_assembly.scad>
 use <arb_saduri_air_brush_capture_assembly.scad>
 
 
+
 /* [Boiler Plate] */
 
 $fa = 10;
@@ -18,27 +19,6 @@ $fs = 0.8;
 eps = 0.001;
 infinity = 1000;
 
-
-
-/* [Paint Pivot Design] */
-
-
-paint_pivot_h = 8; 
-paint_pivot_w = 6; 
-paint_pivot_inside_dy = 10; // 16.5/2;
-paint_pivot_bridge_thickness = 4;
-// This controls printablity vs play in the pivot.
-paint_pivot_allowance = 0.4;
-paint_pivot_top_range_of_motion = 120;
-paint_pivot_bottom_range_of_motion = 90;
-
-paint_pivot_ranges = [
-    paint_pivot_top_range_of_motion, 
-    paint_pivot_bottom_range_of_motion
-];
-
-paint_pivot_cl_dy = paint_pivot_inside_dy + paint_pivot_w/2;
-paint_pivot_outside_dy = paint_pivot_inside_dy + paint_pivot_w;
 
 
 /* [Build vs Design] */
@@ -50,6 +30,8 @@ gudgeon_angle_position = 0; // [-1: 0.05 : 0.4]
 gudgeon_angle = -120 + 30*(gudgeon_angle_position+1);
 trigger_angle = 270 - gudgeon_angle; //135-gudgeon_angle ;
 
+
+
 module end_of_customization() {}
 
 FOR_DESIGN = [0, 0, 0];
@@ -58,33 +40,22 @@ FOR_BUILD = [180, 0, 0];
 viewing_orientation = orient_for_build ? FOR_BUILD : FOR_DESIGN;
 
 
-
-
-
-rotate(viewing_orientation) {
+module arb_saduri_assembly() {
 
     angle = orient_for_build ? 0 : gudgeon_angle;
     rotate([0, angle, 0]) {
         show_gudgeon_assembly(
             orient_for_build,
-            paint_pivot_h,
-            paint_pivot_w,
-            paint_pivot_allowance,
-            paint_pivot_ranges,
-            paint_pivot_inside_dy);
+            viewing_orientation);
     }
 
     show_pintle_assembly(
         orient_for_build,
-        paint_pivot_h,
-        paint_pivot_w,
-        paint_pivot_allowance,
-        paint_pivot_ranges,
-        paint_pivot_inside_dy,
-        permanent_pin, 
+        viewing_orientation,
         trigger_angle);
-
 }
+
+arb_saduri_assembly();
 
 
 // Note construction and displacements need to be worked upon 
