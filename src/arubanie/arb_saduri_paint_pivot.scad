@@ -13,7 +13,7 @@ paint_pivot_allowance = 0.4;
 paint_pivot_top_range_of_motion = 120;
 paint_pivot_bottom_range_of_motion = 90;
 
-paint_pivot_permanent_pin = false;
+paint_pivot_permanent_pin = true;
 
 paint_pivot_ranges = [
     paint_pivot_top_range_of_motion, 
@@ -27,6 +27,31 @@ disp_air_brush_relative_paint_pivot_cl = [
     dx_paint_pivot_offset, 
     0, 
     paint_pivot_h/2 + dz_paint_pivot_offset
-];  
+]; 
+
+module paint_pivot_pintle(length) {
+    rotate([0, 0, 180]) { // Flip to desired orientation
+        pintle(
+            paint_pivot_h, 
+            paint_pivot_w, 
+            length, 
+            paint_pivot_allowance, 
+            range_of_motion=paint_pivot_ranges,
+            permanent_pin=paint_pivot_permanent_pin,
+            fa=fa_as_arg);
+    }
+}
+
+module paint_pivot_gudgeon(length) {
+    rotate([0, 0, 180]) { // Flip to desired orientation
+        gudgeon(
+            paint_pivot_h, 
+            paint_pivot_w, 
+            length, 
+            paint_pivot_allowance, 
+            range_of_motion=paint_pivot_ranges,
+            fa=fa_as_arg);
+    }
+}  
 
 

@@ -14,7 +14,7 @@ use <lib/sub_micro_servo.scad>
 use <lib/9g_servo.scad>
 use <trigger_holder.scad>
 use <master_air_brush.scad>
-include <arb_saduri_paint_pivot_design.scad>
+include <arb_saduri_paint_pivot.scad>
 
 /* [Boiler Plate] */
 
@@ -61,6 +61,7 @@ trigger_shaft_length = 19;
 trigger_shaft_gudgeon_length = 2;
 trigger_shaft_min_x = 10;
 trigger_shaft_catch_clearance = 1;
+trigger_shaft_pivot_allowance = 0.4;
 
 trigger_bearing_id = 
     trigger_shaft_diameter + 2 * trigger_shaft_bearing_clearance;
@@ -217,7 +218,7 @@ module trigger_shaft_gudgeon() {
             paint_pivot_h, 
             trigger_shaft_diameter, 
             trigger_shaft_gudgeon_length, 
-            paint_pivot_allowance, 
+            trigger_shaft_pivot_allowance, 
             range_of_motion=[90, 90],
             fa=fa_as_arg);
 }
@@ -225,16 +226,8 @@ module trigger_shaft_gudgeon() {
 module paint_pivot_gudgeons() {
     center_reflect([0, 1, 0]) {
         translate([0, paint_pivot_cl_dy, 0]) {
-            rotate([0, 0, 180]) { // Flip to desired orientation
-               gudgeon(
-                    paint_pivot_h, 
-                    paint_pivot_w, 
-                    paint_pivot_length_gudgeon, 
-                    paint_pivot_allowance, 
-                    range_of_motion=paint_pivot_ranges,
-                    fa=fa_as_arg);
-            }
-        }    
+            paint_pivot_gudgeon(paint_pivot_length_gudgeon);
+        }
     }
 }
 

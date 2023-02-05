@@ -14,7 +14,7 @@ use <lib/sub_micro_servo.scad>
 use <lib/9g_servo.scad>
 use <trigger_holder.scad>
 use <master_air_brush.scad>
-include <arb_saduri_paint_pivot_design.scad>
+include <arb_saduri_paint_pivot.scad>
 
 /* [Boiler Plate] */
 
@@ -27,8 +27,6 @@ eps = 0.001;
 infinity = 1000;
 
 /* [ Example for demonstration] */
-
-
 orient_for_build_example = true;
 trigger_angle_example = 90;
 
@@ -175,16 +173,7 @@ module paint_pivot_pintle_bridge() {
 module paint_pivot_pintles() {    
     center_reflect([0, 1, 0]) {
         translate([0, paint_pivot_cl_dy, 0]) {
-            rotate([0, 0, 180]) { // Flip to desired orientation
-               pintle(
-                    paint_pivot_h, 
-                    paint_pivot_w, 
-                    paint_pivot_length_pintle, 
-                    paint_pivot_allowance, 
-                    range_of_motion=paint_pivot_ranges,
-                    permanent_pin=paint_pivot_permanent_pin,
-                    fa=fa_as_arg);
-            }
+            paint_pivot_pintle(paint_pivot_length_pintle);
         }    
     }
 }

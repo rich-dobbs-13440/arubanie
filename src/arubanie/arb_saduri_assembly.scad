@@ -23,7 +23,6 @@ infinity = 1000;
 
 /* [Build vs Design] */
 orient_for_build = true;
-permanent_pin=true; 
 
 // Only enabled not oriented for build!
 gudgeon_angle_position = 0; // [-1: 0.05 : 0.4]
