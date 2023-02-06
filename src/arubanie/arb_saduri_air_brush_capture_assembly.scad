@@ -28,7 +28,7 @@ infinity = 1000;
 
 /* [ Example for demonstration] */
 orient_for_build_example = true;
-trigger_angle_example = 90;
+trigger_angle_example = 0;;
 
 
 
@@ -87,7 +87,7 @@ air_barrel_cl_to_back_length =
 
 /* [ Paint Pintle Design] */
 show_paint_pivot_pintle_yoke = true;
-paint_pivot_length_pintle = 14;
+paint_pivot_length_pintle = 12;
 bridge_thickness = 4;
 
 paint_pintle_color = "MediumSeaGreen"; // [DodgerBlue, MediumSeaGreen, Coral]
@@ -99,7 +99,7 @@ paint_pintle_alpha = 1; // [0:0.05:1]
 show_paint_flow_servo_mount = true;
 show_paint_flow_servo = false;
 
-size_paint_servo_mount = [10, 36, 36];
+size_paint_servo_mount = [10, 32, 36];
 
 paint_flow_servo_color = "MediumTurquoise"; // [DodgerBlue, MediumTurquoise, Coral]
 paint_flow_servo_alpha = 1; // [0:0.05:1]
@@ -113,17 +113,20 @@ FOR_BUILD = [180, 0, 0];
 
 viewing_orientation_example = orient_for_build_example ? FOR_BUILD : FOR_DESIGN;
 
+
 module air_barrel_clip() {
     id = air_barrel_clip_inside_diameter;
-    // For now, oversize clip to strength connection to servo mount,
-    // rather than modeling a fillet for this section.
-    od = air_barrel_clip_outside_diameter + 1;
+    od = air_barrel_clip_outside_diameter;
     h = master_air_brush("bottom length"); 
     fa_as_arg = $fa;
-    translate(disp_air_brush_relative_paint_pivot_cl) {
+    {
         render() difference() {
-            can(d=od, h=h, hollow=id, center=BELOW, fa=fa_as_arg);
-            air_brush_simple_clearance(disp_air_brush_relative_paint_pivot_cl);
+            translate(disp_air_brush_relative_paint_pivot_cl) { 
+                can(d=od, h=h, hollow=id, center=BELOW, fa=fa_as_arg);
+                block([od/2+eps,od/2+eps,h], center=BELOW+LEFT+BEHIND);  // fillet with servo support
+            }
+            air_brush_simple_clearance();
+            paint_pivot_pin_clearance();
         }
     }
 }
@@ -151,7 +154,7 @@ module paint_pivot_pintle_bridge() {
     dx = -air_barrel_clip_outside_diameter/2;
     dz = paint_pivot_h/2;
     
-    x_crank = paint_pivot_h + bridge_thickness;
+    x_crank = paint_pivot_length_pintle;
     y_crank = 2 * paint_pivot_inside_dy + eps;
     z_crank = paint_pivot_h;
     
@@ -164,8 +167,10 @@ module paint_pivot_pintle_bridge() {
             pintle_barrel_clip(); 
             
         }
-        air_brush_simple_clearance(disp_air_brush_relative_paint_pivot_cl);
+        air_brush_simple_clearance();
+        paint_pivot_pin_clearance();
     }
+    
 
 }
 
@@ -198,13 +203,15 @@ module paint_flow_servo_mount(show_servo) {
                     size=size_paint_servo_mount,
                     center=ABOVE,
                     rotation=LEFT,
-                    include_children=show_servo
-                    ) {
-                        9g_motor_centered_for_mounting();
+                    include_children=show_servo) {
+                        
+                    9g_motor_centered_for_mounting();
                 }
+                
+                
             }
         }
-        air_brush_simple_clearance(disp_air_brush_relative_paint_pivot_cl);
+        air_brush_simple_clearance();
     }  
 }
 
@@ -214,7 +221,7 @@ module air_brush_trigger_on_top(disp_air_brush_relative_paint_pivot_cl, trigger_
     }
 }
 
-module air_brush_simple_clearance(disp_air_brush_relative_paint_pivot_cl) {
+module air_brush_simple_clearance() {
 
     translate(disp_air_brush_relative_paint_pivot_cl) {
     
@@ -270,12 +277,13 @@ module show_pintle_assembly(
         }
 
         if (show_air_brush && !orient_for_build) {
-        air_brush_trigger_on_top(
-                disp_air_brush_relative_paint_pivot_cl, 
-                trigger_angle); 
+            air_brush_trigger_on_top(
+                    disp_air_brush_relative_paint_pivot_cl, 
+                    trigger_angle); 
         }
     }
 }
+
 
 
 show_pintle_assembly(
@@ -283,3 +291,4 @@ show_pintle_assembly(
     viewing_orientation=viewing_orientation_example, 
     trigger_angle=trigger_angle_example);
 
+* color("orange", alpha = 0.25) air_brush_simple_clearance();

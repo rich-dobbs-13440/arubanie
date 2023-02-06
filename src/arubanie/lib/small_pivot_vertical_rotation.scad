@@ -36,6 +36,7 @@ include <centerable.scad>
 use <shapes.scad>
 use <vector_operations.scad>
 use <layout_for_3d_printing.scad>
+include <nutsnbolts-master/cyl_head_bolt.scad>
 
 
 /* [Boiler Plate] */
@@ -46,16 +47,22 @@ eps = 0.001;
 
 infinity = 1000;
 
-/* [Example] */
 
+/* [Show] */
 show_example = true;
 show_gudgeon = false;
 show_pintle = false;
+show_removable_pin_clearance = false;
+show_removable_pin_gudgeon_bearing = false;
+show_pintle_external_nut_catch = false;
+
+
+/* [Example] */
 
 // Height of connecting linkages
-h_example = 4; // [4 : 10]
+h_example = 8; // [4 : 10]
 //Width of the connecting linkages
-w_example = 4; // [4 : 10]           
+w_example = 5; // [4 : 10]           
 // Pintle length measured from the pivot center.
 lp_example = 10; // [0 : 20]          
 // Gudgeon length measured from the pivot center.
@@ -67,9 +74,9 @@ top_range_example = 135; //[60 : 5: 175]
 bottom_range_example = 135; //[60 : 5: 175]  
 permanent_pin_example = true;
 // Angle for positioning the pintle.
-angle_example = 0; // [-180 : 5 : +180]   
+angle_example = 0; // [-180 : 5 : +180]  
 
-
+catch_strength_l = w_example/2;
 
 
 module end_of_customization() {}
@@ -82,6 +89,21 @@ function _bushing_width(h, w, l, al)    = w/2 - al;
 function _leaf_width_total(h, w, l, al) = w/2 - al;
 function _leaf_width(h, w, l, al)       = _leaf_width_total(h, w, l, al)/2;
 function _leaf_disp(h, w, l, al)        = w/2 -_leaf_width(h, w, l, al);
+
+function check_assertions(h, w, l, allowance, range_of_motion) =
+    assert(is_num(h), "You must specify the argument h, which is the pivot height") 
+    assert(is_num(w), "You must specify the argument w, which is the pivot width") 
+    assert(is_num(l), "You must specify the argument l, which is the pivot length") 
+    assert(is_num(allowance)) 
+    
+    assert(is_num(range_of_motion[0])) 
+    assert(is_num(range_of_motion[1])) 
+    assert(len(range_of_motion) == 2) 
+    
+    assert(h > 4 * allowance, "Height is too small compared to allowance.") 
+    assert(h > 2, "Height is too small for 3D printing.")
+    assert(w < 20, "Width is too large.  This design target to smaller uses.")
+    true;
 
 
 module rotation_stop(h, w, angle, al) {
@@ -100,33 +122,39 @@ module cutout_for_rotation_stops(h, w, l, al, stops) {
     } 
 }
 
-
-module pintle(
+module build_pintle(        
         h, 
         w, 
         l, 
         al, 
-        range_of_motion=[135, 135], 
-        permanent_pin=true, 
-        fa=undef) {
-
-    $fa = is_undef(fa) ? $fa : fa;
-
+        range_of_motion, 
+        pin,
+        fa) {
+            
     leaf_width = _leaf_width(h, w, l, al);
     leaf_disp = _leaf_disp(h, w, l, al);
     pin_od = _pin_od(h, w, l, al);
-    
+            
     // The pin
-    if (permanent_pin) {
+    if (pin == "permanent pin") {
         rod(pin_od, l=w, center=SIDEWISE, fa=fa);
     }
-    
     // The leafs
     size = [l, leaf_width+2*eps, h];
     for (disp_sign = [-1, 1]) {
     translate([0, disp_sign*(leaf_disp + leaf_width/2) , 0]) {
-            if (permanent_pin) {
+            if (pin == "permanent pin") {
                 crank(size);
+            } else if (pin == "M3 captured nut") {
+                difference() {
+                    crank(size);
+                    translate([0, -w/2, 0]) rotate([90, 0, 0]) hole_through(name = "M3", l=w); 
+                        // name of screw family (i.e. M4, M5, etc)
+//                        l    = 50.0,  // length of main bolt
+//                        cld  =  0.2,  // dia clearance for the bolt
+//                        h    =  0.0,  // height of bolt-head
+//                        hcld =  1.0)  // dia clearances for the head
+                }
             } else {
                 crank(size, hole=pin_od+al/2);
             }
@@ -146,16 +174,70 @@ module pintle(
 }
 
 
-module gudgeon(h, w, l, al, range_of_motion, fa=undef) {
+module build_pin_clearance(w, pin) {
+    if (pin == "M3 captured nut") {
+        // Create a nut capture flush with the outer leafs, 
+        // clk 0.4 is pretty loose. clk 0.0 was too tight with my printer
+        // 
+        translate([0, -2*w, 0]) rotate([90, 0, 0]) hole_through(name = "M3", l=4*w);
+        translate([0, -0.50*w, 0]) rotate([-90,0,0]) nutcatch_parallel("M3", clh=w, clk=0.2);
+        translate([0, 0.50*w, 0]) rotate([90,0,0]) nutcatch_parallel("M3", clh=w, clk=0.2);
+    } else {
+        assert(false, "Not implemented");
+    }   
+    
+}
 
+
+module pintle(
+        h, 
+        w, 
+        l, 
+        al=0.4, 
+        range_of_motion=[135, 135], 
+        pin="permanent pin",
+        just_pin_clearance=false,
+        fa=undef) {
+
+    dmy = check_assertions(h, w, l, al, range_of_motion);
+            
     $fa = is_undef(fa) ? $fa : fa;
-       
+     
+    if (just_pin_clearance) {
+        build_pin_clearance(w, pin);
+    } else {
+        build_pintle(h, w, l, al, range_of_motion, pin, fa);
+    }
+}
+
+
+module gudgeon(
+        h, 
+        w, 
+        l, 
+        al=0.5, 
+        range_of_motion=[135, 135],
+        pin="permanent pin", 
+        fa=undef) {
+
+    dmy = check_assertions(h, w, l, al, range_of_motion);
+            
+    $fa = is_undef(fa) ? $fa : fa;
+            
     bushing_id = _bushing_id(h, w, l, al); 
     bushing_width = _bushing_width(h, w, l, al);
     size = [l, bushing_width+2*eps, h];
-    crank(size, hole=bushing_id, rotation=BEHIND, fa=fa);
+    // The main crank
+    if (pin == "permanent pin") {
+        crank(size, hole=bushing_id, rotation=BEHIND, fa=fa);
+    } else if (pin == "M3 captured nut") {
+        difference() {
+            crank(size, rotation=BEHIND, fa=fa);
+            translate([0, -w, 0]) rotate([90, 0, 0]) hole_through(name = "M3", l=2*w);
+        }
+    }
     
-    // Connector body  
+    // The shoulders  
     top_stop = -range_of_motion[0];
     bottom_stop = range_of_motion[1];
     stops = [bottom_stop, top_stop];   
@@ -169,39 +251,25 @@ module gudgeon(h, w, l, al, range_of_motion, fa=undef) {
 module small_pivot_vertical_rotation(
         h, w, lp, lg, allowance, range=[135, 135], angle=0) {
     
-    assert(is_num(h));
-    assert(is_num(w));
-    assert(is_num(lp));
-    assert(is_num(lg));
-    assert(is_num(allowance));
-    assert(is_num(angle));
-    
-    assert(is_num(range[0]));
-    assert(is_num(range[1]));
-    assert(len(range) == 2);
-    
-    assert(h > 4 * allowance, "Height is too small compared to allowance.");
-    assert(h > 2, "Height is too small for 3D printing.");
-    assert(w < 20, "Width is too large.  This design target to smaller uses.");
-    
-//    warn(
-//        lp >= 2.5*h,
-//        "lp >= 2.5*h",
-//        "Pintle length should be at least 2.5 times the height.",
-//        "The length is not sufficient to correctly implement rotation stops."
-//    );
-//    warn(
-//        lg >= 2.5*h,
-//        "lp >= 2.5*h",
-//        "Gudgeon length must be at least 2.5 times the height",
-//        "The length is not sufficient to correctly implement rotation stops."
-//    );
-//    
+
+   
 
     al = allowance;
     rotate([0, angle, 0]) pintle(h, w, lp, al, range);
     gudgeon(h, w, lg, al, range);
 }
+
+
+if (show_removable_pin_clearance) {
+    removable_pin_clearance(
+        h_example, 
+        w_example, 
+        lp_example, 
+        allowance_example, 
+        catch_strength_l, 
+        catch_max_l=5);
+}
+
 
 if (show_example) {
     small_pivot_vertical_rotation(
@@ -213,6 +281,7 @@ if (show_example) {
         range=[top_range_example, bottom_range_example], 
         angle=angle_example);    
 }
+
 
 if (show_gudgeon) {
     color("ForestGreen", alpha=0.5) 
@@ -235,3 +304,40 @@ if (show_pintle) {
             [top_range_example, bottom_range_example],
             permanent_pin=permanent_pin_example);    
 }
+
+
+if (show_pintle_external_nut_catch) {
+    w = 6;
+    h = 8;
+    difference() {
+        translate([0, w/2, 0]) crank([8, w/2, h], center=RIGHT);
+        pintle(
+            h=h, 
+            w=w, 
+            l=20,
+            al=0.4,
+            pin="M3 captured nut",
+            just_pin_clearance=true); 
+    } 
+    pintle(
+        h=h, 
+        w=w, 
+        l=16,
+        al=0.4,
+        pin="M3 captured nut"); 
+    
+    gudgeon(
+        h=h, 
+        w=w, 
+        l=16,
+        al=0.4,
+        pin="M3 captured nut"); 
+}
+
+
+//    gudgeon(
+//        //h=8, 
+//        w=8,
+//        l=8, 
+//        al=0.4,
+//        pin="M3 captured nut"); 

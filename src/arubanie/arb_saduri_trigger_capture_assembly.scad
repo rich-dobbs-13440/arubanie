@@ -35,7 +35,7 @@ show_paint_pivot_gudgeon_yoke = true;
 
 // Set to clear the trigger, at depressed with clearance for trigger cap.
 // But also need to allow air barrel clip to clear!
-paint_pivot_length_gudgeon = 22;
+paint_pivot_length_gudgeon = 24;
 wall_thickness = 2;
 paint_pivot_bridge_thickness = 4;
 
@@ -57,7 +57,7 @@ trigger_shaft_position = 0.5; // [0.0 : 0.01: 1.0]
 
 trigger_shaft_bearing_clearance = 0.4;
 trigger_shaft_diameter = 5;
-trigger_shaft_length = 19;
+
 trigger_shaft_gudgeon_length = 2;
 trigger_shaft_min_x = 10;
 trigger_shaft_catch_clearance = 1;
@@ -65,6 +65,8 @@ trigger_shaft_pivot_allowance = 0.4;
 
 trigger_bearing_id = 
     trigger_shaft_diameter + 2 * trigger_shaft_bearing_clearance;
+    
+trigger_shaft_length = 26;    
     
 trigger_shaft_range = 
     paint_pivot_length_gudgeon 
@@ -78,13 +80,16 @@ trigger_shaft_dx =
 trigger_shaft_color = "PaleGreen"; // [DodgerBlue, PaleGreen, Coral]
 trigger_shaft_alpha = 1; // [0:0.05:1]
 
-
+trigger_rod_length = 26;
 
 
 /* [Trigger Slider Design] */
 show_trigger_slider = true;
 trigger_slider_clearance = 1;
-trigger_slider_length = trigger_shaft_range - trigger_slider_clearance;
+trigger_slider_length = 
+    trigger_shaft_range 
+    - 2 * trigger_slider_clearance 
+    - paint_pivot_bridge_thickness;
 trigger_slider_color = "LightSteelBlue"; // [DodgerBlue, LightSteelBlue, Coral]
 trigger_slider_alpha = 1; // [0:0.05:1]
 
@@ -97,12 +102,12 @@ show_air_flow_servo = false;
 
 air_flow_servo_dx = 65; // [20 : 1 : 150]
 air_flow_servo_dy = -12; // [-20 : 1 : 20]
-air_flow_servo_dz = 0; // [-20 : 1 :20]
+air_flow_servo_dz = -10; // [-20 : 1 :20]
 
 air_flow_servo_disp = 
     [air_flow_servo_dx, air_flow_servo_dy,air_flow_servo_dz]; 
     
-size_air_servo_mount = [10, 34, 32];
+size_air_servo_mount = [8, 32, 18];
 air_flow_servo_color = "PaleTurquoise"; // [DodgerBlue, PaleTurquoise, Coral]
 air_flow_servo_alpha = 1; // [0:0.05:1]
 
@@ -123,7 +128,8 @@ module air_flow_servo_joiner(anchor_size) {
     dz_inner = paint_pivot_h/2;
     disp_inner = [dx_inner, dy_inner, dz_inner];
   
-    disp_outer = [air_flow_servo_disp.x, air_flow_servo_disp.y, paint_pivot_h/2];
+    dx_outer = air_flow_servo_disp.x - size_air_servo_mount.y/2;
+    disp_outer = [dx_outer, air_flow_servo_disp.y, paint_pivot_h/2];
     
     hull() {
         translate(disp_inner) block(anchor_size, center=FRONT+BELOW+LEFT); 
@@ -143,11 +149,9 @@ module air_flow_servo_attachment() {
 }
 
 
-module air_flow_servo_mount(show_servo) {
-    
-    translate(air_flow_servo_disp) 
-    translate([0, 0, paint_pivot_h/2]) // To make it on the build plate
-    rotate([0,180,0])  // To handle building toward negative z
+
+module supported_servo_mounting(show_servo) {
+  
     sub_micro_servo_mounting(
         size=size_air_servo_mount,
         include_children=show_servo,
@@ -155,7 +159,34 @@ module air_flow_servo_mount(show_servo) {
         rotation=LEFT) {
             rotate([180,0,0])
             9g_motor_centered_for_mounting();
-    }  
+    } 
+    rotate([0, 0, 90]) {
+        block(
+            [wall_thickness, size_air_servo_mount.y, -air_flow_servo_disp.z], 
+            center=BELOW+BEHIND);
+        block(
+            [size_air_servo_mount.x, wall_thickness, -air_flow_servo_disp.z],
+            center=BELOW+BEHIND);
+        center_reflect([0, 1, 0]) {
+            translate([0, size_air_servo_mount.y/2, 0])
+                block(
+                    [size_air_servo_mount.x, wall_thickness, -air_flow_servo_disp.z],
+                    center=BELOW+BEHIND+LEFT);
+        }
+    }
+}
+    
+
+module air_flow_servo_mount(show_servo) {
+    
+    translate(air_flow_servo_disp) {
+        translate([0, 0, paint_pivot_h/2]) { // To make it on the build plate
+            rotate([0,180,0]) { // To handle building toward negative z
+                supported_servo_mounting(show_servo);
+            }
+        }
+    }
+ 
 }
 
 
@@ -169,6 +200,7 @@ module trigger_slider() {
             fa=fa_as_arg); 
     }
 }
+
 
 module trigger_shaft_clearance() {
     fa_as_arg = $fa;
@@ -220,7 +252,34 @@ module trigger_shaft_gudgeon() {
             trigger_shaft_gudgeon_length, 
             trigger_shaft_pivot_allowance, 
             range_of_motion=[90, 90],
+            pin= "M3 captured nut",
             fa=fa_as_arg);
+}
+
+
+module trigger_rod() {
+    dx = trigger_shaft_length + paint_pivot_h/2-eps;
+    translate([dx, 0, 0]) {
+        
+        pintle(
+            paint_pivot_h, 
+            trigger_shaft_diameter, 
+            trigger_rod_length/2 + eps, 
+            trigger_shaft_pivot_allowance,
+            range_of_motion=[90, 90], 
+            pin= "M3 captured nut",
+            fa=fa_as_arg);
+        translate([trigger_rod_length, 0, 0]) 
+            gudgeon(
+                paint_pivot_h, 
+                trigger_shaft_diameter, 
+                trigger_rod_length/2 + eps, 
+                trigger_shaft_pivot_allowance, 
+                range_of_motion=[90, 90],
+                pin= "M3 captured nut",
+                fa=fa_as_arg);
+    }
+        
 }
 
 module paint_pivot_gudgeons() {
@@ -245,10 +304,27 @@ module paint_pivot_gudgeon_bridge() {
     }
 }
 
+module paint_pull_gudgeon() {
+    dx = paint_pivot_top_of_yoke + paint_pivot_h;
+    dy = paint_pivot_cl_dy;
+    gudgeon_length = paint_pivot_h;
+    translate([dx, dy, 0]) {
+        gudgeon(
+            paint_pivot_h, 
+            trigger_shaft_diameter, 
+            gudgeon_length, 
+            trigger_shaft_pivot_allowance, 
+            range_of_motion=[125, 125],
+            pin= "M3 captured nut",
+            fa=fa_as_arg);
+    }
+}
+
 
 module paint_pivot_gudgeon_yoke() {         
     paint_pivot_gudgeons();
     paint_pivot_gudgeon_bridge(); 
+    paint_pull_gudgeon();
 }
 
 
@@ -259,6 +335,11 @@ module show_gudgeon_assembly_design_orientation(orient_for_build) {
                 trigger_shaft();
                 trigger_catch();
                 trigger_shaft_gudgeon();
+            }
+        }
+        color("blue", alpha=trigger_shaft_alpha) {
+            translate([trigger_shaft_dx, 0, 0]) {
+                trigger_rod();
             }
         }
     }
