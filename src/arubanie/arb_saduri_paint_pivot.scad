@@ -10,7 +10,7 @@ paint_pivot_inside_dy = 11; // 16.5/2;
 
 // This controls printablity vs play in the pivot.
 paint_pivot_allowance = 0.4;
-paint_pivot_top_range_of_motion = 120;
+paint_pivot_top_range_of_motion = 140;
 paint_pivot_bottom_range_of_motion = 90;
 
 paint_pivot_pin = "M3 captured nut"; // ["M3 captured nut", "permanent pin"]

@@ -35,18 +35,25 @@ show_paint_pivot_gudgeon_yoke = true;
 
 // Set to clear the trigger, at depressed with clearance for trigger cap.
 // But also need to allow air barrel clip to clear!
-paint_pivot_length_gudgeon = 24;
+paint_pivot_inner_height = 22;
 wall_thickness = 2;
 paint_pivot_bridge_thickness = 4;
 
-
-
 paint_pivot_top_of_yoke =  
-    paint_pivot_length_gudgeon 
+    paint_pivot_inner_height 
     + paint_pivot_bridge_thickness;
 
 paint_gudgeon_color = "LightSkyBlue"; // [DodgerBlue, LightSkyBlue, Coral]
 paint_gudgeon_alpha = 1; // [0:0.05:1]
+
+
+
+/* [Trigger Slider Design] */
+show_trigger_slider = true;
+trigger_slider_clearance = 0.4;
+trigger_slider_length = 10; // [0: 20]
+trigger_slider_color = "LightSteelBlue"; // [DodgerBlue, LightSteelBlue, Coral]
+trigger_slider_alpha = 1; // [0:0.05:1]
 
 
 
@@ -64,35 +71,39 @@ trigger_shaft_catch_clearance = 1;
 trigger_shaft_pivot_allowance = 0.4;
 
 trigger_bearing_id = 
-    trigger_shaft_diameter + 2 * trigger_shaft_bearing_clearance;
+    trigger_shaft_diameter 
+    + 2 * trigger_shaft_bearing_clearance;
     
-trigger_shaft_length = 26;    
-    
+trigger_bearing_od = 
+    trigger_bearing_id
+    + 2 * wall_thickness;
+       
 trigger_shaft_range = 
-    paint_pivot_length_gudgeon 
-    - trigger_shaft_min_x 
-    - trigger_shaft_catch_clearance;
+    paint_pivot_inner_height 
+    - trigger_shaft_catch_clearance
+    - trigger_shaft_min_x ;
+
+trigger_shaft_color = "PaleGreen"; // [DodgerBlue, PaleGreen, Coral]
+trigger_shaft_alpha = 1; // [0:0.05:1]
+
+trigger_shaft_length = 
+    trigger_shaft_range 
+    + 2 * trigger_shaft_catch_clearance
+    + trigger_slider_length 
+    + paint_pivot_bridge_thickness;  
   
 trigger_shaft_dx = 
     trigger_shaft_min_x
     + trigger_shaft_position * trigger_shaft_range;
-    
-trigger_shaft_color = "PaleGreen"; // [DodgerBlue, PaleGreen, Coral]
-trigger_shaft_alpha = 1; // [0:0.05:1]
-
-trigger_rod_length = 26;
 
 
-/* [Trigger Slider Design] */
-show_trigger_slider = true;
-trigger_slider_clearance = 1;
-trigger_slider_length = 
-    trigger_shaft_range 
-    - 2 * trigger_slider_clearance 
-    - paint_pivot_bridge_thickness;
-trigger_slider_color = "LightSteelBlue"; // [DodgerBlue, LightSteelBlue, Coral]
-trigger_slider_alpha = 1; // [0:0.05:1]
+/* [Trigger Rod Design] */
+show_trigger_rod = true;
+trigger_rod_length = 25;
 
+trigger_rod_color = "RoyalBlue"; // [DodgerBlue, Thistle, Coral]
+trigger_rod_alpha = 1; // [0:0.05:1]
+trigger_rod_angle = 34; // [0: 5 : 40]
 
 
 
@@ -191,13 +202,27 @@ module air_flow_servo_mount(show_servo) {
 
 
 module trigger_slider() {
-    translate([paint_pivot_top_of_yoke - eps, 0, 0]) {
-        rod(
-            d=paint_pivot_h, 
-            l=trigger_slider_length+2*eps, 
-            hollow = trigger_bearing_id,
-            center=FRONT,
-            fa=fa_as_arg); 
+    x = trigger_slider_length;
+    y = trigger_bearing_od;
+    z = paint_pivot_h/2;
+    y_slot = wall_thickness + 2 * trigger_slider_clearance;
+    render() translate([paint_pivot_top_of_yoke - eps, 0, 0]) {
+        difference() {
+            union() {
+                block([x, y, z], center=ABOVE+FRONT);
+                rod(
+                    d=trigger_bearing_od,
+                    l=trigger_slider_length, 
+                    center=FRONT,
+                    fa=fa_as_arg);
+            }
+            rod(
+                d=trigger_bearing_id, 
+                l=2* trigger_slider_length, 
+                fa=fa_as_arg); 
+            block([x, y_slot, 2* z], center=ABOVE+FRONT);
+        }
+         
     }
 }
 
@@ -224,7 +249,7 @@ module trigger_catch() {
             block([100, 100, 50], center=ABOVE);
         } 
         // Make sure that the is no interference with the barrel:
-        rotate([0,-45,0]) 
+        rotate([0,-75,0]) 
             translate([0, 0, 0.75*barrel_diameter]) 
                 rod(d=barrel_diameter, l=20);
     }
@@ -234,12 +259,18 @@ module trigger_catch() {
 module trigger_shaft() {
     fa_as_arg = $fa;
     
-    translate([-eps, 0, 0]) 
+    translate([-eps, 0, 0]) { 
         rod(
             d=trigger_shaft_diameter, 
             l=trigger_shaft_length, 
             center=FRONT,
-            fa=fa_as_arg);    
+            fa=fa_as_arg);
+        // Slide section has support
+        translate([trigger_shaft_length+eps, 0, 0]) 
+            block(
+                [trigger_slider_length, wall_thickness, paint_pivot_h/2], 
+                center=BEHIND+ABOVE);  
+    }   
 }
 
 
@@ -258,35 +289,45 @@ module trigger_shaft_gudgeon() {
 
 
 module trigger_rod() {
-    dx = trigger_shaft_length + paint_pivot_h/2-eps;
-    translate([dx, 0, 0]) {
-        
-        pintle(
+
+    pintle(
+        paint_pivot_h, 
+        trigger_shaft_diameter, 
+        trigger_rod_length/2 + eps, 
+        trigger_shaft_pivot_allowance,
+        range_of_motion=[90, 90], 
+        pin= "M3 captured nut",
+        fa=fa_as_arg);
+    translate([trigger_rod_length, 0, 0]) 
+        gudgeon(
             paint_pivot_h, 
             trigger_shaft_diameter, 
             trigger_rod_length/2 + eps, 
-            trigger_shaft_pivot_allowance,
-            range_of_motion=[90, 90], 
-            pin= "M3 captured nut",
+            trigger_shaft_pivot_allowance, 
+            range_of_motion=[90, 90],
+            pin= "M3 captured nut", 
             fa=fa_as_arg);
-        translate([trigger_rod_length, 0, 0]) 
-            gudgeon(
-                paint_pivot_h, 
-                trigger_shaft_diameter, 
-                trigger_rod_length/2 + eps, 
-                trigger_shaft_pivot_allowance, 
-                range_of_motion=[90, 90],
-                pin= "M3 captured nut",
-                fa=fa_as_arg);
-    }
         
 }
 
-module paint_pivot_gudgeons() {
-    center_reflect([0, 1, 0]) {
-        translate([0, paint_pivot_cl_dy, 0]) {
-            paint_pivot_gudgeon(paint_pivot_length_gudgeon);
+
+module connected_trigger_rod(angle) {
+    dx = trigger_shaft_length + paint_pivot_h/2-eps;
+    translate([dx, 0, 0]) {
+        rotate([0, angle, 0]) { 
+            trigger_rod();
         }
+    }
+}
+
+
+module paint_pivot_gudgeons() {
+
+    translate([0, paint_pivot_cl_dy, 0]) {
+        paint_pivot_gudgeon(0.75*paint_pivot_inner_height);
+    }
+    translate([0, -paint_pivot_cl_dy, 0]) {
+        paint_pivot_gudgeon(paint_pivot_top_of_yoke);
     }
 }
 
@@ -294,12 +335,27 @@ module paint_pivot_gudgeons() {
 module paint_pivot_gudgeon_bridge() {
     // Mechanically connects to the gudgeons on each side
     bore_for_trigger_shaft() {
-        translate([paint_pivot_length_gudgeon-eps, 0, 0]) {
-            block([paint_pivot_bridge_thickness, 
-                2* paint_pivot_outside_dy,
+        translate([paint_pivot_inner_height-eps, 0, 0]) {
+            block(
+                [paint_pivot_bridge_thickness, 
+                2* paint_pivot_inside_dy+eps,
                 paint_pivot_h
             ],
             center=FRONT); 
+        }
+    }
+    // Add fillets to strengthen corners
+    center_reflect([0,1,0]) {
+    translate([
+        paint_pivot_inner_height,
+        paint_pivot_inside_dy, 
+        0]) {
+        
+            block([
+                    paint_pivot_bridge_thickness,
+                    wall_thickness,
+                    paint_pivot_h
+                ], center=LEFT+BEHIND);
         }
     }
 }
@@ -307,24 +363,45 @@ module paint_pivot_gudgeon_bridge() {
 module paint_pull_gudgeon() {
     dx = paint_pivot_top_of_yoke + paint_pivot_h;
     dy = paint_pivot_cl_dy;
-    gudgeon_length = paint_pivot_h;
+    gudgeon_length = paint_pivot_h + 0.4*trigger_rod_length + eps;
+
     translate([dx, dy, 0]) {
         gudgeon(
             paint_pivot_h, 
-            trigger_shaft_diameter, 
+            paint_pivot_w, 
             gudgeon_length, 
             trigger_shaft_pivot_allowance, 
-            range_of_motion=[125, 125],
+            range_of_motion=[145, 90],
             pin= "M3 captured nut",
             fa=fa_as_arg);
     }
+
 }
 
+module removable_servo_support_attachment_point() {
+    dx = paint_pivot_top_of_yoke;
+    dy = -(paint_pivot_inside_dy + wall_thickness);
+    x = 20; 
+    y = wall_thickness;
+    z = paint_pivot_h;
+    translate([dx, dy, 0]) {
+        difference() {
+            block([x, y, z], center=FRONT+LEFT);
+            translate([5,-1.5*y, 0]) 
+                rotate([90, 0, 0]) 
+                    hole_through(name = "M3", l=2*y);
+            translate([15,-1.5*y, 0]) 
+                rotate([90, 0, 0]) 
+                    hole_through(name = "M3", l=2*y);
+        }
+    }
+}
 
 module paint_pivot_gudgeon_yoke() {         
     paint_pivot_gudgeons();
     paint_pivot_gudgeon_bridge(); 
     paint_pull_gudgeon();
+    removable_servo_support_attachment_point();
 }
 
 
@@ -337,9 +414,12 @@ module show_gudgeon_assembly_design_orientation(orient_for_build) {
                 trigger_shaft_gudgeon();
             }
         }
-        color("blue", alpha=trigger_shaft_alpha) {
+    }
+    if (show_trigger_rod) {
+        color(trigger_rod_color, alpha=trigger_rod_alpha) {
+            angle = orient_for_build ? 0: trigger_rod_angle;
             translate([trigger_shaft_dx, 0, 0]) {
-                trigger_rod();
+                connected_trigger_rod(angle);
             }
         }
     }
