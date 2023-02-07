@@ -101,11 +101,17 @@ trigger_shaft_dx =
 show_trigger_rod = true;
 trigger_rod_length = 25;
 
-trigger_rod_color = "RoyalBlue"; // [DodgerBlue, Thistle, Coral]
+trigger_rod_color = "RoyalBlue"; // [DodgerBlue, RoyalBlue, Coral]
 trigger_rod_alpha = 1; // [0:0.05:1]
 trigger_rod_angle = 34; // [0: 5 : 40]
 
+/* [Paint Pull Rod Design] */
+show_paint_pull_rod = true;
+paint_pull_rod_length = 54; // [40:70]
 
+paint_pull_rod_color = "Orange"; // [DodgerBlue, Orange, Coral]
+paint_pull_rod_alpha = 1; // [0:0.05:1]
+//paint_pull_rod_angle = 34; // [0: 5 : 40]
 
 /* [Air Flow Servo Design] */
 show_air_flow_servo_mount = true;
@@ -378,6 +384,42 @@ module paint_pull_gudgeon() {
 
 }
 
+
+module paint_pull_rod() {
+
+    pintle(
+        paint_pivot_h, 
+        paint_pivot_w, 
+        paint_pull_rod_length/2 + eps, 
+        trigger_shaft_pivot_allowance,
+        range_of_motion=[145, 90], 
+        pin= "M3 captured nut",
+        fa=fa_as_arg);
+    translate([paint_pull_rod_length, 0, 0]) 
+        gudgeon(
+            paint_pivot_h, 
+            paint_pivot_w, 
+            paint_pull_rod_length/2 + eps, 
+            trigger_shaft_pivot_allowance, 
+            range_of_motion=[135, 135],
+            pin= "M3 captured nut", 
+            fa=fa_as_arg);
+        
+}
+
+
+module connected_paint_pull_rod(angle=0) {
+    dx = paint_pivot_top_of_yoke + paint_pivot_h;
+    dy = paint_pivot_cl_dy;
+    translate([dx, dy, 0]) {
+        rotate([0, angle, 0]) { 
+            paint_pull_rod();
+        }
+    }
+}
+
+
+
 module removable_servo_support_attachment_point() {
     dx = paint_pivot_top_of_yoke;
     dy = -(paint_pivot_inside_dy + wall_thickness);
@@ -421,6 +463,13 @@ module show_gudgeon_assembly_design_orientation(orient_for_build) {
             translate([trigger_shaft_dx, 0, 0]) {
                 connected_trigger_rod(angle);
             }
+        }
+    }
+    
+    if (show_paint_pull_rod) {
+        color(paint_pull_rod_color, alpha=paint_pull_rod_alpha) {
+            //angle = orient_for_build ? 0: paint_pull_rod_angle;
+            connected_paint_pull_rod(); //angle);
         }
     }
     
