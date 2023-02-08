@@ -144,7 +144,7 @@ module latches(base_diameter, horn_thickness) {
 
 * latches(23.7);
 
-module hub(horn_thickness) {
+module bare_hub(horn_thickness) {
     inner_hub = 5.32;
     hub_clearance = 1.5;
     hub_diameter = 23.8;
@@ -158,6 +158,11 @@ module hub(horn_thickness) {
             horn(h=2*horn_thickness);
         }
     }
+}
+
+
+module hub(horn_thickness) {
+    bare_hub(horn_thickness);
     latches(hub_diameter, horn_thickness);
 }
 
