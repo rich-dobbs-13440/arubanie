@@ -12,18 +12,20 @@ range_of_travel = 6;
 radial_allowance = 0.4;
 axial_allowance = 0.4;
 wall_thickness = 2;
-angle = 0; // [-180 : 1: 180]
+angle = 0; // [-180 : 5: 180]
 
 /* [ Visibility] */
 
 traveller_color = "blue";
+traveller_alpha = 1.0; // [0, 0.25, 0.5, 1]
 bearing_color = "red";
 bearing_alpha = 1.0; // [0, 0.25, 0.5, 1]
+crank_shaft_color = "green";
+crank_shaft_alpha = 1.0; // [0, 0.25, 0.5, 1]
 support_color = "orange";
 support_alpha = 1.0; // [0, 0.25, 0.5, 1]
 wall_color = "white";
-wall_alpha = 1.0; // [0.25, 0.5, 1]
-alpha = 1.0; // [0.25, 0.5, 1]
+wall_alpha = 1.0; // [0, 0.25, 0.5, 1]
 
 crank_box(pin_diameter, range_of_travel, radial_allowance, axial_allowance, wall_thickness, angle);
     
@@ -57,15 +59,20 @@ module crank_box(
 
     
     module assembly() {
-        dy_traveller = sin(angle) * range_of_travel/2;
+        dy_traveller = -sin(angle) * range_of_travel/2;
         translate([0, dy_traveller, 0]) {
             traveller();
             push_rod();
         } 
 
-        rotate([angle, 0, 0]) crank_shaft();
+        rotate([angle, 0, 0]) {
+            color(crank_shaft_color, alpha=crank_shaft_alpha)
+                crank_shaft();
+            color(support_color, alpha=support_alpha) 
+                crank_shaft_strengthen_and_support();
+        }
         
-        bearings();
+        color(bearing_color, alpha=bearing_alpha) bearings();
         color(wall_color, alpha=wall_alpha) {
             bearing_side_walls();
             bearing_yokes();
@@ -109,8 +116,8 @@ module crank_box(
         }
     }
     
-    module bearing_and_shaft() {
-        color(bearing_color, alpha=bearing_alpha) {
+    module bearing() {
+         {
             bore_for_axle(0) {
                 bearing_blank();
             }
@@ -121,13 +128,17 @@ module crank_box(
         dx = 2 * (pin_length/2 + x_bearing/2) -4 * eps;
         center_reflect([1, 0, 0]) {
             translate([dx, 0, -10*eps]) {
-                bearing_and_shaft();
+                bearing();
             }
         } 
     }
+    
+    module crank_shaft_strengthen_and_support() {
+         supported_cranks();
+         supported_axle();
+    }
 
     module crank_shaft() {
-
         // bearing_pins
         dx = 2 * (pin_length/2 + x_bearing/2);
         translate([dx, 0, 0]) rod(d=pin_diameter, l=pin_length+eps);
@@ -144,26 +155,25 @@ module crank_box(
                 translate([dx_j, 0, -dz_travel]) rod(d=pin_diameter, l=x_bearing);
             }
         }
-        color(support_color, alpha=support_alpha) supported_cranks();
-        color(support_color, alpha=support_alpha) supported_axle();
+
     }
     
 
     module push_rod(clearance=0) {
         x = wall_thickness + 2 * clearance; 
-        y = dy_inside + wall_thickness/2;
+        y = 2 * (dy_inside + 2 * wall_thickness) + range_of_travel;
         z = wall_thickness + pin_diameter/2;
         dy = y_bearing/2;
         dz = -axle_height;
         d = pin_diameter + 2 * clearance;
-        center_reflect([0, 1, 0]) {
-            translate([0, dy, dz]) {
-                block([x, y, z], center=RIGHT+ABOVE);
+        
+            translate([0, 0, dz]) {
+                block([x, y, z], center=ABOVE);
                 translate([0, 0, wall_thickness- clearance]) {
-                    rod(d=d, l=y, center=SIDEWISE+ABOVE+RIGHT);
+                    rod(d=d, l=y, center=SIDEWISE+ABOVE);
                 }
             }
-        }
+
     }
     
     module bore_for_push_rod() {
@@ -231,7 +241,7 @@ module crank_box(
     
     module traveller() {
         dx = range_of_travel/2;
-        color(traveller_color, alpha=alpha) difference() {
+        color(traveller_color, alpha=traveller_alpha) difference() {
             hull() {
                 translate([0, 0, dx]) rod(d=y_bearing, l=x_bearing);
                 block([x_bearing, y_bearing, dx], center=ABOVE);
