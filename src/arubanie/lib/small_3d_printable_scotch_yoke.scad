@@ -22,7 +22,9 @@ radial_allowance = 0.4;
 axial_allowance = 0.4;
 wall_thickness = undef; // [undef, 2, 4];
 angle = 0; // [-180 : 5: 180]
-support_axle = [true, true];
+support_plus_x_axle = true;
+support_negative_x_axle = true;
+support_axle = [support_plus_x_axle, support_negative_x_axle];
 
 /* [ Visibility] */
 push_rod_color = "purple";
@@ -49,14 +51,18 @@ wall_color = "white";
 wall_alpha = 1.0; // [0, 0.25, 0.5, 1]
 wall_coloring = [wall_color, wall_alpha];
 
-scotch_yoke(
-    pin_diameter, 
-    range_of_travel, 
-    radial_allowance, 
-    axial_allowance, 
-    wall_thickness, 
-    angle,
-    support_axle);
+module x_axis_servo_hub() {
+    horn_thickness = 3;
+    translate([horn_thickness, 0, 0]) {
+        rotate([45, 0, 0]) {
+            rotate([0, 90, 0]) 
+                bare_hub(horn_thickness);
+        }
+    }
+}
+
+
+
 
 dimensions = scotch_yoke(
     pin_diameter, 
@@ -66,12 +72,35 @@ dimensions = scotch_yoke(
     wall_thickness, 
     angle,
     support_axle);
-  
-log_v1("dimensions", dimensions, verbosity, INFO);  
-    
-//horn_thickness = 2;
-//* horn(h=horn_thickness);
-//translate([horn_thickness, 0, 0]) rotate([45, 0, 0]) rotate([0, 90, 0]) bare_hub(horn_thickness=horn_thickness);
+
+log_v1("dimensions", dimensions, verbosity, INFO);
+crank_shaft_length = find_in_dct(dimensions, "crank_shaft_length");
+axle_height = find_in_dct(dimensions, "axle_height");
+
+module my_hub() {
+    // Need to back up hub, since it is designed
+    // with a hole in the center, and the radius isn't
+    // even or publized
+    x_axis_servo_hub();
+    rod(d=2*axle_height, l=1, center=BEHIND);
+}
+
+* translate([crank_shaft_length/2, 0, axle_height]) {
+    rotate([angle, 0, 0]) {  // sync hub rotation to crank shaft rotation
+         my_hub();
+    }
+}
+
+scotch_yoke(
+    pin_diameter, 
+    range_of_travel, 
+    radial_allowance, 
+    axial_allowance, 
+    wall_thickness, 
+    angle,
+    support_axle);
+
+
 
 function scotch_yoke(
         pin_diameter, 
@@ -349,7 +378,7 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
         // Design so that the support can be torn away
         x_p = l_joiner - 2 * axial_allowance;
         y_p = pin_diameter;
-        z_p = axle_height - 0.75*pin_diameter + 0.5*radial_allowance;
+        z_p = axle_height - 0.75*pin_diameter + 0.0*radial_allowance;
         dx_p = -axle_height;
         center_reflect([1, 0, 0]) {
             translate([dx, 0, 0]) {
