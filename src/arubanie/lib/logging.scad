@@ -9,15 +9,34 @@ Features:
 
 Usage:
 
-include <logging.scad>
+include <lib/logging.scad>
+
+The logging level constants are:
+
+*/
+
+CRITICAL = 50 + 0; 
+FATAL = CRITICAL + 0;
+ERROR = 40 + 0;
+WARNING = 30 + 0;
+WARN = WARNING + 0;
+INFO = 20 + 0;
+DEBUG = 10 + 0;
+NOTSET = 0 + 0;
+
+/*
+
     
-Add this to your customizer section:    
-    
-/* [Logging] * /
+Add this to your customizer section:   
+
+*/
+
+/* [Logging] */
 
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice);    
-    
+
+/*  
 
 Sample usage in code: 
     // DEBUG level assigned by default!
@@ -51,25 +70,10 @@ Sample usage in code:
     
 */
 
-CRITICAL = 50 + 0; 
-FATAL = CRITICAL + 0;
-ERROR = 40 + 0;
-WARNING = 30 + 0;
-WARN = WARNING + 0;
-INFO = 20 + 0;
-DEBUG = 10 + 0;
-NOTSET = 0 + 0;
-
-// ----------Copy this section into your usage file -------------
-
-/* [Logging] */
-
-log_verbosity_choice = "WARN"; // ["WARN", "INFO", "DEBUG"]
-verbosity = log_verbosity_choice(log_verbosity_choice);
-
-// ---------End of section-------------------
 
 module end_of_customization() {}
+
+
 
 
 show_name = false;
