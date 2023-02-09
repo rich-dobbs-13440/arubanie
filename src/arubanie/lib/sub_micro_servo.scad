@@ -10,20 +10,37 @@ sub_micro_servo_mounting(include_children=if_designing) {
     9g_motor_centered_for_mounting();
 }
 
+sub_micro_servo_mount_to_axle(
+        axle_diameter=4, 
+        axle_height= 10,
+        wall_height=6,
+        radial_allowance=0.4, 
+        axial_allowance=0.4, 
+        wall_thickness=2, 
+        angle = 0);
+
 
 */
 include <centerable.scad>
 use <shapes.scad>
 use <9g_servo.scad>
+use <small_servo_cam.scad>
 
 eps =0.001;
 
 /* [Show] */
 
-show_default = true;
+show_default = false;
 show_with_servo = false;
 show_with_back = false;
 show_translation_test = false;
+show_mount_to_axle = true;
+
+/* [Mount to axle example] */
+angle = 0; // [-90: 5: +90]
+axle_height = 12; // [6: 1: 20]
+
+end_of_customization() {}
 
 if (show_default) {
     sub_micro_servo_mounting();
@@ -48,6 +65,11 @@ if (show_translation_test) {
     color("yellow") sub_micro_servo_mounting(center=RIGHT);
 }
 
+
+if (show_mount_to_axle) {
+    sub_micro_servo_mount_to_axle(axle_height=axle_height, angle=angle);
+}
+
 module end_of_customization() {}
 
 
@@ -62,15 +84,19 @@ screw_length_allowance = 2;
 
 //minimum_size_err_msg = text("The servo size is below the minimum allowed of ", minimum_size);
 
+module bare_pilot_hole() {
+    l = screw_length+screw_length_allowance;
+    d = pilot_diameter;
+    rod(d=d, l=l, center=FRONT);
+}  
+
 module pilot_hole(screw_offset, screw_block) {
     t = [
         -(screw_block.x/2 + eps), 
         -screw_block.y/2 + screw_offset, 
         0
     ];
-    l = screw_length+screw_length_allowance;
-    d = pilot_diameter;
-    translate(t) rod(d=d, l=l, center=FRONT);    
+    translate(t) bare_pilot_hole(); 
 }
 
 
@@ -93,7 +119,7 @@ module back_wall(extent, servo_clearance, remainder) {
     dy_window = servo_clearance.y/2; 
     
     translate([dx_back_wall, 0, 0])
-        difference() {
+        render() difference() {
             cube(back_wall, center=true);
             translate([0, dy_window, 0]) cube(servo_connector_window, center=true);
             translate([0, -dy_window, 0]) cube(servo_connector_window, center=true);
@@ -162,6 +188,158 @@ module sub_micro_servo_mounting(
             }
         }
     } 
+}
+
+
+
+module sub_micro_servo_mount_to_axle(
+        axle_diameter=4, 
+        axle_height= 10,
+        wall_height=6,
+        radial_allowance=0.4, 
+        axial_allowance=0.4, 
+        wall_thickness=2, 
+        angle = 0) {
+            
+    //assert(axle_height >= 12);
+            
+          
+    
+    horn_thickness = 3;
+    horn_radius = 11.0;
+    horn_overlap = 0.5;
+    hub_backer_l = 2;
+    hub_backer_diameter = 16;
+    dx_horn = horn_thickness + axial_allowance + hub_backer_l - horn_overlap;
+    dx_servo_offset = 11.32; 
+    dx_servo = dx_horn +  dx_servo_offset;
+
+    servo_width = 12.00;
+    size_pillar = [6, 4, servo_width/2 + axle_height];
+    x_servo_side_wall = dx_servo - size_pillar.x;
+    y_hub_clearance = 28/2;
+    servo_length = 24.00;
+    servo_axle_x_offset = 6;
+    y_plus = servo_axle_x_offset;  // Axis differ by 90 degerees!
+    y_minus = servo_length - servo_axle_x_offset;
+
+                
+    color("orange") x_axis_servo_hub(angle);
+    rotary_servo_mount();
+        
+   
+    module rotary_servo_mount() {
+        color("red") servo_mounting_pillars();
+        color("blue") hub_yoke();
+        color("green") minus_joiner();
+        color("purple") plus_joiner();
+    }
+    
+    module truncated_horn() {
+        difference() {
+            translate([dx_horn, 0, 0]) {
+                rotate([45, 0, 0]) {
+                    rotate([0, 90, 0]) 
+                        bare_hub(horn_thickness);
+                }
+            }
+            translate([0, 0, -axle_height]) block([100, 100, 100], center=BELOW);
+        }
+    }
+    
+    module printable_horn() { 
+        truncated_horn();
+        difference() {
+            translate([dx_horn, 0, 0]) {
+                block([1.8*horn_thickness, 10, axle_height], center=BELOW);
+            }
+            hull() {
+                truncated_horn();
+            }
+        }
+    }
+            
+    module x_axis_servo_hub(angle) {
+        rotate([angle, 0, 0]) {
+            translate([axial_allowance, 0, 0]) {
+                rod(d=hub_backer_diameter, l=hub_backer_l, center=FRONT);
+                rod(d=axle_diameter, l=wall_thickness + 2 * axial_allowance, center=BEHIND);
+            }
+            printable_horn();
+        }
+        
+    }
+    
+    module support_horn() {
+        // Support horn for 3D printing
+        size_support = [
+            2*horn_thickness-0.2, 
+            0.75*horn_radius, 
+            0.25*horn_radius
+        ];
+        translate([dx_outside+dx_horn, 0, 0])
+            block(size_support, center=ABOVE);
+    }
+    
+    module drilled_pillar() {
+        screw_offset = 2;
+        difference() {
+            block(size_pillar, center=BEHIND+ABOVE+RIGHT);
+            translate([1, screw_offset, axle_height]) rotate([0, 180, 0]) bare_pilot_hole();
+        }
+    }
+
+    
+    module servo_mounting_pillars() { 
+        dy_plus = y_plus;
+        
+        translate([dx_servo, dy_plus, -axle_height]) {
+                    drilled_pillar();     
+        }
+        
+        dy_minus = -y_minus;
+        translate([dx_servo, dy_minus, -axle_height]) {
+            mirror([0, 1, 0]) drilled_pillar();
+        }
+        translate([dx_servo, dy_minus, -axle_height])
+            block([size_pillar.x, servo_length, wall_thickness], center=BEHIND+ABOVE+RIGHT);
+    }
+    
+    module hub_yoke() {
+        side_wall = [x_servo_side_wall, wall_thickness, wall_height];
+        bearing_wall = [
+            wall_thickness, 
+            2*y_hub_clearance + 2 * wall_thickness, 
+            wall_height
+        ];
+        center_reflect([0, 1, 0]) {
+            translate([0, y_hub_clearance, -axle_height]) { 
+                block(side_wall, center=FRONT+ABOVE+RIGHT);
+            }
+        }
+        translate([0, 0, -axle_height]) block(bearing_wall, center=BEHIND+ABOVE);  
+    }
+    
+    module minus_joiner() { 
+        y = y_minus - y_hub_clearance + size_pillar.y;
+        dx = x_servo_side_wall;
+        translate([dx, -y_hub_clearance, -axle_height])  
+            block([wall_thickness, y, wall_height], center=ABOVE+BEHIND+LEFT);
+    }
+    
+    module plus_joiner() {
+        y = y_hub_clearance - y_plus + wall_thickness;
+        dx = x_servo_side_wall;
+        translate([dx, y_plus, -axle_height])  
+            block([wall_thickness, y, wall_height], center=ABOVE+FRONT+RIGHT);
+    }
+    
+
+    
+
+    
+
+
 }
 
 

@@ -1,8 +1,10 @@
 include <logging.scad>
 include <centerable.scad>
 use <shapes.scad>
- use <not_included_batteries.scad>
+use <not_included_batteries.scad>
 use <small_servo_cam.scad>
+use <sub_micro_servo.scad>
+use <9g_servo.scad>
 include <nutsnbolts-master/cyl_head_bolt.scad>
 
 
@@ -226,14 +228,7 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     l_joiner = extract("l_joiner"); 
     provide_x_axis_servo_mounting= extract("provide_x_axis_servo_mounting");
     crank_shaft_length = extract("crank_shaft_length");
-    horn_thickness = 3;
-    horn_radius = 11.0;
-    horn_overlap = 0.5;
-    hub_backer_l = 2;
-    hub_backer_diameter = 16;
-    dx_horn = horn_thickness + axial_allowance + hub_backer_l - horn_overlap;
-    dx_servo_offset = 11.32; // //8.65;
-    dx_servo = dx_horn +  dx_servo_offset;
+
     
     // The frame of reference creation is with the centerline of 
     // the crankshaft.  Buf for usage convenience,
@@ -243,103 +238,26 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     
     if (provide_x_axis_servo_mounting) {
         
+//        translate([dx_outside, 0, axle_height]) {
+//            rotate([angle, 0, 0]) {  // sync hub rotation to crank shaft rotation
+//                x_axis_servo_hub(angle);
+//            }
+//        }
         translate([dx_outside, 0, axle_height]) {
-            rotate([angle, 0, 0]) {  // sync hub rotation to crank shaft rotation
-                x_axis_servo_hub(angle);
-            }
+            sub_micro_servo_mount_to_axle(
+                axle_diameter=4, 
+                axle_height= axle_height,
+                wall_height=6,
+                radial_allowance=radial_allowance, 
+                axial_allowance=axial_allowance, 
+                wall_thickness=wall_thickness, 
+                angle=angle);
         }
-        // Support horn for 3D printing
-        size_support = [
-            2*horn_thickness-0.2, 
-            0.75*horn_radius, 
-            0.25*horn_radius
-        ];
-        translate([dx_outside+dx_horn, 0, 0])
-            block(size_support, center=ABOVE);
         
-        translate([dx_outside, 0, 0]) rotary_servo_mount();
+        //translate([dx_outside, 0, 0]) rotary_servo_mount();
     }
     
-    servo_width = 12.00;
-    size_pillar = [6, 4, axle_height + servo_width/2];
-    x_servo_side_wall = dx_servo - size_pillar.x;
-    
-    
-    module servo_mounting_pillars() {
-        servo_length = 24.00;
-        servo_axle_x_offset = 6;
-        dy_plus = servo_axle_x_offset;  // Axis differ by 90 degerees!
-        dy_minus = -servo_length + servo_axle_x_offset;
-        
-        
-        translate([dx_servo, dy_plus, 0]) {
-            block(size_pillar, center=ABOVE+BEHIND+RIGHT);
-        }
-        translate([dx_servo, dy_minus, 0]) {
-            block(size_pillar, center=ABOVE+BEHIND+LEFT);
-        }
-    }
-    
-    module servo_side_wall_extension() {
-        
-        side_wall = [x_servo_side_wall, wall_thickness, wall_height];
-        center_reflect([0, 1, 0]) {
-            translate([0, -dy_inside, 0]) { 
-                block(side_wall, center=FRONT+ABOVE+LEFT);
-            }
-        }  
-    }
-    
-    module servo_right_joiner() {
-        y = wall_thickness + size_pillar.y;
-        dx = x_servo_side_wall;
-        translate([dx, dy_inside, 0])  
-            block([wall_thickness, y, wall_height], center=ABOVE+FRONT);
-    }
-    
-    module servo_left_joiner() {
-        y = wall_thickness + size_pillar.y;
-        dx = x_servo_side_wall;
-        translate([dx, -dy_inside, 0])  
-            block([wall_thickness, y, wall_height], center=ABOVE+BEHIND+LEFT);
-    }
-    
-    module rotary_servo_mount() {
-        servo_mounting_pillars();
-        servo_side_wall_extension();
-        servo_right_joiner();
-        servo_left_joiner();
 
-    }
-    
-    module display(coloring) {
-        color_name = coloring[0];
-        alpha = coloring[1]; 
-        if (alpha == 0) {
-            // Don't process children at at all, to avoid
-            // visual artifacts and use alpha values
-            // to control printing.
-        } else {
-            color(color_name, alpha=alpha) children();
-        }
-        
-    } 
-    
-    
-    module x_axis_servo_hub(angle) {
-
-        translate([axial_allowance, 0, 0]) {
-            rod(d=hub_backer_diameter, l=hub_backer_l, center=FRONT);
-        }
-
-        
-        translate([dx_horn, 0, 0]) {
-            rotate([45, 0, 0]) {
-                rotate([0, 90, 0]) 
-                    bare_hub(horn_thickness);
-            }
-        } 
-    }
 
     module assembly(support_axle) {
         
@@ -367,6 +285,20 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
         }
 
     }
+
+    module display(coloring) {
+        color_name = coloring[0];
+        alpha = coloring[1]; 
+        if (alpha == 0) {
+            // Don't process children at at all, to avoid
+            // visual artifacts and use alpha values
+            // to control printing.
+        } else {
+            color(color_name, alpha=alpha) children();
+        }
+        
+    } 
+    
 
     module bearing_side_walls() {
         x = wall_thickness;
