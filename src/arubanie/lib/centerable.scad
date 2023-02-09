@@ -84,6 +84,7 @@ module center_rotation(rotation) {
 
 
 module center_reflect(v) {
+    assert(!is_undef(v), "You must pass an mirroring argument to center_reflect()");
     children();
     mirror(v) children();
 }

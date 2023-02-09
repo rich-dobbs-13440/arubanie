@@ -232,7 +232,7 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     hub_backer_l = 2;
     hub_backer_diameter = 16;
     dx_horn = horn_thickness + axial_allowance + hub_backer_l - horn_overlap;
-    dx_servo_offset = 8.65;
+    dx_servo_offset = 11.32; // //8.65;
     dx_servo = dx_horn +  dx_servo_offset;
     
     // The frame of reference creation is with the centerline of 
@@ -260,45 +260,56 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
         translate([dx_outside, 0, 0]) rotary_servo_mount();
     }
     
-    module rotary_servo_mount() {
-        // Servo support
-        servo_width = 12.00;
+    servo_width = 12.00;
+    size_pillar = [6, 4, axle_height + servo_width/2];
+    x_servo_side_wall = dx_servo - size_pillar.x;
+    
+    
+    module servo_mounting_pillars() {
         servo_length = 24.00;
         servo_axle_x_offset = 6;
-        dy_plus = servo_axle_x_offset;
+        dy_plus = servo_axle_x_offset;  // Axis differ by 90 degerees!
         dy_minus = -servo_length + servo_axle_x_offset;
-        dx_servo_inside = 16;
-        dx = dx_servo;
         
-        right_wall = [dx_servo, wall_thickness, wall_height];
-        translate([0, dy_inside, 0]) { 
-            block(right_wall, center=FRONT+ABOVE+RIGHT);
-        }
-        size_pillar = [4, 5, axle_height + servo_width];
-        right_joiner = [wall_thickness, dy_inside - dy_plus + wall_thickness, wall_height];
-        translate([dx, dy_plus, 0]) {
+        
+        translate([dx_servo, dy_plus, 0]) {
             block(size_pillar, center=ABOVE+BEHIND+RIGHT);
-            block(right_joiner, center=ABOVE+BEHIND+ RIGHT);
         }
-        
-        left_wall = [dx_servo-4, wall_thickness, wall_height];
-        translate([0, -dy_inside, 0]) { 
-            block(left_wall, center=FRONT+ABOVE+LEFT); 
-        }   
-
-        translate([dx, dy_minus, 0]) {
+        translate([dx_servo, dy_minus, 0]) {
             block(size_pillar, center=ABOVE+BEHIND+LEFT);
         }
-        y_out = dy_minus - size_pillar.y;
-        y_in = -dy_inside;
-        y_lj = abs(y_out - y_in);
-        left_joiner = [wall_thickness, y_lj, wall_height];
-        translate([left_wall.x, -dy_inside, 0]) {
-            block(left_joiner, center=ABOVE+BEHIND+LEFT);
-        }
-
-        
+    }
     
+    module servo_side_wall_extension() {
+        
+        side_wall = [x_servo_side_wall, wall_thickness, wall_height];
+        center_reflect([0, 1, 0]) {
+            translate([0, -dy_inside, 0]) { 
+                block(side_wall, center=FRONT+ABOVE+LEFT);
+            }
+        }  
+    }
+    
+    module servo_right_joiner() {
+        y = wall_thickness + size_pillar.y;
+        dx = x_servo_side_wall;
+        translate([dx, dy_inside, 0])  
+            block([wall_thickness, y, wall_height], center=ABOVE+FRONT);
+    }
+    
+    module servo_left_joiner() {
+        y = wall_thickness + size_pillar.y;
+        dx = x_servo_side_wall;
+        translate([dx, -dy_inside, 0])  
+            block([wall_thickness, y, wall_height], center=ABOVE+BEHIND+LEFT);
+    }
+    
+    module rotary_servo_mount() {
+        servo_mounting_pillars();
+        servo_side_wall_extension();
+        servo_right_joiner();
+        servo_left_joiner();
+
     }
     
     module display(coloring) {
@@ -327,11 +338,7 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
                 rotate([0, 90, 0]) 
                     bare_hub(horn_thickness);
             }
-        }
-        
-
-        
-        
+        } 
     }
 
     module assembly(support_axle) {
@@ -559,7 +566,7 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
         }    
     }
     
-    module support_blank() {
+    module handle_blank() {
         
         hull() {
             // Around axle centerline
@@ -574,25 +581,41 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
         }
         
     }
+    
+    module minimal_axle_support() {
+        // Small cone.  Should break easily
+        translate([0, 0, 0]) {
+            rotate([0, -90, 0]) 
+                cylinder(
+                    d1 = pin_diameter - radial_allowance, 
+                    d2 = pin_diameter + 4*radial_allowance,
+                    h = 2 * axial_allowance,
+                    $fn = 24);
+            
+        }
+        // Support cone at bottom
+        translate([0, 0, -pin_diameter/2 - radial_allowance]) {
+            rod(d=4*radial_allowance, l=4*axial_allowance, center=BELOW);
+        }
+
+    }
 
     module supported_axle(support_axle) {
         dx = 3 * (pin_length/2 + x_bearing/2);
-        if (support_axle[0] && support_axle[1]  ) {
-            center_reflect([1, 0, 0]) {
-                translate([dx, 0, 0]) {
-                    support_blank();
-                }
-            }
-        } else if (support_axle[0]) {
+        if (support_axle[0] == "handle") {
             translate([dx, 0, 0]) {
-                support_blank();
+                handle_blank();
             } 
-        } else if (support_axle[1]) {
+        } 
+        if (support_axle[1] == "handle") {
             translate([-dx, 0, 0]) {
-                support_blank();
+                handle_blank();
             }
-        } else {
-            assert(false, str("Don't know how to handle 'support_axle'", support_axle));
+        } 
+        if (support_axle[1]) {
+            translate([-dx_outside, 0, 0]) {
+                minimal_axle_support();
+            }
         }
     }
    
