@@ -1,3 +1,66 @@
+/*
+
+Usage:
+
+use <lib/small_3d_printable_scotch_yoke.scad>
+
+dimensions = scotch_yoke(
+    pin_diameter, 
+    range_of_travel, 
+    radial_allowance, 
+    axial_allowance, 
+    wall_thickness,
+    bearing_width, 
+    angle,
+    support_axle);
+
+log_v1("dimensions", dimensions, verbosity, INFO);
+
+scotch_yoke(
+    pin_diameter, 
+    range_of_travel, 
+    radial_allowance, 
+    axial_allowance, 
+    wall_thickness, 
+    bearing_width,
+    angle,
+    support_axle);
+
+Notes:
+
+Center of origin at the CL of crank shaft and the CL of push rod
+at the level of the build plane.  
+
+The crank shaft rotation is on the x axis.
+
+The push rod translation is on the y axis.
+
+This design assumes that the component will be built on the
+printer build plate.  If placed directly on top of printed feature
+the component will be froze in place.  No provision for
+printable rafting of the push rod and traveller has been 
+made at this time. 
+
+At building, the angle should be zero.  The working angle range should 
+be 90 - 270. (This should be revised so that the working range
+is 0 to 180, with the build position being 270).
+
+This design includes features to reduce slop, while still being
+printable.  The part will need some exercise to move smoothly,
+and there is a distinct transition between the sloppy top range
+and the tighter bottom range.  The part in use should be 
+rotated 180 degrees from as built for smallest slop.
+
+There is still some slop in crankshaft bearing design that
+should be worked up.
+
+*** Need describe how to get the servo mounting!!!
+
+*/
+
+
+
+
 include <logging.scad>
 include <centerable.scad>
 use <shapes.scad>
@@ -18,15 +81,16 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 
 /* [ Test ] */
 
-pin_diameter = 4;
+pin_diameter = 5;
 range_of_travel = 6;
 radial_allowance = 0.4;
 axial_allowance = 0.4;
-wall_thickness = undef; // [undef, 2, 4];
-angle = 0; // [-180 : 5: 180]
+wall_thickness = 2; // [undef, 2, 4];
+bearing_width = 2;
+angle = 0; // [0 : 5: 270]
 support_plus_x_axle = true;
 support_negative_x_axle = true;
-support_axle = [support_plus_x_axle, support_negative_x_axle];
+_support_axle = [support_plus_x_axle, support_negative_x_axle];
 
 /* [ Visibility] */
 push_rod_color = "purple";
@@ -55,59 +119,41 @@ wall_coloring = [wall_color, wall_alpha];
 
 module end_of_customization() {}
 
-_support_axle = ["servo horn", true];
 
-dimensions = scotch_yoke(
-    pin_diameter, 
-    range_of_travel, 
-    radial_allowance, 
-    axial_allowance, 
-    wall_thickness, 
-    angle,
-    _support_axle);
-
-log_v1("dimensions", dimensions, verbosity, INFO);
-
-
-
-scotch_yoke(
-    pin_diameter, 
-    range_of_travel, 
-    radial_allowance, 
-    axial_allowance, 
-    wall_thickness, 
-    angle,
-    _support_axle);
 
 //***********************End of Example
+
+function _scotch_yoke_assert_msg(name, value) = str("Invalid argument: name=", name,, " value=", value);
 
 function scotch_yoke(
         pin_diameter, 
         range_of_travel, 
         radial_allowance, 
         axial_allowance=undef, 
-        wall_thickness=undef, 
+        wall_thickness=undef,
+        bearing_width=undef,
         angle = 0,
         support_axle=[true, true]) =
     
     assert(!is_undef(pin_diameter))
     assert(!is_undef(range_of_travel))
     assert(!is_undef(radial_allowance))
+    assert(is_num(angle), _scotch_yoke_assert_msg("angle", angle))
     let(
         _axial_allowance = is_undef(axial_allowance) ? radial_allowance_val : axial_allowance,
         _wall_thickness = is_undef(wall_thickness) ? pin_diameter : wall_thickness,
         r_pin = pin_diameter / 2,
         d_slot = pin_diameter + 2 * radial_allowance,
         axle_height = range_of_travel + pin_diameter/2 + _wall_thickness,
-        x_bearing = pin_diameter,
+        x_bearing = is_undef(bearing_width) ? pin_diameter : bearing_width,
         y_bearing = pin_diameter + 2 * _wall_thickness,
         pin_length = x_bearing + 2 * axial_allowance,
         dz_travel = -range_of_travel/2,
 
         support_x = 0.75 * r_pin,
         support_y = 0.75 * x_bearing,
-        end_clearance = _wall_thickness/2,
-        dy_inside = axle_height + end_clearance,
+        end_clearance = 0.5,
+        dy_inside = y_bearing/2 + range_of_travel/2  + end_clearance,
         dy_outside = dy_inside + _wall_thickness,
         dx_inside = 1.5*x_bearing,
         dx_outside = dx_inside + _wall_thickness,
@@ -172,7 +218,8 @@ module scotch_yoke(
         range_of_travel, 
         radial_allowance, 
         axial_allowance, 
-        wall_thickness, 
+        wall_thickness,
+        bearing_width,
         angle = 0,
         support_axle=[true, true]) {
 
@@ -183,6 +230,7 @@ module scotch_yoke(
             radial_allowance, 
             axial_allowance, 
             wall_thickness, 
+            bearing_width,
             angle,
             support_axle);
             
@@ -228,7 +276,8 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     l_joiner = extract("l_joiner"); 
     provide_x_axis_servo_mounting= extract("provide_x_axis_servo_mounting");
     crank_shaft_length = extract("crank_shaft_length");
-
+    joiner_multipler = 1.5;
+    d_crank_clearance = range_of_travel + joiner_multipler*pin_diameter + 2 * radial_allowance;
     
     // The frame of reference creation is with the centerline of 
     // the crankshaft.  Buf for usage convenience,
@@ -238,11 +287,6 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     
     if (provide_x_axis_servo_mounting) {
         
-//        translate([dx_outside, 0, axle_height]) {
-//            rotate([angle, 0, 0]) {  // sync hub rotation to crank shaft rotation
-//                x_axis_servo_hub(angle);
-//            }
-//        }
         translate([dx_outside, 0, axle_height]) {
             sub_micro_servo_mount_to_axle(
                 axle_diameter=4, 
@@ -254,7 +298,6 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
                 angle=angle);
         }
         
-        //translate([dx_outside, 0, 0]) rotary_servo_mount();
     }
     
 
@@ -362,23 +405,20 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     }
 
     module crank_shaft() {
-        // bearing_pins
-        //dx = 2 * (pin_length/2 + x_bearing/2);
         dx = 2*x_bearing;
-        translate([dx, 0, 0]) rod(d=pin_diameter, l=x_bearing + pin_diameter);
-        translate([-dx, 0, 0]) rod(d=pin_diameter, l=x_bearing + pin_diameter);
+        l_bearing_pin = x_bearing + 4 * axial_allowance;
+        translate([dx, 0, 0]) rod(d=pin_diameter, l=l_bearing_pin);
+        translate([-dx, 0, 0]) rod(d=pin_diameter, l=l_bearing_pin);
         
         // Traveller pin
         translate([0, 0, -dz_travel]) rod(d=pin_diameter, l=pin_length+eps);
         
         // Joiner crank 
         dx_j = x_bearing;
-        d_j = 1.5 * pin_diameter;
+        d_j =  joiner_multipler * pin_diameter;
+        d_j_ex = range_of_travel/2 + joiner_multipler*pin_diameter;
         center_reflect([1, 0, 0]) {
-            hull() {
-                translate([dx_j, 0, 0]) rod(d=d_j, l=l_joiner);
-                translate([dx_j, 0, -dz_travel]) rod(d=d_j, l=l_joiner);
-            }
+                translate([dx_j, 0, -dz_travel/2]) rod(d=d_j_ex, l=l_joiner);
         }
 
     }
@@ -391,26 +431,18 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
             block([1, 4, z_safe], center=ABOVE+FRONT);
             block([x_bearing, 4, 2], center=ABOVE+FRONT);
         }
-        // Traveler faux support
-        difference() {
-            translate([x_bearing/2, 0, -axle_height]) {
-                block([1, 4, z_safe], center=BEHIND+ABOVE);
-                block([x_bearing, 4, 2], center=BEHIND+ABOVE);
-            }
-            slot_clearance();
-        }
     }
     
 
     module bridged_support() {
+        
+        l_bridge = 3*x_bearing - axial_allowance;
         translate([0, 0, -1.5]) {
-            translate([x_bearing/2, 0, 0.5]) { 
-                can(d=1, h=pin_diameter, center=FRONT+BELOW);
-            }
-            translate([1.5*x_bearing, 0, 0])
-                block([radial_allowance, 1, 1], center=BEHIND);
-            translate([x_bearing, 0, 1])
-                rod(l=x_bearing-axial_allowance, d=1);
+            translate([0, 0, 1])
+                rod(d=1, l=l_bridge);
+            translate([1.5*x_bearing + axial_allowance/4, 0, 0])
+                can(d=1, h=1, center=BEHIND);
+            
         } 
     } 
     
@@ -418,35 +450,20 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     module supported_cranks() {
         use_bridging = true;
         if (use_bridging) {
-            // Bridge from bearing to traveller, so no support to build plate.
+            r_crank = pin_diameter/2 + pin_diameter/4;
+            // Bridge from bearing to bearing, so no support to build plate.
             center_reflect([1, 0, 0]) {
                 faux_support(); //  for testing as stand alone:
-                r_crank = pin_diameter/2 + pin_diameter/4;
+                
                 translate([0, 0, -r_crank]) bridged_support();
-            }  
-
-
-        } else {
-            // Design so that the support can be torn away.
-            // Blocky.  
-            dx = x_bearing;
-            x_p = l_joiner - 2 * axial_allowance;
-            y_p = pin_diameter;
-            z_p = axle_height - 0.75*pin_diameter + 0.0*radial_allowance;
-            dx_p = -axle_height;
-            center_reflect([1, 0, 0]) {
-                translate([dx, 0, 0]) {
-                    translate([0, 0, dx_p]) block([x_p, y_p, z_p], center=ABOVE);
-                }
             } 
-        }
+        } 
     }
 
     module slot_clearance() {
-        //rod(d=d_slot, l=2*x_bearing);
         sliding_allowance = 0.1;
         d_tight_slot = pin_diameter + sliding_allowance;
-        
+
         hull() {
             rod(d=d_tight_slot, l=2*x_bearing);
             translate([0, 0, -dz_travel+2*radial_allowance]) rod(d=d_slot, l=2*x_bearing);
@@ -455,6 +472,10 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
             rod(d=d_tight_slot, l=2*x_bearing);
             translate([0, 0, dz_travel-2*radial_allowance]) rod(d=d_tight_slot, l=2*x_bearing);
         }
+        center_reflect([1, 0, 0])
+            translate([x_bearing/2, 0, 0]) 
+                rod(d=d_crank_clearance, l=x_bearing, center=FRONT);
+        
     }
 
     module traveller() {
@@ -526,9 +547,13 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
             
         }
         // Support cone at bottom
-        translate([0, 0, -pin_diameter/2 - radial_allowance]) {
-            rod(d=4*radial_allowance, l=4*axial_allowance, center=BELOW);
+        dz = -pin_diameter/2 - 1.5*axial_allowance;
+        translate([0, 0, dz]) {
+            can(d=2*radial_allowance, h=4*axial_allowance, center=BELOW+BEHIND);
+            // faux bearing surface for test printing of axle.
+            block([1,1, axle_height+dz], center=BELOW+FRONT);
         }
+        
 
     }
 
@@ -549,7 +574,170 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
                 minimal_axle_support();
             }
         }
+         if (support_axle[0]) {
+            mirror([1, 0, 0]) {
+                translate([-dx_outside, 0, 0]) {
+                    minimal_axle_support();
+                }
+            }
+        }
     }
    
 }
+
+module scotch_yoke_mounting(
+        dimensions,
+        extend_left,
+        extend_right,
+        extra_push_rod,
+        screw_mounting="M3") {
+                        
+                        
+    function extract(attribute) = find_in_dct(dimensions, attribute);
+            
+    frame = extract("frame");
+    wall_thickness = extract("wall_thickness");
+    wall_height = extract("wall_height");
+
+
+    
+    if (is_num(extend_left)) {
+        y_extend = extend_left;
+        hub_frame = [10.25, 8.0, 6]; // TODO: fetch from sub_micro_servo
+        y_servo_mount = 4;
+        dx_f = frame.x/2;
+        dy_f = -(frame.y/2);
+        dy_extend = dy_f - y_extend;
+        dx_hf = dx_f + hub_frame.x;
+        
+        push_rod_extension = [wall_thickness, y_extend, wall_height];
+        push_rod_extension_end = [frame.x, wall_thickness, wall_height];
+        hub_frame_extension = [
+            wall_thickness, 
+            y_extend - hub_frame.y/2 - y_servo_mount, 
+            wall_height];
+        hub_frame_extension_end = [hub_frame.x, wall_thickness, wall_height];
+        hub_screw_plate = [
+            hub_frame_extension_end.x, 
+            y_extend - hub_frame.y/2, 
+            wall_thickness];
+        
+
+        color("LawnGreen") { 
+            center_reflect([1, 0, 0]) {
+                translate([dx_f, dy_f, -3*eps]) {
+                    block(push_rod_extension, center=ABOVE+LEFT+BEHIND);
+                }
+            }
+        }
+        color("ForestGreen") { 
+            translate([0, dy_extend, -6*eps]) {
+                block(push_rod_extension_end, center=ABOVE+RIGHT);
+            }
+        }
+        color("Orange") { 
+            translate([dx_hf, dy_extend, -3*eps]) {
+                block(hub_frame_extension, center=ABOVE+RIGHT+BEHIND);
+            }
+        }
+        color("OrangeRed") { 
+            translate([dx_hf, dy_extend, -6*eps]) {
+                block(hub_frame_extension_end, center=ABOVE+RIGHT+BEHIND);
+            }
+        }
+        color("Salmon") { 
+            translate([dx_hf, dy_extend, -9*eps]) {
+                block(hub_screw_plate, center=ABOVE+RIGHT+BEHIND);
+            }
+        }
+        
+        if (screw_mounting=="M3") {
+            // Not enough space to locate two screw holes on extended frame.
+            // So only put one there.  Put screw holes on floor, with 
+            // the assumption that the user will create a plate
+            
+      
+        }
+ 
+    }
+    if (is_num(extend_right)) {
+        assert(false, "Not implemented yet");
+    }
+            
+}
+//        // Provide a bar across the ends around the push rod
+//        color("Coral") {
+//            translate([0, dy_extend, 0]) block(size_end_bar, center=ABOVE+RIGHT);
+//        }
+        
+        
+        // 
+//            translate([dx, dy_extend, 0]) {
+//               block(size_screw_bar, center=ABOVE+FRONT+RIGHT);
+        
+//        if (screw_mounting=="M3" || extend_servo_joiner) {
+
+//            }
+//        } 
+//
+//        if (extend_servo_joiner) {
+//            
+//            dx_j = dx + 10;
+//            dy_j = dy - hub_offset.y;
+//            
+//            color("orange") translate([dx_j, dy_j, -1*eps]) {
+//                block(size_joiner_extend, center=ABOVE+LEFT+BEHIND);
+//            }
+//            
+//        }
+
+
+
+
+support_axle = ["servo horn", true];
+
+dimensions = scotch_yoke(
+    pin_diameter, 
+    range_of_travel, 
+    radial_allowance, 
+    axial_allowance, 
+    wall_thickness,
+    bearing_width,
+    angle,
+    support_axle);
+
+log_v1("dimensions", dimensions, verbosity, DEBUG);
+
+scotch_yoke(
+    pin_diameter, 
+    range_of_travel, 
+    radial_allowance, 
+    axial_allowance, 
+    wall_thickness,
+    bearing_width, 
+    angle,
+    support_axle);
+    
+    
+scotch_yoke_mounting(
+    dimensions,
+    extend_left=20,
+    extend_right=false,
+    extra_push_rod=5,
+    screw_mounting="M3");
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

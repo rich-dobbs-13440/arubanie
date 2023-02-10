@@ -6,12 +6,13 @@ air air and paint flow.
 The coordinate system is based center of rotation of the paint pivot.
 
 */
-
+include <lib/logging.scad>
 include <lib/centerable.scad>
 use <lib/shapes.scad>
 use <lib/small_pivot_vertical_rotation.scad>
 use <lib/sub_micro_servo.scad>
 use <lib/9g_servo.scad>
+use <lib/small_3d_printable_scotch_yoke.scad>
 use <trigger_holder.scad>
 use <master_air_brush.scad>
 include <arb_saduri_paint_pivot.scad>
@@ -56,13 +57,32 @@ paint_pull_rod_color = "Orange"; // [DodgerBlue, Orange, Coral]
 paint_pull_rod_alpha = 1; // [0:0.05:1]
 //paint_pull_rod_angle = 34; // [0: 5 : 40]
 
-/* [Air Flow Servo Design] */
-show_air_flow_servo_mount = true;
+/* [Air Flow Actuator Design] */
+show_scotch_yoke = true;
+show_scotch_yoke_mount = true;
 show_air_flow_servo = false;
+
+air_flow_servo_angle = 0; // [-180 : 10 : 180]
+
+dx_scotch_yoke = 55; // Must clear paint pot
 
 
 air_flow_servo_color = "PaleTurquoise"; // [DodgerBlue, PaleTurquoise, Coral]
 air_flow_servo_alpha = 1; // [0:0.05:1]
+
+
+/* [Trigger Shaft Design] */
+
+trigger_shaft_min_x = 10;
+trigger_shaft_catch_clearance = 1;
+trigger_shaft_diameter = 5;
+
+trigger_shaft_range = 
+    paint_pivot_inner_height 
+    - trigger_shaft_catch_clearance
+    - trigger_shaft_min_x ;
+    
+
 
 module end_of_customization() {}
 
@@ -87,7 +107,7 @@ barrel_diameter = master_air_brush("barrel diameter");
 //    } 
    
 
-module air_flow_servo_mount(show_servo) {
+module air_flow_scotch_yoke(show_servo, angle) {
     
 //    translate(air_flow_servo_disp) {
 //        translate([0, 0, paint_pivot_h/2]) { // To make it on the build plate
@@ -96,7 +116,51 @@ module air_flow_servo_mount(show_servo) {
 //            }
 //        }
 //    }
- 
+    
+    radial_allowance = 0.4;
+    axial_allowance = 0.4;
+    support_axle = ["servo horn", true];
+    bearing_width = 4;
+    
+    dimensions = 
+        scotch_yoke(
+            trigger_shaft_diameter, 
+            trigger_shaft_range, 
+            radial_allowance, 
+            axial_allowance, 
+            wall_thickness, 
+            bearing_width,
+            angle,
+            support_axle);
+
+    log_v1("dimensions", dimensions, verbosity, INFO);
+
+    
+    dz = paint_pivot_h/2;
+    translate([dx_scotch_yoke, 0, dz]) {
+        mirror([0, 1, 0]) { // Want servo on +y, +x quadrant
+            rotate([0, 180, 0]) {  // Cope with building downward
+                rotate([0, 0, 90]) { // Align push rod with trigger
+                    scotch_yoke(
+                        trigger_shaft_diameter, 
+                        trigger_shaft_range, 
+                        radial_allowance, 
+                        axial_allowance, 
+                        wall_thickness,
+                        bearing_width, 
+                        angle,
+                        support_axle);
+                    
+                    scotch_yoke_mounting(
+                        dimensions,
+                        extend_left=16.5,
+                        extend_right=false,
+                        extra_push_rod=3,
+                        screw_mounting="M3");
+                }
+            }
+        }
+    }
 }
 
 
@@ -324,12 +388,10 @@ module show_gudgeon_assembly_design_orientation(orient_for_build) {
         }
     }  
 
-    if (show_air_flow_servo_mount) {
+    if (show_scotch_yoke) {
         show_servo = orient_for_build ? false : show_air_flow_servo;
         color(air_flow_servo_color, alpha=air_flow_servo_alpha) {
-//            air_flow_servo_mount(show_servo);
-//            air_flow_servo_attachment();
-            block([1, 1, 100]);
+           air_flow_scotch_yoke(show_servo, air_flow_servo_angle);
         }
     }
 }

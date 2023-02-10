@@ -1,4 +1,11 @@
+/* 
 
+Rescuing some well working printable parts that aren't needed in current assemble.
+
+Status:  Just move extracted parts into this file.  Not yet converted 
+            into a reuseable component. 
+
+*/
 
 
 
@@ -20,7 +27,7 @@ trigger_shaft_diameter = 5;
 
 trigger_shaft_gudgeon_length = 2;
 trigger_shaft_min_x = 10;
-trigger_shaft_catch_clearance = 1;
+
 trigger_shaft_pivot_allowance = 0.4;
 
 trigger_bearing_id = 
