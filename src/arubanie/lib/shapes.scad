@@ -76,18 +76,28 @@ module rod(d, l, center=0, hollow=false, fa=undef) {
     about the origin.
     
 */
-module can(d,h, center=0, hollow=false, fa=undef) {
+module can(d,h, center=0, hollow=false, taper=false, fa=undef) {
     $fa = is_undef(fa) ? $fa : fa;
     bv = _number_to_bitvector(center);
     size = [d, d, h];
     disp = _center_to_displacement(center, size);
     translate(disp) {
         if (hollow == false) {
-            cylinder(d=d, h=h, center=true); 
+            if (taper == false) {
+                cylinder(d=d, h=h, center=true); 
+            } else if (is_num(taper)) {
+                cylinder(d1=d, d2=taper, h=h, center=true);
+            } else {
+                assert(false, str("Don't know how to handle taper=", taper));
+            }
         } else if (is_num(hollow)) {
-            render() difference() {
-                cylinder(d=d, h=h, center=true);
-                cylinder(d=hollow, h=2*h, center=true);
+            if (taper == false) {
+                render() difference() {
+                    cylinder(d=d, h=h, center=true);
+                    cylinder(d=hollow, h=2*h, center=true);
+                }
+            } else {
+                assert(false, "Not implemented - hollow tapered.");
             }
         } else {
             assert(false, str("Don't know how to handle hollow=", hollow));
