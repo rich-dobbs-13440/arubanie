@@ -105,61 +105,61 @@ barrel_diameter = master_air_brush("barrel diameter");
 //            rotate([180,0,0])
 //            9g_motor_centered_for_mounting();
 //    } 
-   
 
-module air_flow_scotch_yoke(show_servo, angle) {
-    
-//    translate(air_flow_servo_disp) {
-//        translate([0, 0, paint_pivot_h/2]) { // To make it on the build plate
-//            rotate([0,180,0]) { // To handle building toward negative z
-//                supported_servo_mounting(show_servo);
-//            }
-//        }
-//    }
-    
-    radial_allowance = 0.4;
-    axial_allowance = 0.4;
-    support_axle = ["servo horn", true];
-    bearing_width = 4;
-    
-    dimensions = 
-        scotch_yoke(
-            trigger_shaft_diameter, 
-            trigger_shaft_range, 
-            radial_allowance, 
-            axial_allowance, 
-            wall_thickness, 
-            bearing_width,
-            angle,
-            support_axle);
 
-    log_v1("dimensions", dimensions, verbosity, INFO);
-
-    
+function create_air_flow_scotch(angle) = 
+    let(
+        extend_left = 16.5,
+        extend_trigger_cap = 5,
+        extra_push_rod = [0, extend_left + extend_trigger_cap],
+        radial_allowance = 0.4,
+        axial_allowance = 0.4,
+        support_axle = ["servo horn", true],
+        bearing_width = 4,
+        last=undef
+    )
+    scotch_yoke_create(
+        trigger_shaft_diameter, 
+        trigger_shaft_range, 
+        radial_allowance, 
+        axial_allowance, 
+        wall_thickness, 
+        bearing_width,
+        angle,
+        extra_push_rod=extra_push_rod,
+        support_axle=support_axle);
+        
+module emplace_air_flow_scotch_yoke() {
     dz = paint_pivot_h/2;
     translate([dx_scotch_yoke, 0, dz]) {
         mirror([0, 1, 0]) { // Want servo on +y, +x quadrant
             rotate([0, 180, 0]) {  // Cope with building downward
                 rotate([0, 0, 90]) { // Align push rod with trigger
-                    scotch_yoke(
-                        trigger_shaft_diameter, 
-                        trigger_shaft_range, 
-                        radial_allowance, 
-                        axial_allowance, 
-                        wall_thickness,
-                        bearing_width, 
-                        angle,
-                        support_axle);
-                    
-                    scotch_yoke_mounting(
-                        dimensions,
-                        extend_left=16.5,
-                        extend_right=false,
-                        extra_push_rod=3,
-                        screw_mounting="M3");
+                    children();
                 }
             }
         }
+    }
+} 
+
+
+   
+
+module air_flow_scotch_yoke(show_servo, angle) {
+    
+    
+    instance = create_air_flow_scotch(angle);
+    extend_left = 16.5; // TODO extract it from instance 
+
+    log_v1("air_flow_scotch_yoke", instance, verbosity, DEBUG);
+    emplace_air_flow_scotch_yoke() {
+        scotch_yoke_operation(instance, "show");
+        
+        scotch_yoke_mounting(
+            instance,
+            extend_left,
+            extend_right=false,
+            screw_mounting="M3");
     }
 }
 
@@ -274,7 +274,6 @@ module connected_trigger_rod(angle) {
 
 
 module paint_pivot_gudgeons() {
-
     translate([0, paint_pivot_cl_dy, 0]) {
         paint_pivot_gudgeon(0.75*paint_pivot_inner_height);
     }
@@ -283,10 +282,39 @@ module paint_pivot_gudgeons() {
     }
 }
 
+module emplace_children_into_scotch_yoke() {
+    
+    dz = paint_pivot_h/2;
 
+    rotate([0, 180, 0]) 
+    mirror([0, -1, 0])
+    rotate([0, 0, -90])
+    translate([-dx_scotch_yoke, 0, -dz]) 
+    children();
+
+    
+} 
+
+
+
+
+
+module bore_for_push_rod() {
+    air_flow_scotch_yoke = create_air_flow_scotch(angle=0);
+    //translate([0, 50, 0])
+    emplace_air_flow_scotch_yoke() {
+       //scotch_yoke_operation(air_flow_scotch_yoke, "show"); 
+       scotch_yoke_operation(air_flow_scotch_yoke, "bore for push rod - build plate") {
+            emplace_children_into_scotch_yoke() {
+                children();
+            }
+        }
+    }
+}
+
+//***************************************************
 module paint_pivot_gudgeon_bridge() {
-    // Mechanically connects to the gudgeons on each side
-
+    bore_for_push_rod() {
         translate([paint_pivot_inner_height-eps, 0, 0]) {
             block(
                 [paint_pivot_bridge_thickness, 
@@ -295,22 +323,9 @@ module paint_pivot_gudgeon_bridge() {
             ],
             center=FRONT); 
         }
-
-    // Add fillets to strengthen corners
-    center_reflect([0,1,0]) {
-    translate([
-        paint_pivot_inner_height,
-        paint_pivot_inside_dy, 
-        0]) {
-        
-            block([
-                    paint_pivot_bridge_thickness,
-                    wall_thickness,
-                    paint_pivot_h
-                ], center=LEFT+BEHIND);
-        }
     }
 }
+
 
 module paint_pull_gudgeon() {
     dx = paint_pivot_top_of_yoke + paint_pivot_h;

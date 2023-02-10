@@ -125,7 +125,7 @@ module end_of_customization() {}
 
 function _scotch_yoke_assert_msg(name, value) = str("Invalid argument: name=", name,, " value=", value);
 
-function scotch_yoke(
+function scotch_yoke_create(
         pin_diameter, 
         range_of_travel, 
         radial_allowance, 
@@ -223,39 +223,39 @@ function scotch_yoke(
     
 
     
-module scotch_yoke(
-        pin_diameter, 
-        range_of_travel, 
-        radial_allowance, 
-        axial_allowance, 
-        wall_thickness,
-        bearing_width,
-        angle,
-        support_axle,
-        extra_push_rod,
-        operation,
-        ) {
+// module scotch_yoke(
+//         pin_diameter, 
+//         range_of_travel, 
+//         radial_allowance, 
+//         axial_allowance, 
+//         wall_thickness,
+//         bearing_width,
+//         angle,
+//         support_axle,
+//         extra_push_rod,
+//         operation,
+//         ) {
 
-    dimensions = 
-        scotch_yoke(
-            pin_diameter, 
-            range_of_travel, 
-            radial_allowance, 
-            axial_allowance, 
-            wall_thickness, 
-            bearing_width,
-            angle,
-            support_axle,
-            extra_push_rod);
+//     dimensions = 
+//         scotch_yoke(
+//             pin_diameter, 
+//             range_of_travel, 
+//             // radial_allowance, 
+//             axial_allowance, 
+//             wall_thickness, 
+//             bearing_width,
+//             angle,
+//             support_axle,
+//             extra_push_rod);
             
-    scotch_yoke_from_dimensions(operation, dimensions);                 
-}
+//     scotch_yoke_from_dimensions(operation, dimensions);                 
+// }
 
-module scotch_yoke_from_dimensions(operation, dimensions) {
+module scotch_yoke_operation(self, operation) {
             
-    log_v1("dimesions", dimensions, verbosity, DEBUG);
+    log_v1("self", self, verbosity, DEBUG);
     
-    function extract(attribute) = find_in_dct(dimensions, attribute);
+    function extract(attribute) = find_in_dct(self, attribute);
     
      
     pin_diameter = extract("pin_diameter");
@@ -295,7 +295,7 @@ module scotch_yoke_from_dimensions(operation, dimensions) {
     // the crankshaft.  Buf for usage convenience,
     // render it with the origin at the bottom of the 
     // frame:
-    if (is_undef(operation) || operation == "create" ) {
+    if (is_undef(operation) || operation == "show") {
         translate([0, 0, axle_height]) assembly(support_axle);
     
         if (provide_x_axis_servo_mounting) {
@@ -634,13 +634,13 @@ module scotch_yoke_from_dimensions(operation, dimensions) {
 }
 
 module scotch_yoke_mounting(
-        dimensions,
+        self,
         extend_left,
         extend_right,
         screw_mounting="M3") {
                         
                         
-    function extract(attribute) = find_in_dct(dimensions, attribute);
+    function extract(attribute) = find_in_dct(self, attribute);
             
     frame = extract("frame");
     wall_thickness = extract("wall_thickness");
@@ -715,49 +715,20 @@ module scotch_yoke_mounting(
     }
     
     module bore_for_push_rod_from_build_plate() {
-        scotch_yoke_from_dimensions(
-            operation="bore for push rod - build plate", 
-            dimensions=dimensions) { 
-                    children();
+        scotch_yoke_operation(self, operation="bore for push rod - build plate") { 
+            children();
         }
     }
     
 
             
 }
-//        // Provide a bar across the ends around the push rod
-//        color("Coral") {
-//            translate([0, dy_extend, 0]) block(size_end_bar, center=ABOVE+RIGHT);
-//        }
-        
-        
-        // 
-//            translate([dx, dy_extend, 0]) {
-//               block(size_screw_bar, center=ABOVE+FRONT+RIGHT);
-        
-//        if (screw_mounting=="M3" || extend_servo_joiner) {
-
-//            }
-//        } 
-//
-//        if (extend_servo_joiner) {
-//            
-//            dx_j = dx + 10;
-//            dy_j = dy - hub_offset.y;
-//            
-//            color("orange") translate([dx_j, dy_j, -1*eps]) {
-//                block(size_joiner_extend, center=ABOVE+LEFT+BEHIND);
-//            }
-//            
-//        }
-
-
 
 
 support_axle = ["servo horn", true];
 extra_push_rod=[12, 24];
 
-dimensions = scotch_yoke(
+scotch_yoke_for_test = scotch_yoke_create(
     pin_diameter, 
     range_of_travel, 
     radial_allowance, 
@@ -768,22 +739,12 @@ dimensions = scotch_yoke(
     support_axle,
     extra_push_rod);
 
-log_v1("dimensions", dimensions, verbosity, DEBUG);
+log_v1("scotch_yoke_for_test", scotch_yoke_for_test, verbosity, DEBUG);
 
-scotch_yoke(
-    pin_diameter, 
-    range_of_travel, 
-    radial_allowance, 
-    axial_allowance, 
-    wall_thickness,
-    bearing_width, 
-    angle,
-    support_axle,
-    extra_push_rod);
-    
+scotch_yoke_operation(scotch_yoke_for_test, "show");    
     
 scotch_yoke_mounting(
-    dimensions,
+    scotch_yoke_for_test,
     extend_left=20,
     extend_right=false,
     screw_mounting="M3");
