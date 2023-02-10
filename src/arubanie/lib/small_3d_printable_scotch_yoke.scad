@@ -133,15 +133,20 @@ function scotch_yoke(
         wall_thickness=undef,
         bearing_width=undef,
         angle = 0,
-        support_axle=[true, true]) =
+        support_axle=[true, true],
+        extra_push_rod=undef,
+        operation=undef) = // Note that operation ignored for creating dimensions!
     
     assert(!is_undef(pin_diameter))
     assert(!is_undef(range_of_travel))
     assert(!is_undef(radial_allowance))
     assert(is_num(angle), _scotch_yoke_assert_msg("angle", angle))
     let(
-        _axial_allowance = is_undef(axial_allowance) ? radial_allowance_val : axial_allowance,
+        _axial_allowance = is_undef(axial_allowance) ? 
+            radial_allowance_val : 
+            axial_allowance,
         _wall_thickness = is_undef(wall_thickness) ? pin_diameter : wall_thickness,
+        _extra_push_rod = is_undef(extra_push_rod) ? [0, 0] : extra_push_rod,
         r_pin = pin_diameter / 2,
         d_slot = pin_diameter + 2 * radial_allowance,
         axle_height = range_of_travel + pin_diameter/2 + _wall_thickness,
@@ -159,7 +164,11 @@ function scotch_yoke(
         dx_outside = dx_inside + _wall_thickness,
         wall_height = 2 * _wall_thickness + pin_diameter,
         dy_traveller = -sin(angle) * range_of_travel/2,
-        push_rod_length = 2 * (dy_inside + 2 * _wall_thickness) + range_of_travel,
+        half_push_rod_length = dy_inside + _wall_thickness + range_of_travel/2,
+        push_rod_lengths = [
+            half_push_rod_length + _extra_push_rod[0],
+            half_push_rod_length + _extra_push_rod[1],
+        ],
         push_rod_fin_width = pin_diameter/4,
         l_joiner = x_bearing - 2 * axial_allowance,
         crank_shaft_length = 2*dx_outside + pin_diameter,
@@ -184,10 +193,11 @@ function scotch_yoke(
         ["wall_thickness", _wall_thickness],
         ["angle", angle],
         ["support_axle", _support_axle],
-        
+        ["extra_push_rod", _extra_push_rod],
+
         ["frame", frame],
         ["crank_shaft_length", crank_shaft_length],
-        ["push_rod_length", push_rod_length],
+        ["push_rod_lengths", push_rod_lengths],
         ["push_rod_fin_width", push_rod_fin_width],
         ["provide_x_axis_servo_mounting", provide_x_axis_servo_mounting],
         
@@ -220,11 +230,14 @@ module scotch_yoke(
         axial_allowance, 
         wall_thickness,
         bearing_width,
-        angle = 0,
-        support_axle=[true, true]) {
+        angle,
+        support_axle,
+        extra_push_rod,
+        operation,
+        ) {
 
-    calculations_and_defaults = 
-            scotch_yoke(
+    dimensions = 
+        scotch_yoke(
             pin_diameter, 
             range_of_travel, 
             radial_allowance, 
@@ -232,19 +245,18 @@ module scotch_yoke(
             wall_thickness, 
             bearing_width,
             angle,
-            support_axle);
+            support_axle,
+            extra_push_rod);
             
-    _scotch_yoke_implementation(calculations_and_defaults);        
-            
+    scotch_yoke_from_dimensions(operation, dimensions);                 
 }
 
-module _scotch_yoke_implementation(calculations_and_defaults) {
+module scotch_yoke_from_dimensions(operation, dimensions) {
             
-    log_v1("Calculations and defaults", calculations_and_defaults, verbosity, DEBUG);
+    log_v1("dimesions", dimensions, verbosity, DEBUG);
     
-    function extract(attribute) = find_in_dct(calculations_and_defaults, attribute);
+    function extract(attribute) = find_in_dct(dimensions, attribute);
     
-    dct = calculations_and_defaults;
      
     pin_diameter = extract("pin_diameter");
     range_of_travel = extract("range_of_travel");
@@ -255,7 +267,7 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     support_axle = extract("support_axle");
     
     
-    push_rod_length = extract("push_rod_length");
+    push_rod_lengths = extract("push_rod_lengths");
     push_rod_fin_width = extract("push_rod_fin_width");
 
     r_pin = extract("r_pin");
@@ -283,23 +295,35 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     // the crankshaft.  Buf for usage convenience,
     // render it with the origin at the bottom of the 
     // frame:
-    translate([0, 0, axle_height]) assembly(support_axle);
+    if (is_undef(operation) || operation == "create" ) {
+        translate([0, 0, axle_height]) assembly(support_axle);
     
-    if (provide_x_axis_servo_mounting) {
-        
-        translate([dx_outside, 0, axle_height]) {
-            sub_micro_servo_mount_to_axle(
-                axle_diameter=4, 
-                axle_height= axle_height,
-                wall_height=6,
-                radial_allowance=radial_allowance, 
-                axial_allowance=axial_allowance, 
-                wall_thickness=wall_thickness, 
-                angle=angle);
+        if (provide_x_axis_servo_mounting) {
+            
+            translate([dx_outside+3*eps, 0, axle_height+3*eps]) {
+                sub_micro_servo_mount_to_axle(
+                    axle_diameter=4, 
+                    axle_height= axle_height,
+                    wall_height=6,
+                    radial_allowance=radial_allowance, 
+                    axial_allowance=axial_allowance, 
+                    wall_thickness=wall_thickness, 
+                    angle=angle);
+            }
+            
         }
-        
+    }  else if (operation == "bore for push rod - crankshaft") {    
+        bore_for_push_rod(origin_at="crankshaft") {
+            children();
+        }
+    } else if (operation == "bore for push rod - build plate") {    
+        bore_for_push_rod(origin_at="build plate") {
+            children();
+        }
+    } else {
+        assert(false, str("Unknown operation: ", operation));
     }
-    
+
 
 
     module assembly(support_axle) {
@@ -315,7 +339,7 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
 
         rotate([angle, 0, 0]) {
             display(crank_shaft_coloring) crank_shaft();
-        }
+        } 
         display(bearing_coloring) bearings();
         
         rotate([angle, 0, 0]) {
@@ -492,19 +516,23 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
     
     module push_rod(clearance=0) {
         x =  push_rod_fin_width + 2 * clearance; 
-        y = push_rod_length;
+        ys = push_rod_lengths;
         z = wall_thickness + pin_diameter/2;
-        size_fin = [x, y, z];
+        size_fins = [[x, ys[0], z+clearance], [x, ys[1], z+clearance]];
         
-        dz = -axle_height + 5*eps;  // Move to build plate;
+        dz = -axle_height - 2 * eps;  // Move to build plate;
         d = pin_diameter + 2 * clearance;
         dz_rod = wall_thickness - clearance; // Place at top of fin.
         
-        difference() {
+        render() difference() {
             translate([0, 0, dz]) {
-                block(size_fin, center=ABOVE);
+                translate([0, 0, -clearance]) {
+                    block(size_fins[0], center=ABOVE+RIGHT);
+                    block(size_fins[1], center=ABOVE+LEFT);
+                }
                 translate([0, 0, dz_rod]) {
-                    rod(d=d, l=y, center=SIDEWISE+ABOVE);
+                    rod(d=d, l=ys[0], center=SIDEWISE+ABOVE+RIGHT);
+                    rod(d=d, l=ys[1], center=SIDEWISE+ABOVE+LEFT);
                 }
             }
             slot_clearance();
@@ -512,10 +540,30 @@ module _scotch_yoke_implementation(calculations_and_defaults) {
 
     }
     
-    module bore_for_push_rod() {
-        render() difference() {
-            children();
-            push_rod(radial_allowance);
+//    module bore_for_push_rod_from_build_plate() {
+//        axle_height = extract("axle_height");
+//        translate([0, 0, axle_height]) {
+//            scotch_yoke_from_dimensions(operation="bore for push rod", dimensions=dimensions) { 
+//                translate([0, 0, -axle_height]) {
+//                    children();
+//                }
+//            }
+//        }
+//    }
+    
+    module bore_for_push_rod(origin_at="crankshaft") {
+        
+        dz = 
+            origin_at == "crankshaft" ? 0 :
+            origin_at == "build plate" ? axle_height :
+            assert(false, str("Unhandled origin_at: ", origin_at));
+        translate([0, 0, dz]) {
+            render() difference() {
+                translate([0, 0, -dz]) {
+                    children();
+                }
+                push_rod(radial_allowance);
+            }
         }    
     }
     
@@ -589,7 +637,6 @@ module scotch_yoke_mounting(
         dimensions,
         extend_left,
         extend_right,
-        extra_push_rod,
         screw_mounting="M3") {
                         
                         
@@ -598,7 +645,7 @@ module scotch_yoke_mounting(
     frame = extract("frame");
     wall_thickness = extract("wall_thickness");
     wall_height = extract("wall_height");
-
+    
 
     
     if (is_num(extend_left)) {
@@ -631,10 +678,13 @@ module scotch_yoke_mounting(
             }
         }
         color("ForestGreen") { 
-            translate([0, dy_extend, -6*eps]) {
-                block(push_rod_extension_end, center=ABOVE+RIGHT);
+            bore_for_push_rod_from_build_plate() {
+                translate([0, dy_extend, -6*eps]) {
+                    block(push_rod_extension_end, center=ABOVE+RIGHT);
+                }
             }
         }
+
         color("Orange") { 
             translate([dx_hf, dy_extend, -3*eps]) {
                 block(hub_frame_extension, center=ABOVE+RIGHT+BEHIND);
@@ -663,6 +713,16 @@ module scotch_yoke_mounting(
     if (is_num(extend_right)) {
         assert(false, "Not implemented yet");
     }
+    
+    module bore_for_push_rod_from_build_plate() {
+        scotch_yoke_from_dimensions(
+            operation="bore for push rod - build plate", 
+            dimensions=dimensions) { 
+                    children();
+        }
+    }
+    
+
             
 }
 //        // Provide a bar across the ends around the push rod
@@ -695,6 +755,7 @@ module scotch_yoke_mounting(
 
 
 support_axle = ["servo horn", true];
+extra_push_rod=[12, 24];
 
 dimensions = scotch_yoke(
     pin_diameter, 
@@ -704,7 +765,8 @@ dimensions = scotch_yoke(
     wall_thickness,
     bearing_width,
     angle,
-    support_axle);
+    support_axle,
+    extra_push_rod);
 
 log_v1("dimensions", dimensions, verbosity, DEBUG);
 
@@ -716,14 +778,14 @@ scotch_yoke(
     wall_thickness,
     bearing_width, 
     angle,
-    support_axle);
+    support_axle,
+    extra_push_rod);
     
     
 scotch_yoke_mounting(
     dimensions,
     extend_left=20,
     extend_right=false,
-    extra_push_rod=5,
     screw_mounting="M3");
     
 
