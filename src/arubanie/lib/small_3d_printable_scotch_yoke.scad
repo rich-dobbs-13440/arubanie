@@ -76,17 +76,17 @@ fa_as_arg = 5;
 
 /* [Logging] */
 
-log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+log_verbosity_choice = "DEBUG"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice); 
 
 /* [ Test ] */
 
 pin_diameter = 5;
-range_of_travel = 6;
+range_of_travel = 14;
 radial_allowance = 0.4;
 axial_allowance = 0.4;
 wall_thickness = 2; // [undef, 2, 4];
-bearing_width = 2;
+bearing_width = 4;
 angle = 0; // [0 : 5: 270]
 support_plus_x_axle = true;
 support_negative_x_axle = true;
@@ -117,13 +117,80 @@ wall_color = "white";
 wall_alpha = 1.0; // [0, 0.25, 0.5, 1]
 wall_coloring = [wall_color, wall_alpha];
 
+servo_mount_color = "brown";
+servo_mount_alpha = 1.0; // [0, 0.25, 0.5, 1]
+servo_mount_coloring = [servo_mount_color, servo_mount_alpha];
+
 module end_of_customization() {}
 
+support_axle = ["servo horn", true];
+extra_push_rod=[12, 24];
+
+//=========================== Start of Example ====================================
 
 
-//***********************End of Example
+options = undef;
 
-function _scotch_yoke_assert_msg(name, value) = str("Invalid argument: name=", name,, " value=", value);
+scotch_yoke_for_test = scotch_yoke_create(
+    pin_diameter, 
+    range_of_travel, 
+    radial_allowance, 
+    axial_allowance, 
+    wall_thickness,
+    bearing_width,
+    angle,
+    support_axle,
+    extra_push_rod);
+
+log_v1("scotch_yoke_for_test", scotch_yoke_for_test, verbosity, DEBUG);
+
+scotch_yoke_operation(scotch_yoke_for_test, "show", options);    
+    
+scotch_yoke_mounting(
+    scotch_yoke_for_test,
+    extend_left=20,
+    extend_right=false,
+    screw_mounting="M3",
+    left_base_plate=[[20, 4, 10]]);
+
+//*********************** End of Example============================================
+
+function default_coloring() = [
+    ["push_rod",  push_rod_coloring],
+    ["traveller", traveller_coloring],
+    ["bearing", bearing_coloring],
+    ["crank_shaft", crank_shaft_coloring],
+    ["support", support_coloring],
+    ["wall", wall_coloring],  
+    ["servo_mount", servo_mount_coloring]
+]; 
+
+function show_only(items) = [ for (item = items) 
+    let (
+        default = find_in_dct(default_coloring(), item, required=true),
+        entry = [item, [default[0], 1]]
+    )
+
+    entry
+    // item, [default[0], 1]  // Use default color, but set alpha to 1 for full visibility
+];
+
+function process_options_for_coloring(options) = 
+    echo("options", options)
+    is_undef(options) ? default_coloring() : 
+    let (
+        show_only_items = find_in_dct(options, "show only"),
+        result = !is_undef(show_only_items) ? show_only(show_only_items) : 
+            assert(false) default_coloring(),
+        last = undef
+    )
+    echo("show_only_items", show_only_items)
+    echo("result", result)
+    result;
+    
+
+function _scotch_yoke_assert_msg(name, value) = 
+    str("Invalid argument: name=", name,, " value=", value);
 
 function scotch_yoke_create(
         pin_diameter, 
@@ -162,6 +229,7 @@ function scotch_yoke_create(
         dy_outside = dy_inside + _wall_thickness,
         dx_inside = 1.5*x_bearing,
         dx_outside = dx_inside + _wall_thickness,
+        dx_bearing_outside = dx_inside + x_bearing,
         wall_height = 2 * _wall_thickness + pin_diameter,
         dy_traveller = -sin(angle) * range_of_travel/2,
         half_push_rod_length = dy_inside + _wall_thickness + range_of_travel/2,
@@ -210,6 +278,7 @@ function scotch_yoke_create(
         ["dy_outside",  dy_outside],
         ["dx_inside", dx_inside],
         ["dx_outside", dx_outside],
+        ["dx_bearing_outside", dx_bearing_outside],
         ["pin_length", pin_length],
         ["support_x", support_x],
         ["support_y", support_y],
@@ -219,45 +288,21 @@ function scotch_yoke_create(
         ["l_joiner", l_joiner],
         
     ];
-    
-    
 
-    
-// module scotch_yoke(
-//         pin_diameter, 
-//         range_of_travel, 
-//         radial_allowance, 
-//         axial_allowance, 
-//         wall_thickness,
-//         bearing_width,
-//         angle,
-//         support_axle,
-//         extra_push_rod,
-//         operation,
-//         ) {
 
-//     dimensions = 
-//         scotch_yoke(
-//             pin_diameter, 
-//             range_of_travel, 
-//             // radial_allowance, 
-//             axial_allowance, 
-//             wall_thickness, 
-//             bearing_width,
-//             angle,
-//             support_axle,
-//             extra_push_rod);
+module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
+    
+    function coloring(item) = 
+        let(
+            feature_coloring = process_options_for_coloring(options),
+            value = find_in_dct(feature_coloring, item)
+        )
+        !is_undef(value) ? value : ["black", 0];
             
-//     scotch_yoke_from_dimensions(operation, dimensions);                 
-// }
-
-module scotch_yoke_operation(self, operation) {
-            
-    log_v1("self", self, verbosity, DEBUG);
+    log_v1("self", self, log_verbosity, DEBUG);
     
     function extract(attribute) = find_in_dct(self, attribute);
     
-     
     pin_diameter = extract("pin_diameter");
     range_of_travel = extract("range_of_travel");
     radial_allowance = extract("radial_allowance");
@@ -283,6 +328,7 @@ module scotch_yoke_operation(self, operation) {
     dy_inside = extract("dy_inside");
     dx_outside = extract("dx_outside");
     dy_outside = extract("dy_outside");
+    dx_bearing_outside =extract("dx_bearing_outside");
     wall_height = extract("wall_height");
     dy_traveller = extract("dy_traveller");
     l_joiner = extract("l_joiner"); 
@@ -297,20 +343,21 @@ module scotch_yoke_operation(self, operation) {
     // frame:
     if (is_undef(operation) || operation == "show") {
         translate([0, 0, axle_height]) assembly(support_axle);
-    
         if (provide_x_axis_servo_mounting) {
-            
-            translate([dx_outside+3*eps, 0, axle_height+3*eps]) {
-                sub_micro_servo_mount_to_axle(
-                    axle_diameter=4, 
-                    axle_height= axle_height,
-                    wall_height=6,
-                    radial_allowance=radial_allowance, 
-                    axial_allowance=axial_allowance, 
-                    wall_thickness=wall_thickness, 
-                    angle=angle);
+            display(coloring("servo_mount")) {
+                translate([dx_bearing_outside+3*eps, 0, axle_height+3*eps]) {
+                    sub_micro_servo_mount_to_axle(
+                        axle_diameter=4, 
+                        axle_height= axle_height,
+                        wall_height=6,
+                        radial_allowance=radial_allowance, 
+                        axial_allowance=axial_allowance, 
+                        wall_thickness=wall_thickness, 
+                        angle=angle, 
+                        log_verbosity=log_verbosity);
+                }
+                
             }
-            
         }
     }  else if (operation == "bore for push rod - crankshaft") {    
         bore_for_push_rod(origin_at="crankshaft") {
@@ -327,26 +374,25 @@ module scotch_yoke_operation(self, operation) {
 
 
     module assembly(support_axle) {
-        
         // Caution:  The order of assembly must be from inner 
         // to outer for z-ordering and transparency to work as 
-        // expected!
+        // expected! 
         
         translate([0, dy_traveller, 0]) {
-            display(push_rod_coloring) push_rod();
+            display(coloring("push_rod")) push_rod();
             display(traveller_coloring) traveller();
         } 
 
         rotate([angle, 0, 0]) {
-            display(crank_shaft_coloring) crank_shaft();
+            display(coloring("crank_shaft")) crank_shaft();
         } 
-        display(bearing_coloring) bearings();
+        display(coloring("bearing")) bearings();
         
         rotate([angle, 0, 0]) {
-            display(support_coloring) crank_shaft_support(support_axle);
+            display(coloring("support")) crank_shaft_support(support_axle);
         }
         
-        display(wall_coloring) {
+        display(coloring("wall")) {
             bearing_side_walls();
             bearing_yokes();
         }
@@ -646,17 +692,16 @@ module scotch_yoke_mounting(
     frame = extract("frame");
     wall_thickness = extract("wall_thickness");
     wall_height = extract("wall_height");
-    
-
+    dx_bearing_outside = extract("dx_bearing_outside");
     
     if (is_num(extend_left)) {
         y_extend = extend_left;
         hub_frame = [10.25, 8.0, 6]; // TODO: fetch from sub_micro_servo
         y_servo_mount = 4;
-        dx_f = frame.x/2;
+        dx_f = -(frame.x/2);
         dy_f = -(frame.y/2);
         dy_extend = dy_f - y_extend;
-        dx_hf = dx_f + hub_frame.x;
+        dx_hf = dx_bearing_outside + hub_frame.x + wall_thickness;
         
         push_rod_extension = [wall_thickness, y_extend, wall_height];
         push_rod_extension_end = [frame.x, wall_thickness, wall_height];
@@ -665,10 +710,6 @@ module scotch_yoke_mounting(
             y_extend - hub_frame.y/2 - y_servo_mount, 
             wall_height];
         hub_frame_extension_end = [hub_frame.x, wall_thickness, wall_height];
-//        hub_screw_plate = [
-//            hub_frame_extension_end.x, 
-//            y_extend - hub_frame.y/2, 
-//            wall_thickness];
         
         color("Olive") { 
             if (is_list(left_base_plate)) {
@@ -688,7 +729,7 @@ module scotch_yoke_mounting(
         color("LawnGreen") { 
             center_reflect([1, 0, 0]) {
                 translate([dx_f, dy_f, -3*eps]) {
-                    block(push_rod_extension, center=ABOVE+LEFT+BEHIND);
+                    block(push_rod_extension, center=ABOVE+LEFT+FRONT);
                 }
             }
         }
@@ -710,16 +751,8 @@ module scotch_yoke_mounting(
                 block(hub_frame_extension_end, center=ABOVE+RIGHT+BEHIND);
             }
         }
-//        color("Salmon") { 
-//            translate([dx_hf, dy_extend, -9*eps]) {
-//                block(hub_screw_plate, center=ABOVE+RIGHT+BEHIND);
-//            }
-//        }
-        
         if (screw_mounting=="M3") {
-            // Not enough space to locate two screw holes on extended frame.
-            // So only put one there.  Put screw holes on floor, with 
-            // the assumption that the user will create a plate
+            
             
       
         }
@@ -740,30 +773,7 @@ module scotch_yoke_mounting(
 }
 
 
-support_axle = ["servo horn", true];
-extra_push_rod=[12, 24];
 
-scotch_yoke_for_test = scotch_yoke_create(
-    pin_diameter, 
-    range_of_travel, 
-    radial_allowance, 
-    axial_allowance, 
-    wall_thickness,
-    bearing_width,
-    angle,
-    support_axle,
-    extra_push_rod);
-
-log_v1("scotch_yoke_for_test", scotch_yoke_for_test, verbosity, DEBUG);
-
-scotch_yoke_operation(scotch_yoke_for_test, "show");    
-    
-scotch_yoke_mounting(
-    scotch_yoke_for_test,
-    extend_left=20,
-    extend_right=false,
-    screw_mounting="M3",
-    left_base_plate=[[20, 4, 10]]);
     
 
 
