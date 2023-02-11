@@ -637,7 +637,8 @@ module scotch_yoke_mounting(
         self,
         extend_left,
         extend_right,
-        screw_mounting="M3") {
+        screw_mounting="M3",
+        left_base_plate=false) {
                         
                         
     function extract(attribute) = find_in_dct(self, attribute);
@@ -664,11 +665,25 @@ module scotch_yoke_mounting(
             y_extend - hub_frame.y/2 - y_servo_mount, 
             wall_height];
         hub_frame_extension_end = [hub_frame.x, wall_thickness, wall_height];
-        hub_screw_plate = [
-            hub_frame_extension_end.x, 
-            y_extend - hub_frame.y/2, 
-            wall_thickness];
+//        hub_screw_plate = [
+//            hub_frame_extension_end.x, 
+//            y_extend - hub_frame.y/2, 
+//            wall_thickness];
         
+        color("Olive") { 
+            if (is_list(left_base_plate)) {
+                assert(len(left_base_plate)<=2);
+                for (i = [0 : len(left_base_plate)-1]) {
+                    side = [FRONT, BEHIND];
+                    bore_for_push_rod_from_build_plate() {
+                        translate([0, dy_extend, -6*eps]) {
+                            block(left_base_plate[i], center=ABOVE+RIGHT+side[i]);
+                        }
+                    }
+                }
+                    
+            } 
+        }
 
         color("LawnGreen") { 
             center_reflect([1, 0, 0]) {
@@ -695,11 +710,11 @@ module scotch_yoke_mounting(
                 block(hub_frame_extension_end, center=ABOVE+RIGHT+BEHIND);
             }
         }
-        color("Salmon") { 
-            translate([dx_hf, dy_extend, -9*eps]) {
-                block(hub_screw_plate, center=ABOVE+RIGHT+BEHIND);
-            }
-        }
+//        color("Salmon") { 
+//            translate([dx_hf, dy_extend, -9*eps]) {
+//                block(hub_screw_plate, center=ABOVE+RIGHT+BEHIND);
+//            }
+//        }
         
         if (screw_mounting=="M3") {
             // Not enough space to locate two screw holes on extended frame.
@@ -747,7 +762,8 @@ scotch_yoke_mounting(
     scotch_yoke_for_test,
     extend_left=20,
     extend_right=false,
-    screw_mounting="M3");
+    screw_mounting="M3",
+    left_base_plate=[[20, 4, 10]]);
     
 
 

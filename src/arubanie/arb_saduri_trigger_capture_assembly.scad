@@ -65,6 +65,7 @@ show_air_flow_servo = false;
 air_flow_servo_angle = 0; // [-180 : 10 : 180]
 
 dx_scotch_yoke = 55; // Must clear paint pot
+scotch_yoke_wall_thickness = 2; // [2 : 0.5 : 4]
 
 
 air_flow_servo_color = "PaleTurquoise"; // [DodgerBlue, PaleTurquoise, Coral]
@@ -93,7 +94,9 @@ viewing_orientation_example = orient_for_build_example ? FOR_BUILD : FOR_DESIGN;
 
 barrel_diameter = master_air_brush("barrel diameter");
 
+* screw(name="M3x8");
 
+* translate([5, 0, 0]) nut("M3");
 
 //module supported_servo_mounting(show_servo) {
 //  
@@ -123,7 +126,7 @@ function create_air_flow_scotch(angle) =
         trigger_shaft_range, 
         radial_allowance, 
         axial_allowance, 
-        wall_thickness, 
+        scotch_yoke_wall_thickness, 
         bearing_width,
         angle,
         extra_push_rod=extra_push_rod,
@@ -142,7 +145,20 @@ module emplace_air_flow_scotch_yoke() {
     }
 } 
 
-
+module bore_for_scotch_yoke_connection() {
+    module place(side, extra=0) {
+        dx_nc = paint_pivot_inner_height + paint_pivot_bridge_thickness + 3.3 + extra;
+        dy_nc = 6;
+        translate([dx_nc, side*dy_nc, 0]) rotate([0, 90, 0]) children();
+    }
+    render() difference() {
+        children();
+        place(1) nutcatch_sidecut(name="M3");
+        place(-1) nutcatch_sidecut(name="M3");
+        place(1, extra=5) hole_through();
+        place(-1, extra=5) hole_through();
+    }    
+}
    
 
 module air_flow_scotch_yoke(show_servo, angle) {
@@ -152,17 +168,29 @@ module air_flow_scotch_yoke(show_servo, angle) {
     extend_left = 16.5; // TODO extract it from instance 
 
     log_v1("air_flow_scotch_yoke", instance, verbosity, DEBUG);
-    emplace_air_flow_scotch_yoke() {
-        scotch_yoke_operation(instance, "show");
-        
-        scotch_yoke_mounting(
-            instance,
-            extend_left,
-            extend_right=false,
-            screw_mounting="M3");
+    dy_outside = paint_pivot_cl_dy + paint_pivot_w/2;
+    dy_inside_minus = paint_pivot_cl_dy-paint_pivot_w/2-1; // Clearance for pivot
+    
+    left_base_plate = [
+        [dy_outside, 5, paint_pivot_h],
+        [dy_inside_minus , 5, paint_pivot_h]
+    ];
+    bore_for_scotch_yoke_connection() {
+        emplace_air_flow_scotch_yoke() {
+            scotch_yoke_operation(instance, "show");
+            
+            scotch_yoke_mounting(
+                instance,
+                extend_left,
+                extend_right=false,
+                screw_mounting="M3",
+                left_base_plate=left_base_plate);
+        }
     }
+
 }
 
+// ===========================================================
 
 module trigger_slider() {
     x = trigger_slider_length;
@@ -188,9 +216,6 @@ module trigger_slider() {
          
     }
 }
-
-
-
 
 
 module trigger_catch() {
@@ -283,20 +308,14 @@ module paint_pivot_gudgeons() {
 }
 
 module emplace_children_into_scotch_yoke() {
-    
     dz = paint_pivot_h/2;
 
     rotate([0, 180, 0]) 
     mirror([0, -1, 0])
     rotate([0, 0, -90])
     translate([-dx_scotch_yoke, 0, -dz]) 
-    children();
-
-    
+    children(); 
 } 
-
-
-
 
 
 module bore_for_push_rod() {
@@ -312,16 +331,18 @@ module bore_for_push_rod() {
     }
 }
 
-//***************************************************
+
 module paint_pivot_gudgeon_bridge() {
-    bore_for_push_rod() {
-        translate([paint_pivot_inner_height-eps, 0, 0]) {
-            block(
-                [paint_pivot_bridge_thickness, 
-                2* paint_pivot_inside_dy+eps,
-                paint_pivot_h
-            ],
-            center=FRONT); 
+    bore_for_scotch_yoke_connection() {
+        bore_for_push_rod() {
+            translate([paint_pivot_inner_height-eps, 0, 0]) {
+                block(
+                    [paint_pivot_bridge_thickness, 
+                    2* paint_pivot_inside_dy+eps,
+                    paint_pivot_h
+                ],
+                center=FRONT); 
+            }
         }
     }
 }
