@@ -368,15 +368,15 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
             }
         }
     }  else if (operation == "bore for push rod - crankshaft") {    
-        bore_for_push_rod(origin_at="crankshaft") {
+        bore_for_push_rod(origin_at="crankshaft", options=options) {
             children();
         }
     } else if (operation == "bore for push rod - build plate") {    
-        bore_for_push_rod(origin_at="build plate") {
+        bore_for_push_rod(origin_at="build plate", options=options) {
             children();
         }
     } else {
-        assert(false, str("Unknown operation: ", operation));
+        assert(false, str("Unknown operation: ", operation, " options: ", options));
     }
 
 
@@ -450,7 +450,6 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
     }
 
     module bore_for_axle(eps_mul) {
-        
         render() difference() {
             children();
             rod(d=d_slot+eps_mul * eps, l=2*x_bearing, fa=fa_bearing); // smoothness matters hear
@@ -458,7 +457,6 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
     }
     
     module bearing() {
-
         bore_for_axle(0) {
             hull() {
                 block([x_bearing+4*eps, y_bearing, axle_height], center=BELOW);
@@ -582,7 +580,7 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
             }
         }
     }
-    module push_rod(clearance=0) {
+    module push_rod(clearance=0, fin=true) {
         x =  push_rod_fin_width + 2 * clearance; 
         ys = push_rod_lengths;
         z = wall_thickness + pin_diameter/2;
@@ -594,12 +592,14 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
         
         render() difference() {
             translate([0, 0, dz]) {
-                translate([0, 0, -clearance]) {
-                    block(size_fins[0], center=ABOVE+RIGHT);
-                    block(size_fins[1], center=ABOVE+LEFT);
+                if (fin) {
+                    translate([0, 0, -clearance]) {
+                        block(size_fins[0], center=ABOVE+RIGHT);
+                        block(size_fins[1], center=ABOVE+LEFT);
+                    }
                 }
                 translate([0, 0, dz_rod]) {
-                    sidewise_rod_with_dove_tail_ends(d, l=ys[0], center=RIGHT);
+                    sidewise_rod_with_dove_tail_ends(d, l=ys[0], center=RIGHT);  // TODO: make the dovetailing optional!
                     sidewise_rod_with_dove_tail_ends(d, l=ys[1], center=LEFT);
                 }
             }
@@ -607,8 +607,9 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
         }
     }
 
-    module bore_for_push_rod(origin_at="crankshaft") {
-        
+    module bore_for_push_rod(origin_at="crankshaft", options=[]) {
+        fin_option = find_in_dct(options, "fin");
+        fin = is_bool(fin_option) ? fin_option : true;
         dz = 
             origin_at == "crankshaft" ? 0 :
             origin_at == "build plate" ? axle_height :
@@ -618,7 +619,7 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
                 translate([0, 0, -dz]) {
                     children();
                 }
-                push_rod(radial_allowance);
+                push_rod(radial_allowance, fin);
             }
         }    
     }
@@ -657,8 +658,6 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
             // faux bearing surface for test printing of axle.
             block([1,1, axle_height+dz], center=BELOW+FRONT);
         }
-        
-
     }
 
     module supported_axle(support_axle) {
@@ -737,7 +736,6 @@ module scotch_yoke_mounting(
                     
             } 
         }
-
         color("gray") { 
             center_reflect([1, 0, 0]) {
                 translate([dx_f, dy_f, -3*eps]) {
