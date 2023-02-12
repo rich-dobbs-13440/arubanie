@@ -49,8 +49,8 @@ axle_height = 18.5; // [6: 0.5: 20]
 axle_diameter=4; // [2: 1: 20]
 
 wall_height=6; // [2: 1: 20]
-radial_allowance=0.4;
-axial_allowance=0.4; 
+radial_allowance=0.4; // [0 : 0.2 : 10]
+axial_allowance=0.4; // [0 : 0.2 : 10]
 wall_thickness=2; // [2: 0.5: 10]
 
 end_of_customization() {}
@@ -101,9 +101,6 @@ pilot_diameter = 2;
 screw_length = 8;
 screw_length_allowance = 2;
 
-//minimum_size = [ 4*pilot_diameter, servo_length + 2 * servo_lip, 4*pilot_diameter];
-
-//minimum_size_err_msg = text("The servo size is below the minimum allowed of ", minimum_size);
 
 module bare_pilot_hole() {
     l = screw_length+screw_length_allowance;
@@ -192,6 +189,8 @@ module sub_micro_servo_mounting(
     
     servo_clearance = servo_size + clearance + clearance;
     remainder = extent - servo_clearance;
+        
+    
 
     center_translation(extent, center) {
         center_rotation(rotation) {
@@ -199,16 +198,15 @@ module sub_micro_servo_mounting(
                 back_wall(extent, servo_clearance, remainder);
                 screw_blocks(screw_offset, extent, servo_clearance, remainder);
                 base_and_top(extent, servo_clearance, remainder, omit_top);
-                // Dev Code:
-                //% cube(servo_size, center=true);
-                //% cube(servo_clearance, center=true);
-                //% cube(extent, center=true);
             }
             if (include_children) {
                 # children();  // Show mounted servo, if any
             }
         }
     } 
+    
+    
+    
 }
 
 
@@ -234,7 +232,9 @@ module sub_micro_servo_mount_to_axle(
     log_s("angle", axle_diameter, log_verbosity, DEBUG);
     log_s("log_verbosity", log_verbosity, log_verbosity, DEBUG);
             
-    
+    fa_shape = 10;
+    fa_bearing = 1;
+            
     horn_thickness = 3;
     horn_radius = 11.9;
     horn_overlap = 0.5;
@@ -277,47 +277,49 @@ module sub_micro_servo_mount_to_axle(
     }
     
     module horn_support() {
-        center_reflect([1, 0, 0]) 
-        translate([1.3,0,-horn_radius+ radial_allowance]) {
-            intersection() {
-                rotate([-45, 0, 0]) {
-                    block([1.8, axle_height, axle_height], 
-                    center=BELOW+RIGHT+FRONT);
+        center_reflect([1, 0, 0]) {
+            translate([0.8, 0, -horn_radius+ radial_allowance]) {
+                intersection() {
+                    rotate([-45, 0, 0]) {
+                        block([1.8, axle_height, axle_height], 
+                        center=BELOW+RIGHT+FRONT);
+                    }
+                    block([2*horn_thickness, 5, axle_height]);
                 }
-                block([2*horn_thickness, 5, axle_height]);
             }
         }
     }
     
-    module truncated_horn() {
-        d_support = 2 * (axle_height - horn_radius);
+    module truncate_at_build_plane() {
         difference() {
-            union() {
-                translate([dx_horn, 0, 0]) {
-                    rotate([45, 0, 0]) {
-                        rotate([0, 90, 0]) 
-                            bare_hub(horn_thickness);
-                    }
-                    horn_support();
-                }
-            }
+            children();
             translate([0, 0, -axle_height]) block([100, 100, 100], center=BELOW);
+        }
+    }
+    
+    module supported_horn() {
+        translate([dx_horn, 0, 0]) {
+            rotate([45, 0, 0]) {
+                rotate([0, 90, 0]) 
+                    bare_hub(horn_thickness);
+            }
+            horn_support();
         }
     }
             
     module x_axis_servo_hub(angle) {
         rotate([angle, 0, 0]) {
-            translate([axial_allowance, 0, 0]) {
-                rod(d=hub_backer_diameter, l=hub_backer_l, center=FRONT);
-                rod(d=axle_diameter, l=wall_thickness + 2 * axial_allowance, center=BEHIND);
+            truncate_at_build_plane() {
+                translate([axial_allowance, 0, 0]) {
+                    rod(d=hub_backer_diameter, l=hub_backer_l, center=FRONT, fa=10);
+                    rod(d=axle_diameter, l=wall_thickness + 2 * axial_allowance, center=BEHIND, fa=1);
+                }
+                supported_horn();
             }
-            truncated_horn();
         }
         
     }
-    
-
-    
+ 
     module drilled_pillar() {
         screw_offset = 2;
         difference() {
@@ -354,7 +356,9 @@ module sub_micro_servo_mount_to_axle(
                 block(side_wall, center=FRONT+ABOVE+RIGHT);
             }
         }
-        translate([0, 0, -axle_height]) block(bearing_wall, center=BEHIND+ABOVE);  
+        bore_for_axle(axle_diameter, radial_allowance, l=50) {
+            translate([0, 0, -axle_height]) block(bearing_wall, center=BEHIND+ABOVE); 
+        } 
     }
     
     module minus_joiner() { 
@@ -387,13 +391,11 @@ module sub_micro_servo_mount_to_axle(
         }
     }
     
-
     module bore_for_axle(axle_diameter, radial_allowance, l=50) {
-        
         bore_diameter = axle_diameter + 2 * radial_allowance;
         render() difference() {
             children();
-            rod(d=bore_diameter, l=l);
+            rod(d=bore_diameter, l=l, fa=fa_bearing);
         }
     }
     
@@ -401,18 +403,12 @@ module sub_micro_servo_mount_to_axle(
 
         bore_for_axle(axle_diameter, radial_allowance) {
             hull() {
-                block([bearing_width, 2*axle_diameter, axle_height], center=BELOW+BEHIND);
-                rod(d=2*axle_diameter, l=bearing_width, center=BEHIND);
+                block([bearing_width, 3*axle_diameter, axle_height], center=BELOW+BEHIND);
+                rod(d=3*axle_diameter, l=bearing_width, center=BEHIND, fa=fa_shape);
             }
         }
 
     }
-    
-    
-
-    
-
-
 }
 
 

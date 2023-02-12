@@ -76,16 +76,24 @@ show_scotch_yoke = true;
 show_scotch_yoke_mount = true;
 show_air_flow_servo = false;
 
-air_flow_servo_angle = 0; // [-180 : 10 : 180]
-
-dx_scotch_yoke = 55; // Must clear paint pot
+air_flow_servo_angle = 0; // [0 : 15 : 270]
+// Must clear paint pot
+dx_scotch_yoke = 55; // [50 : 1 : 70]
 scotch_yoke_wall_thickness = 2; // [2 : 0.5 : 4]
-scotch_yoke_options = undef; //[["show only", ["push_rod", "traveller", "wall"]]];
+scotch_yoke_options = undef; // [["show only", ["wall"]]]; //"push_rod"
 scotch_yoke_base_plate_thickness = 6.8;
 scotch_yoke_nutcatch_dy = 6;
 scotch_yoke_depth_of_nutcatch = 4;
 scotch_yoke_extra_depth_for_screw = 1.5;
-scotch_yoke_extra_dy_right = 3;  // covers up small gap with servo mounting post.
+scotch_yoke_extra_dy_right = 6;  // covers up small gap with servo mounting post.
+
+scotch_yoke_extend_trigger_cap = 5;
+
+scotch_yoke_radial_allowance = 0.4;
+scotch_yoke_axial_allowance = 0.6;
+
+scotch_yoke_bearing_width = 5;
+
 
 air_flow_servo_color = "PaleTurquoise"; // [DodgerBlue, PaleTurquoise, Coral]
 air_flow_servo_alpha = 1; // [0, 0.25. 0.5, 0.75, 1]
@@ -128,25 +136,25 @@ barrel_diameter = master_air_brush("barrel diameter");
 //            9g_motor_centered_for_mounting();
 //    } 
 
+// 8************************************************************************
 
-function create_air_flow_scotch(angle) = 
+
+
+
+function create_air_flow_scotch(angle, extra_push_rod) = 
     let(
-        extend_left = 13.5,
-        extend_trigger_cap = 5,
-        extra_push_rod = [0,extend_left ],  //[0, extend_left + extend_trigger_cap],
-        radial_allowance = 0.4,
-        axial_allowance = 0.4,
+        //extend_left = scotch_yoke_extend_left,
+        //extend_trigger_cap = scotch_yoke_extend_trigger_cap,
         support_axle = ["servo horn", true],
-        bearing_width = 4,
         last=undef
     )
     scotch_yoke_create(
         trigger_shaft_diameter, 
         trigger_shaft_range, 
-        radial_allowance, 
-        axial_allowance, 
+        scotch_yoke_radial_allowance, 
+        scotch_yoke_axial_allowance, 
         scotch_yoke_wall_thickness, 
-        bearing_width,
+        scotch_yoke_bearing_width,
         angle,
         extra_push_rod=extra_push_rod,
         support_axle=support_axle);
@@ -184,14 +192,15 @@ module bore_for_scotch_yoke_connection() {
     }    
 }
    
+//        extend_left = 13.5,
+//        extra_push_rod = [0, extend_left],  //[0, extend_left + extend_trigger_cap],
 
 module air_flow_scotch_yoke(show_servo, angle) {
-    
-    
-    instance = create_air_flow_scotch(angle);
-    extend_left = 12.; // TODO extract it from instance 
+    dummy_instance = create_air_flow_scotch(angle, extra_push_rod=[0,0]);
+    frame = scotch_yoke_attribute(dummy_instance, "frame");
+    extend_left = dx_scotch_yoke - frame.y/2 - paint_pivot_top_of_yoke;
 
-    log_v1("air_flow_scotch_yoke", instance, verbosity, DEBUG);
+    
     dy_outside_plus = paint_pivot_cl_dy + paint_pivot_w/2 + scotch_yoke_extra_dy_right;
     dy_inside = paint_pivot_cl_dy-paint_pivot_w/2; 
     
@@ -199,6 +208,9 @@ module air_flow_scotch_yoke(show_servo, angle) {
         [dy_outside_plus, scotch_yoke_base_plate_thickness, paint_pivot_h],
         [dy_inside , scotch_yoke_base_plate_thickness, paint_pivot_h]
     ];
+    extra_push_rod=[0, extend_left];
+    instance = create_air_flow_scotch(angle, extra_push_rod=extra_push_rod);
+    log_v1("air_flow_scotch_yoke", instance, verbosity, DEBUG);
     
     bore_for_scotch_yoke_connection() {
         emplace_air_flow_scotch_yoke() {
@@ -349,11 +361,10 @@ module emplace_children_into_scotch_yoke() {
 
 
 module bore_for_push_rod() {
-    air_flow_scotch_yoke = create_air_flow_scotch(angle=0);
-    //translate([0, 50, 0])
-    emplace_air_flow_scotch_yoke() {
-       //scotch_yoke_operation(air_flow_scotch_yoke, "show"); 
-       scotch_yoke_operation(air_flow_scotch_yoke, "bore for push rod - build plate") {
+    air_flow_scotch_yoke = create_air_flow_scotch(angle=0, extra_push_rod=[100,100]);
+    options=[["fin", false]];
+    emplace_air_flow_scotch_yoke() { 
+       scotch_yoke_operation(air_flow_scotch_yoke, "bore for push rod - build plate", options=options) {
             emplace_children_into_scotch_yoke() {
                 children();
             }
@@ -453,7 +464,7 @@ module paint_pull_rod() {
 
 module connected_paint_pull_rod(angle=0) {
     dx = paint_pivot_top_of_yoke + paint_pivot_h;
-    dy = paint_pivot_cl_dy;
+    dy = paint_pivot_cl_dy + 7.31;
     translate([dx, dy, 0]) {
         rotate([0, angle, 0]) { 
             paint_pull_rod();

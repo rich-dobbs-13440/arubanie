@@ -115,7 +115,7 @@ module latch(base_diameter, horn_thickness) {
     dy_latch = base_diameter/2;
     color("orange") translate([0, dy_latch, dz_latch] ) 
     rotate([0,90,0]) 
-    cylinder(r=horn_thickness, h=dx, center=true);
+    cylinder(r=horn_thickness, h=dx, center=true, $fa=10);
 
     // spring
     r1 = y;
@@ -151,9 +151,9 @@ module bare_hub(horn_thickness) {
     color("PaleTurquoise") {
         difference() {
             // Basic wheel
-            cylinder(d=hub_diameter, h=2*horn_thickness, center=true);
+            cylinder(d=hub_diameter, h=2*horn_thickness, center=true, $fa=10);
             // Cutout for hub
-            cylinder(d=inner_hub+hub_clearance, h=4*horn_thickness, center=true);
+            cylinder(d=inner_hub+hub_clearance, h=4*horn_thickness, center=true, $fa=10);
             // cutout for horn
             horn(h=2*horn_thickness);
         }
