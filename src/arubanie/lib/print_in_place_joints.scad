@@ -1,4 +1,9 @@
-$fa = 1;
+include <centerable.scad>
+use <shapes.scad>
+
+
+$fa = 10;
+fa_as_arg = $fa;
 $fs = 0.4;
 eps = 0.001;
 
@@ -42,7 +47,95 @@ element_size = 0.5;
 artifact_radius = 10;
 h_base = 2;
 
+/* [Rod, can to plate] */
+show_plate_connection = false;
+show_rod_connection = false;
+show_dove_tailed_rod = true;
+
+
 module end_of_customization() {}
+
+
+module can_to_plate_connection(plate_side, diameter, slide_allowance) {
+    plate_h = diameter/2;
+    module bit(allowance) {
+        //cutter_h = plate_h;
+        
+        d1 = 0.65 * diameter + 2*allowance;
+        d2 = diameter + 2*allowance;
+        translate([0, 0, eps]) can(d=d1, taper=d2, h=plate_h, center=BELOW, fa=fa_as_arg); 
+        
+    }
+    module dove_tail(allowance) {
+        hull() {
+            bit(allowance);
+            translate([4*diameter, 0, 0]) bit(allowance);
+        }
+    }
+    if (plate_side) {
+        translate([0, 0, eps]) render() difference() {
+            can(d=2*diameter, h=plate_h-slide_allowance, center=BELOW, fa=fa_as_arg);
+            dove_tail(slide_allowance);
+        } 
+    } else {
+        
+        render() intersection() {
+            dove_tail(0);
+            translate([0, 0, -slide_allowance]) can(d=diameter, h=plate_h, center=BELOW, fa=fa_as_arg); 
+        } 
+        render() difference() {
+            children();
+            translate([0, 0, eps]) can(d=diameter+1, h=plate_h+eps, center=BELOW, fa=fa_as_arg);
+        }
+    }
+}
+
+module rod_to_block_dove_tail_connection(plate_side, diameter, slide_allowance) {
+    rotate([0, -90, 0]) {
+        can_to_plate_connection(plate_side, diameter, slide_allowance) {
+            rotate([0,90,0]) {
+                children();
+            }
+        }
+    }
+}
+
+module dove_tailed_rod(d, l, rotation, ends=[true, false]) {
+    size = [l, d, d]; 
+    center_rotation(rotation) {
+        rod_to_block_dove_tail_connection(plate_side=false, diameter=d, slide_allowance=0.2) {
+            rod(d=d, l=l, center=FRONT);
+        }
+    }
+} 
+
+//rod_to_block_dove_tail_connection(plate_side=false, diameter=5, slide_allowance=0.2) 
+//       rod(d=5, l=30, center=SIDEWISE+ABOVE+RIGHT)
+
+if (show_plate_connection) {
+   
+    color("red") can_to_plate_connection(plate_side=true, diameter=5, slide_allowance=0.2); 
+}
+
+if (show_rod_connection) {
+    // can(d=5, h=10, center=BELOW);
+    color("blue") can_to_plate_connection(plate_side=false, diameter=5, slide_allowance=0.2) {
+        can(d=5, h=10, center=BELOW);
+    }
+}
+
+//if (show_dove_tailed_rod) {
+//    * rod_to_block_dove_tail_connection(plate_side=false, diameter=5, slide_allowance=0.2) {
+//        rod(d=5, l=30, center=FRONT);
+//    }  
+//}
+
+dove_tailed_rod(d=5, l=30, rotation=BELOW);  //center=SIDEWISE+ABOVE+RIGHT); 
+
+//    rod(d=d, l=ys[0], center=SIDEWISE+ABOVE+RIGHT);
+    ///rod_to_block_dove_tail_connection(plate_side=false, diameter=5, slide_allowance=0.2) {
+//////////  =====================================================================
+
 
 show_name = false;
 if (show_name) {

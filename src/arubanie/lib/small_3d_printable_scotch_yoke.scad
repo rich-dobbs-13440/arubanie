@@ -68,10 +68,14 @@ use <not_included_batteries.scad>
 use <small_servo_cam.scad>
 use <sub_micro_servo.scad>
 use <9g_servo.scad>
+use <print_in_place_joints.scad>
 include <nutsnbolts-master/cyl_head_bolt.scad>
 
 
+
+
 eps = 0.001;
+$fa = 5;
 fa_as_arg = 5;
 
 /* [Logging] */
@@ -201,8 +205,7 @@ function scotch_yoke_create(
         bearing_width=undef,
         angle = 0,
         support_axle=[true, true],
-        extra_push_rod=undef,
-        operation=undef) = // Note that operation ignored for creating dimensions!
+        extra_push_rod=undef) = 
     
     assert(!is_undef(pin_diameter))
     assert(!is_undef(range_of_travel))

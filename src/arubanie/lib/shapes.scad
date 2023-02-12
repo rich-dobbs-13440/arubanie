@@ -78,6 +78,7 @@ module rod(d, l, center=0, hollow=false, fa=undef) {
 */
 module can(d,h, center=0, hollow=false, taper=false, fa=undef) {
     $fa = is_undef(fa) ? $fa : fa;
+    echo("In can: $fa", $fa);
     bv = _number_to_bitvector(center);
     size = [d, d, h];
     disp = _center_to_displacement(center, size);

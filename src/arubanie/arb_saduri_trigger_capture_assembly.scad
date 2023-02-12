@@ -55,11 +55,20 @@ paint_gudgeon_alpha = 1; // [0:0.05:1]
 
 
 /* [Paint Pull Rod Design] */
+
+
 show_paint_pull_rod = true;
 paint_pull_rod_length = 54; // [40:70]
 
 paint_pull_rod_color = "Orange"; // [DodgerBlue, Orange, Coral]
 paint_pull_rod_alpha = 1; // [0:0.05:1]
+
+paint_pull_gudgeon_length = 17;
+paint_pull_gudgeon_offset = 6;
+dy_paint_pull_gudgeon_offset = 8;
+paint_pull_nutcatch_depth = 8;
+paint_pull_range_of_motion = [120,60];
+
 //paint_pull_rod_angle = 34; // [0: 5 : 40]
 
 /* [Air Flow Actuator Design] */
@@ -69,13 +78,14 @@ show_air_flow_servo = false;
 
 air_flow_servo_angle = 0; // [-180 : 10 : 180]
 
-dx_scotch_yoke = 54; // Must clear paint pot
+dx_scotch_yoke = 55; // Must clear paint pot
 scotch_yoke_wall_thickness = 2; // [2 : 0.5 : 4]
 scotch_yoke_options = undef; //[["show only", ["push_rod", "traveller", "wall"]]];
 scotch_yoke_base_plate_thickness = 6.8;
 scotch_yoke_nutcatch_dy = 6;
 scotch_yoke_depth_of_nutcatch = 4;
 scotch_yoke_extra_depth_for_screw = 1.5;
+scotch_yoke_extra_dy_right = 3;  // covers up small gap with servo mounting post.
 
 air_flow_servo_color = "PaleTurquoise"; // [DodgerBlue, PaleTurquoise, Coral]
 air_flow_servo_alpha = 1; // [0, 0.25. 0.5, 0.75, 1]
@@ -182,12 +192,12 @@ module air_flow_scotch_yoke(show_servo, angle) {
     extend_left = 12.; // TODO extract it from instance 
 
     log_v1("air_flow_scotch_yoke", instance, verbosity, DEBUG);
-    dy_outside = paint_pivot_cl_dy + paint_pivot_w/2;
-    dy_inside_minus = paint_pivot_cl_dy-paint_pivot_w/2-1; // Clearance for pivot
+    dy_outside_plus = paint_pivot_cl_dy + paint_pivot_w/2 + scotch_yoke_extra_dy_right;
+    dy_inside = paint_pivot_cl_dy-paint_pivot_w/2; 
     
     left_base_plate = [
-        [dy_outside, scotch_yoke_base_plate_thickness, paint_pivot_h],
-        [dy_inside_minus , scotch_yoke_base_plate_thickness, paint_pivot_h]
+        [dy_outside_plus, scotch_yoke_base_plate_thickness, paint_pivot_h],
+        [dy_inside , scotch_yoke_base_plate_thickness, paint_pivot_h]
     ];
     
     bore_for_scotch_yoke_connection() {
@@ -213,8 +223,8 @@ module trigger_slider() {
     y = trigger_bearing_od;
     z = paint_pivot_h/2;
     y_slot = wall_thickness + 2 * trigger_slider_clearance;
-    render() translate([paint_pivot_top_of_yoke - eps, 0, 0]) {
-        difference() {
+    translate([paint_pivot_top_of_yoke - eps, 0, 0]) {
+        render() difference() {
             union() {
                 block([x, y, z], center=ABOVE+FRONT);
                 rod(
@@ -315,9 +325,13 @@ module connected_trigger_rod(angle) {
 
 
 module paint_pivot_gudgeons() {
-    translate([0, paint_pivot_cl_dy, 0]) {
-        paint_pivot_gudgeon(0.75*paint_pivot_inner_height);
-    }
+    //render() difference() {
+        translate([0, paint_pivot_cl_dy, 0]) {
+            paint_pivot_gudgeon(paint_pivot_top_of_yoke); 
+        }
+        //paint_pull_clearance();
+    //}
+
     translate([0, -paint_pivot_cl_dy, 0]) {
         paint_pivot_gudgeon(paint_pivot_top_of_yoke);
     }
@@ -366,38 +380,51 @@ module paint_pivot_gudgeon_bridge() {
     // Kludge, we want a round rod through the bridge
     // so seal this off with a little plate
     translate([paint_pivot_inner_height, 0, paint_pivot_h/2])
-    block([paint_pivot_bridge_thickness, 2, 1.5], center=FRONT+BELOW); 
+    block([paint_pivot_bridge_thickness, 3, 1.5], center=FRONT+BELOW); 
 }
 
 
-module paint_pull_gudgeon() {
-    dx = paint_pivot_top_of_yoke + paint_pivot_h;
-    gudgeon_length = 22; //400; //paint_pivot_h + 0.4*trigger_rod_length + eps;
-    module emplace_gudgeon() {
+module paint_pull_emplace() {
+    dx = paint_pivot_top_of_yoke - paint_pull_gudgeon_offset ;
+    dy = paint_pivot_cl_dy + dy_paint_pull_gudgeon_offset;
+    translate([dx, dy, 0]) { 
+        children();
+    } 
+}
+// ******************************************************************************
+module paint_pull_clearance() {
+    paint_pull_emplace() {
+        translate([0, 0,0]) 
+            block(
+                [2*paint_pull_gudgeon_length,
+                paint_pivot_w, 
+                20]);
         
-        dy = paint_pivot_cl_dy;
-        
+        translate([0, -paint_pull_nutcatch_depth, 0]) {
+            rotate([90,90,0]) {
+                nutcatch_sidecut(name="M3");
+                translate([0,0,1.5]) hole_through(name="M3");
+            }
+            
+        }
+    }
+    
+}
 
-        translate([dx, dy, 0]) {
+module paint_pull_gudgeon() {
+    
+    paint_pull_emplace() {
+        rotate ([0, 0, 0]) {
             gudgeon(
                 paint_pivot_h, 
                 paint_pivot_w, 
-                gudgeon_length, 
+                paint_pull_gudgeon_length, 
                 paint_pivot_allowance, 
-                range_of_motion=[145, 90],
+                paint_pull_range_of_motion,    
                 pin= "M3 captured nut",
                 fa=fa_as_arg);
         }
     }
-    emplace_gudgeon();
-    //create a fillet, since we want the paint pull arm 
-    // as possible, we still want a strong mechnical connection
-    // between the bridge and gudgeon.
-
-
-        translate([dx-paint_pivot_h/2-5, paint_pivot_inside_dy-2, 0]) {
-            block([gudgeon_length/2, 2, paint_pivot_h], center=RIGHT+BEHIND);
-        }
 }
 
 
