@@ -77,28 +77,40 @@ show_air_flow_servo = false;
 air_flow_position = 0;  // [0 : 45: 270]
 air_flow_servo_angle = -air_flow_position; 
 
-// (Set to zero to disable!)
-support_location_1 = -36.5; // [-100:0.5:100]
-support_location_2 = -33.5; // [-100:0.5:100]
-support_location_3 =-13; // [-100:0.5:100]
-support_location_4 = 13; // [-100:0.5:100]
-support_location_5 = 21.5; // [-100:0.5:100]
-support_location_6 = 31.5; // [-100:0.5:100]
-support_location_7 = 0; // [-100:0.5:100]
-support_location_8 = 0; // [-100:0.5:100]
-support_location_list = [
-    support_location_1, 
-    support_location_2,
-    support_location_3,
-    support_location_4,
-    support_location_5,
-    support_location_6,
-    support_location_7,
-    support_location_8,
+support_offset_p1 = 13; //[0:0.25:30]
+support_offset_p2 = 8.5; //[0:0.25:30]
+support_offset_p3 = 10.5; //[0:0.25:30]
+support_offset_p4 = 0; //[0:0.25:30]
+support_offset_m1 = 13; //[0:0.25:30]
+support_offset_m2 = 20; //[0:0.25:30]
+support_offset_m3 = 3.5; //[0:0.25:30]
+support_offset_m4 = 0; //[0:0.25:30]
+
+
+p_offsets = [
+    support_offset_p1,
+    support_offset_p2,
+    support_offset_p3,
+    support_offset_p4
 ];
+p_locations = v_set(v_cumsum(p_offsets));
+echo(p_locations);
+    
+m_offsets = [
+    -support_offset_m1,
+    -support_offset_m2,
+    -support_offset_m3,
+    -support_offset_m4
+];
+    
+m_locations = v_set(v_cumsum(m_offsets));
+
+support_location_list = concat(p_locations, m_locations);
+
 support_locations = [for (item = support_location_list) if (item != 0) item];
 
-scotch_yoke_options = [["push rod support", support_locations]]; //undef; // [["show only", ["wall"]]]; //"push_rod"
+scotch_yoke_options = [["push rod support", support_locations]]; 
+//undef; // [["show only", ["wall"]]]; //"push_rod"
 
 // (must clear paint pot)
 dx_scotch_yoke = 55; 
@@ -244,10 +256,6 @@ module bore_for_scotch_yoke_connection() {
     }    
 }
    
-//extend_left = scotch_yoke_extend_left,
-//extend_trigger_cap = scotch_yoke_extend_trigger_cap,
-//        extend_left = 13.5,
-//        extra_push_rod = [0, extend_left],  //[0, extend_left + extend_trigger_cap],
 
 module air_flow_scotch_yoke(show_servo, angle) {
     dummy_instance = create_air_flow_scotch(angle, extra_push_rod=[0,0]);

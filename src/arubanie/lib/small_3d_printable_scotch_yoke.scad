@@ -611,6 +611,27 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
         } 
     }
     
+    module support_push_rod(options) {
+        support_locations = is_list(options) ? find_in_dct(options, "push rod support") : undef;
+        reduced_locations = [
+            for (location = support_locations) if (abs(location) < y_bearing) location 
+        ];
+        z = wall_thickness + pin_diameter/2;  // height of push rod cl
+        dz = -axle_height;
+        tear_away_fin = is_list(support_locations);
+        if (tear_away_fin) {
+            translate([0, 0, dz]) {
+                tearaway(
+                    support_locations, 
+                    d=pin_diameter, 
+                    h=z, 
+                    radial_allowance=radial_allowance,
+                    center=ABOVE,
+                    overlap_multiplier=1);
+            }
+        }
+    }
+    
     module push_rod(clearance=0, fin=true, options=undef) {
         assert(is_num(clearance), str(clearance));
         x =  push_rod_fin_width + 2 * clearance; 
@@ -625,23 +646,10 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
         render() difference() {
             translate([0, 0, dz]) {
                 solid_fin = false;
-                support_locations = 
-                    is_list(options) ? find_in_dct(options, "push rod support") : undef; 
-                tear_away_fin = is_list(support_locations);
-                if (fin) {
-                    if (solid_fin) {
-                        translate([0, 0, -clearance]) {
-                            block(size_fins[0], center=ABOVE+RIGHT);
-                            block(size_fins[1], center=ABOVE+LEFT);
-                        }
-                    } else if (tear_away_fin && clearance==0) {
-                        tearaway(
-                            support_locations, 
-                            d=pin_diameter, 
-                            h=z, 
-                            radial_allowance=radial_allowance,
-                            center=ABOVE,
-                            overlap_multiplier=1);
+                if (solid_fin) {
+                    translate([0, 0, -clearance]) {
+                        block(size_fins[0], center=ABOVE+RIGHT);
+                        block(size_fins[1], center=ABOVE+LEFT);
                     }
                 }
                 translate([0, 0, dz_rod]) {
@@ -651,6 +659,9 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
                 }
             }
             slot_clearance();
+        }
+        if (clearance==0) {
+            support_push_rod(options);
         }
     }
 

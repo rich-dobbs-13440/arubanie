@@ -15,6 +15,15 @@ if (show_name) {
     linear_extrude(2) text("vector_operations.scad", halign="center");
 }
 
+function quicksort(arr) = !(len(arr)>0) ? [] : let(
+    pivot   = arr[floor(len(arr)/2)],
+    lesser  = [ for (y = arr) if (y  < pivot) y ],
+    equal   = [ for (y = arr) if (y == pivot) y ],
+    greater = [ for (y = arr) if (y  > pivot) y ]
+) concat(
+    quicksort(lesser), equal, quicksort(greater)
+);
+
 // Cumulative sum of values in v
 function v_cumsum(v) = [for (a = v[0]-v[0], i = 0; i < len(v); a = a+v[i], i = i+1) a+v[i]];
     
@@ -25,6 +34,8 @@ function v_add_scalar(v, s) = [ for (e = v) e + s ];
 function v_sub_scalar(v, s) = [ for (e = v) e - s ];
     
 function v_mul_scalar(v, s) = [ for (e = v) e * s ];
+
+function v_set(v) = let(sv = quicksort(v)) [for (i = [0: 1 : len(v)-1 ]) if (i == 0) sv[i] else if (sv[i] != sv[i-1]) sv[i]];
 
 function v_shorten(v, places) = [ for (idx = [0 : 1: places-1]) v[idx]];
 
