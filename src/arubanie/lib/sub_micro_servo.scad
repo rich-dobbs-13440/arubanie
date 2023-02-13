@@ -277,15 +277,25 @@ module sub_micro_servo_mount_to_axle(
     }
     
     module horn_support() {
-        center_reflect([1, 0, 0]) {
-            translate([0.8, 0, -horn_radius+ radial_allowance]) {
-                intersection() {
-                    rotate([-45, 0, 0]) {
-                        block([1.8, axle_height, axle_height], 
-                        center=BELOW+RIGHT+FRONT);
-                    }
-                    block([2*horn_thickness, 5, axle_height]);
+//        center_reflect([1, 0, 0]) {
+//            translate([0.8, 0, -horn_radius+ radial_allowance]) {
+//                intersection() {
+//                    rotate([-45, 0, 0]) {
+//                        block([1.8, axle_height, axle_height], 
+//                        center=BELOW+RIGHT+FRONT);
+//                    }
+//                    block([2*horn_thickness, 10, axle_height]);
+//                }
+//            }
+//        }
+        dz = axle_height - horn_radius + radial_allowance;
+        translate([0, 0, -axle_height]) {
+            difference() {
+                hull() {    
+                    translate([-radial_allowance, 0, 0]) block([2*horn_thickness, 10, eps], center=ABOVE); 
+                    translate([0, 0, dz]) block([2*horn_thickness, 5, eps]); 
                 }
+                translate([0,0, 1]) block([3*horn_thickness, 3, dz-1.5], center=ABOVE);
             }
         }
     }

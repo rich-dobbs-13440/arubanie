@@ -29,7 +29,7 @@ infinity = 1000;
 
 /* [Logging] */
 
-log_verbosity_choice = "DEBUG"; // ["WARN", "INFO", "DEBUG"]
+log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice); 
 
 /* [ Build Or Design] */
@@ -77,15 +77,38 @@ show_air_flow_servo = false;
 air_flow_position = 0;  // [0 : 45: 270]
 air_flow_servo_angle = -air_flow_position; 
 
-// Must clear paint pot
-dx_scotch_yoke = 55; // [50 : 1 : 70]
-scotch_yoke_wall_thickness = 2; // [2 : 0.5 : 4]
-scotch_yoke_options = undef; // [["show only", ["wall"]]]; //"push_rod"
+// (Set to zero to disable!)
+support_location_1 = -36.5; // [-100:0.5:100]
+support_location_2 = -33.5; // [-100:0.5:100]
+support_location_3 =-13; // [-100:0.5:100]
+support_location_4 = 13; // [-100:0.5:100]
+support_location_5 = 21.5; // [-100:0.5:100]
+support_location_6 = 31.5; // [-100:0.5:100]
+support_location_7 = 0; // [-100:0.5:100]
+support_location_8 = 0; // [-100:0.5:100]
+support_location_list = [
+    support_location_1, 
+    support_location_2,
+    support_location_3,
+    support_location_4,
+    support_location_5,
+    support_location_6,
+    support_location_7,
+    support_location_8,
+];
+support_locations = [for (item = support_location_list) if (item != 0) item];
+
+scotch_yoke_options = [["push rod support", support_locations]]; //undef; // [["show only", ["wall"]]]; //"push_rod"
+
+// (must clear paint pot)
+dx_scotch_yoke = 55; 
+scotch_yoke_wall_thickness = 2; 
 scotch_yoke_base_plate_thickness = 6.8;
 scotch_yoke_nutcatch_dy = 6;
 scotch_yoke_depth_of_nutcatch = 4;
 scotch_yoke_extra_depth_for_screw = 1.5;
-scotch_yoke_extra_dy_right = 6;  // covers up small gap with servo mounting post.
+// (covers up small gap with servo mounting post)
+scotch_yoke_extra_dy_right = 6;  
 scotch_yoke_extend_trigger_cap = 5;
 scotch_yoke_radial_allowance = 0.4;
 scotch_yoke_axial_allowance = 0.6;
@@ -101,8 +124,8 @@ air_flow_servo_alpha = 1; // [0, 0.25. 0.5, 0.75, 1]
 
 show_trigger_catch = true;
 
-trigger_shaft_min_x = 10;
-trigger_shaft_catch_clearance = 1;
+trigger_shaft_min_x = 12;
+trigger_shaft_catch_clearance = 0;
 trigger_shaft_diameter = 5;
 trigger_shaft_dx = 0;
 
@@ -239,7 +262,7 @@ module air_flow_scotch_yoke(show_servo, angle) {
         [dy_outside_plus, scotch_yoke_base_plate_thickness, paint_pivot_h],
         [dy_inside , scotch_yoke_base_plate_thickness, paint_pivot_h]
     ];
-    extra_push_rod = [0, extend_left + 0]; //[0, extend_left];
+    extra_push_rod = [0, extend_left - 3]; // Kludge
     instance = create_air_flow_scotch(angle, extra_push_rod=extra_push_rod);
     log_v1("air_flow_scotch_yoke", instance, verbosity, DEBUG);
     
