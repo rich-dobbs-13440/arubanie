@@ -76,7 +76,7 @@ paint_pull_rod_alpha = 1; // [0:0.05:1]
 
 /* [Air Flow Actuator Design] */
 show_scotch_yoke = true;
-show_scotch_yoke_mount = true;
+show_scotch_yoke_mounting = true;
 show_air_flow_servo = false;
 
 air_flow_position = 0;  // [0 : 45: 270]
@@ -99,7 +99,6 @@ p_offsets = [
     support_offset_p4
 ];
 p_locations = v_set(v_cumsum(p_offsets));
-echo(p_locations);
     
 m_offsets = [
     -support_offset_m1,
@@ -123,9 +122,8 @@ scotch_yoke_options = [
 // (must clear paint pot)
 dx_scotch_yoke = 55; 
 scotch_yoke_wall_thickness = 3; 
-scotch_yoke_base_plate_thickness = 6.8;
-scotch_yoke_nutcatch_dy = 6;
-scotch_yoke_depth_of_nutcatch = 4;
+
+
 scotch_yoke_extra_depth_for_screw = 1.5;
 // (covers up small gap with servo mounting post)
 scotch_yoke_extra_dy_right = 6;  
@@ -140,11 +138,16 @@ air_flow_servo_color = "PaleTurquoise"; // [DodgerBlue, PaleTurquoise, Coral]
 air_flow_servo_alpha = 1; // [0, 0.25. 0.5, 0.75, 1]
 
 
+scotch_yoke_mounting_color = "Blue";
+scotch_yoke_mounting_alpha = 1; // [0, 0.25. 0.5, 0.75, 1]
+
+
 /* [Trigger Catch Design] */
 
 show_trigger_catch = true;
 
 trigger_shaft_diameter = 5;
+trigger_shaft_bore = trigger_shaft_diameter + 2 * scotch_yoke_radial_allowance;
 trigger_shaft_min_x = 13;
 trigger_shaft_catch_clearance = 6.81; // Screw head + catch thickness
 
@@ -217,6 +220,11 @@ module show_gudgeon_assembly_design_orientation(orient_for_build) {
         show_servo = orient_for_build ? false : show_air_flow_servo;
         color(air_flow_servo_color, alpha=air_flow_servo_alpha) {
            air_flow_scotch_yoke(show_servo, air_flow_servo_angle);
+        } 
+    }
+    if (show_scotch_yoke_mounting) {
+        color(scotch_yoke_mounting_color, alpha=scotch_yoke_mounting_alpha) { 
+            air_flow_scotch_yoke_mounting();
         }
     }
     
@@ -240,7 +248,8 @@ function create_air_flow_scotch(angle, extra_push_rod) =
         trigger_shaft_range, 
         scotch_yoke_radial_allowance, 
         scotch_yoke_axial_allowance, 
-        scotch_yoke_wall_thickness, 
+        scotch_yoke_wall_thickness,
+        paint_pivot_h, 
         scotch_yoke_bearing_width,
         angle,
         extra_push_rod=extra_push_rod,
@@ -261,58 +270,64 @@ module emplace_air_flow_scotch_yoke() {
 } 
 
 
-module bore_for_scotch_yoke_connection() {
-    module place(side, extra=0) {
-        dx_nc = 
-            paint_pivot_inner_height 
-            + paint_pivot_bridge_thickness 
-            + scotch_yoke_depth_of_nutcatch 
-            + extra;
-        dy_nc = scotch_yoke_nutcatch_dy;
-        translate([dx_nc, side*dy_nc, 0]) rotate([0, 90, 0]) children();
+function air_flow_scotch_yoke_frame() =
+    let (
+        dummy_instance = create_air_flow_scotch(0, extra_push_rod=[0,0]),
+        frame = scotch_yoke_attribute(dummy_instance, "frame"),
+        last=undef
+    )
+    frame;
+
+
+function air_flow_scotch_yoke_extend_left() =
+    let (
+        frame = air_flow_scotch_yoke_frame(),
+        extend_left = dx_scotch_yoke - frame.y/2 - paint_pivot_top_of_yoke,
+        last=undef
+    )
+    extend_left;
+
+
+function air_flow_scotch_extra_push_rod() = 
+    [0, air_flow_scotch_yoke_extend_left() - 3]; // kludge!
+
+
+function air_flow_scotch_with_extra_rod(angle) =
+    let (
+        instance = create_air_flow_scotch(
+            angle, 
+            extra_push_rod=air_flow_scotch_extra_push_rod()),
+        //log_v1("air_flow_scotch_yoke", instance, verbosity, DEBUG);
+        last = undef
+    )
+    instance;
+
+module air_flow_scotch_yoke_mounting() {
+    dy_inside = 
+        paint_pivot_cl_dy 
+        - paint_pivot_w/2; 
+    dy_outside_plus = 
+        paint_pivot_cl_dy 
+        + paint_pivot_w/2 
+        + scotch_yoke_extra_dy_right;
+    left_lengths = [dy_outside_plus, dy_inside];
+    emplace_air_flow_scotch_yoke() {
+        scotch_yoke_mounting(
+            air_flow_scotch_with_extra_rod(0),
+            frame_to_base=[0, dx_scotch_yoke - paint_pivot_top_of_yoke],
+            screw_name="M3",
+            left_lengths=left_lengths);
     }
-    render() difference() {
-        children();
-        place(1) nutcatch_sidecut(name="M3");
-        place(-1) nutcatch_sidecut(name="M3");
-        place(1, extra=scotch_yoke_extra_depth_for_screw) hole_through();
-        place(-1, extra=scotch_yoke_extra_depth_for_screw) hole_through();
-    }    
 }
    
 
 module air_flow_scotch_yoke(show_servo, angle) {
-    dummy_instance = create_air_flow_scotch(angle, extra_push_rod=[0,0]);
-    frame = scotch_yoke_attribute(dummy_instance, "frame");
-    extend_left = dx_scotch_yoke - frame.y/2 - paint_pivot_top_of_yoke;
-
-    
-    dy_outside_plus = 
-        paint_pivot_cl_dy + paint_pivot_w/2 + scotch_yoke_extra_dy_right;
-    dy_inside = paint_pivot_cl_dy-paint_pivot_w/2; 
-    
-    left_base_plate = [
-        [dy_outside_plus, scotch_yoke_base_plate_thickness, paint_pivot_h],
-        [dy_inside , scotch_yoke_base_plate_thickness, paint_pivot_h]
-    ];
-    extra_push_rod = [0, extend_left - 3]; // Kludge
-    instance = create_air_flow_scotch(angle, extra_push_rod=extra_push_rod);
-    log_v1("air_flow_scotch_yoke", instance, verbosity, DEBUG);
-    
-    bore_for_scotch_yoke_connection() {
-        emplace_air_flow_scotch_yoke() {
-            scotch_yoke_operation(
-                instance, "show", 
-                scotch_yoke_options, 
-                log_verbosity=verbosity);
-            
-            scotch_yoke_mounting(
-                instance,
-                extend_left,
-                extend_right=false,
-                screw_mounting="M3",
-                left_base_plate=left_base_plate);
-        }
+    emplace_air_flow_scotch_yoke() {
+        scotch_yoke_operation(
+            air_flow_scotch_with_extra_rod(angle), 
+            "show", 
+            scotch_yoke_options, 
+            log_verbosity=verbosity);
     }
 }
 
@@ -345,7 +360,7 @@ module trigger_catch() {
 
 
 module paint_pivot_gudgeons() {
-    render() difference() {
+    difference() {
         translate([0, paint_pivot_cl_dy, 0]) {
             paint_pivot_gudgeon(paint_pivot_top_of_yoke); 
         }
@@ -367,37 +382,55 @@ module emplace_children_into_scotch_yoke() {
 } 
 
 
-module bore_for_push_rod() {
-    air_flow_scotch_yoke = 
-        create_air_flow_scotch(angle=0, extra_push_rod=[100,100]);
-    options=[["fin", false]];
-    emplace_air_flow_scotch_yoke() { 
-        scotch_yoke_operation(
-                air_flow_scotch_yoke, 
-                "bore for push rod - build plate", 
-                options=options) {
-            emplace_children_into_scotch_yoke() {
-                children();
-            }
-        }
+//module bore_for_push_rod() {
+//    air_flow_scotch_yoke = 
+//        create_air_flow_scotch(angle=0, extra_push_rod=[100,100]);
+//    options=[["fin", false]];
+//    emplace_air_flow_scotch_yoke() { 
+//        scotch_yoke_operation(
+//                air_flow_scotch_yoke, 
+//                "bore for push rod - build plate", 
+//                options=options) {
+//            emplace_children_into_scotch_yoke() {
+//                children();
+//            }
+//        }
+//    }
+//}
+
+module hole_through_clearance() {
+}
+
+module trigger_shaft_clearance() {
+    dz_trigger = trigger_shaft_diameter/2 + wall_thickness;
+    //dz = -0.5 ; // paint_pivot_h/2 - scotch_yoke_wall_thickness;
+    dz = dz_trigger - paint_pivot_h/2;
+    translate([0, 0, dz]) {
+        rod(d=trigger_shaft_bore, l=4*paint_pivot_bridge_thickness);
     }
+}
+
+module bore_for_nuts_and_push_rod() {
+    difference() {
+        children();
+        hole_through_clearance();
+        trigger_shaft_clearance();
+    }
+    //trigger_shaft_clearance();
 }
 
 
 module paint_pivot_gudgeon_bridge() {
-    bore_for_scotch_yoke_connection() {
-        bore_for_push_rod() {
-            translate([paint_pivot_inner_height-eps, 0, 0]) {
-                block(
-                    [paint_pivot_bridge_thickness, 
-                    2* paint_pivot_inside_dy+eps,
-                    paint_pivot_h
-                ],
-                center=FRONT); 
-            }
+    x = paint_pivot_bridge_thickness; 
+    y = 2* paint_pivot_inside_dy;
+    z = paint_pivot_h;
+    translate([paint_pivot_inner_height, 0, 0]) {
+        bore_for_nuts_and_push_rod() {
+            block([x, y, z], center=FRONT);
         }
     }
 }
+
 
 
 module paint_pull_emplace() {
