@@ -1,3 +1,14 @@
+/*
+
+Usage:
+
+use <lib/print_in_place_joints.scad>
+
+can_to_plate_connection(plate_side, diameter, slide_allowance);
+
+*/
+
+
 include <centerable.scad>
 use <shapes.scad>
 

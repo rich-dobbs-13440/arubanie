@@ -19,7 +19,8 @@ Note:
 
 $fa = 1;
 $fs = 0.4;
-eps = 0.001;
+fa_shape = 10;
+fa_bearing = 1;
 
 /* [Show] */
 
@@ -32,6 +33,9 @@ include_follower_example = true;
 
 module end_of_customization() {}
 
+
+function small_servo_cam_horn_thickness() = 1.46;
+function small_servo_cam_hub_diameter() = 23.8;
 
 module horn_arm(h) {
     outer_clearance = 0.50;
@@ -69,7 +73,7 @@ module horn(h) {
     rotate([0,0,180]) horn_arm(h);
     rotate([0,0,270]) horn_arm(h);
     
-    translate([0, 0, h/2]) cylinder(d=8.2 + 3, h=h, center=true);
+    translate([0, 0, h/2]) cylinder(d=8.2 + 3, h=h, center=true, $fa=fa_shape);
 }
 
 if (show_horn) {
@@ -89,13 +93,15 @@ module cylinder_arc(r1, r2, h, angle) {
 }
 
 module spring(r0, r1, r2, h, angle1, angle2) {
-    cylinder_arc(r1, r2, h, angle1);
-    cylinder_arc(r0, r2, h, angle2);  
+    cylinder_arc(r1, r2, h, angle1, $fa=fa_shape);
+    cylinder_arc(r0, r2, h, angle2, $fa=fa_shape);  
 }
 
 * spring(8, 10, 13, 3, 45, 10);
 
 module latch(base_diameter, horn_thickness) {
+    assert(is_num(base_diameter));
+    assert(is_num(horn_thickness));
     catch_overlap = 0.3;
     catch_clearance = 0.5;
     
@@ -115,7 +121,7 @@ module latch(base_diameter, horn_thickness) {
     dy_latch = base_diameter/2;
     color("orange") translate([0, dy_latch, dz_latch] ) 
     rotate([0,90,0]) 
-    cylinder(r=horn_thickness, h=dx, center=true, $fa=10);
+    cylinder(r=horn_thickness, h=dx, center=true, $fa=3*fa_shape);
 
     // spring
     r1 = y;
@@ -142,7 +148,7 @@ module latches(base_diameter, horn_thickness) {
     }
 }
 
-* latches(23.7);
+* latches(base_diameter=23.7, horn_thickness=small_servo_cam_horn_thickness());
 
 module bare_hub(horn_thickness) {
     inner_hub = 5.32;
@@ -151,9 +157,9 @@ module bare_hub(horn_thickness) {
     color("PaleTurquoise") {
         difference() {
             // Basic wheel
-            cylinder(d=hub_diameter, h=2*horn_thickness, center=true, $fa=10);
+            cylinder(d=hub_diameter, h=2*horn_thickness, center=true, $fa=fa_shape);
             // Cutout for hub
-            cylinder(d=inner_hub+hub_clearance, h=4*horn_thickness, center=true, $fa=10);
+            cylinder(d=inner_hub+hub_clearance, h=4*horn_thickness, center=true, $fa=2*fa_shape);
             // cutout for horn
             horn(h=2*horn_thickness);
         }
@@ -161,12 +167,14 @@ module bare_hub(horn_thickness) {
 }
 
 
-module hub(horn_thickness) {
+module hub(horn_thickness, hub_diameter) {
+    assert(is_num(horn_thickness));
+    assert(is_num(hub_diameter));
     bare_hub(horn_thickness);
     latches(hub_diameter, horn_thickness);
 }
 
-* hub();
+* hub(horn_thickness, hub_diameter);
 
 module pie_slice(a, r, h){
   // a:angle, r:radius, h:height
@@ -180,8 +188,8 @@ module pie_slice(a, r, h){
 module cylinder_arc2(r1, r2, h, angle) {
     intersection() {
         difference() {
-            cylinder(r=r2, h=h, center=true);
-            cylinder(r=r1, h=2*h, center=true);
+            cylinder(r=r2, h=h, center=true, $fa=fa_shape);
+            cylinder(r=r1, h=2*h, center=true, $fa=fa_shape);
         };
         color("red") translate([0, 0, -h]) pie_slice(angle, r2, 2*h);
     }
@@ -248,12 +256,12 @@ module linear_cam_surface(
 module linear_small_servo_cam(travel, include_follower=true) {
     
     assert(is_num(travel));
-    horn_thickness = 1.46;
-    hub(horn_thickness);
+
+    hub(small_servo_cam_horn_thickness(), small_servo_cam_hub_diameter());
     r_min = 16;
     r2 = r_min + travel;
     color("LightCyan") {
-        translate([0, 0, -horn_thickness]) rotate([0,0,40]) 
+        translate([0, 0, -small_servo_cam_horn_thickness()]) rotate([0,0,40]) 
             linear_cam_surface(15, r_min, r2, h=4, angle=195, include_follower=include_follower);
     }
     // connectors

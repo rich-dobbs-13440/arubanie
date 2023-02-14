@@ -80,7 +80,8 @@ module half_air_slider() {
 
     dx_s = pad_diameter/2 + dx_a;
     difference() {
-        translate([dx_s, -air_slider_width/2, 0]) cube([air_slider_depth,air_slider_width,air_slider_length], center=false);
+        translate([dx_s, -air_slider_width/2, 0]) 
+            cube([air_slider_depth,air_slider_width,air_slider_length], center=false);
         pin();
     }  
 }

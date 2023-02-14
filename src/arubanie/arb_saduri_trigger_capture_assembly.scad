@@ -6,6 +6,10 @@ air air and paint flow.
 The coordinate system is based center of rotation of the paint pivot.
 
 */
+
+//**************************************************************************************************
+//      10        20        30        40        50        60        70        80        90       100
+
 include <lib/logging.scad>
 include <lib/centerable.scad>
 use <lib/shapes.scad>
@@ -14,6 +18,7 @@ use <lib/sub_micro_servo.scad>
 use <lib/9g_servo.scad>
 use <lib/small_3d_printable_scotch_yoke.scad>
 use <trigger_holder.scad>
+use <lib/print_in_place_joints.scad>
 use <master_air_brush.scad>
 include <arb_saduri_paint_pivot.scad>
 
@@ -77,14 +82,14 @@ show_air_flow_servo = false;
 air_flow_position = 0;  // [0 : 45: 270]
 air_flow_servo_angle = -air_flow_position; 
 
-support_offset_p1 = 13; //[0:0.25:30]
-support_offset_p2 = 8.5; //[0:0.25:30]
-support_offset_p3 = 10.5; //[0:0.25:30]
-support_offset_p4 = 0; //[0:0.25:30]
-support_offset_m1 = 13; //[0:0.25:30]
-support_offset_m2 = 20; //[0:0.25:30]
-support_offset_m3 = 3.5; //[0:0.25:30]
-support_offset_m4 = 0; //[0:0.25:30]
+support_offset_p1 = 10; //[0:0.25:30]
+support_offset_p2 = 6.75; //[0:0.25:30]
+support_offset_p3 = 4.25; //[0:0.25:30]
+support_offset_p4 = 4.0; //[0:0.25:30]
+support_offset_m1 = 10; //[0:0.25:30]
+support_offset_m2 = 7.0; //[0:0.25:30]
+support_offset_m3 = 11.5; //[0:0.25:30]
+support_offset_m4 = 5.5; //[0:0.25:30]
 
 
 p_offsets = [
@@ -109,12 +114,15 @@ support_location_list = concat(p_locations, m_locations);
 
 support_locations = [for (item = support_location_list) if (item != 0) item];
 
-scotch_yoke_options = [["push rod support", support_locations]]; 
+scotch_yoke_options = [
+    ["push rod support", support_locations],
+    //["show only", ["push_rod"]]
+]; 
 //undef; // [["show only", ["wall"]]]; //"push_rod"
 
 // (must clear paint pot)
 dx_scotch_yoke = 55; 
-scotch_yoke_wall_thickness = 2; 
+scotch_yoke_wall_thickness = 3; 
 scotch_yoke_base_plate_thickness = 6.8;
 scotch_yoke_nutcatch_dy = 6;
 scotch_yoke_depth_of_nutcatch = 4;
@@ -136,16 +144,16 @@ air_flow_servo_alpha = 1; // [0, 0.25. 0.5, 0.75, 1]
 
 show_trigger_catch = true;
 
-trigger_shaft_min_x = 12;
-trigger_shaft_catch_clearance = 0;
 trigger_shaft_diameter = 5;
-trigger_shaft_dx = 0;
+trigger_shaft_min_x = 13;
+trigger_shaft_catch_clearance = 6.81; // Screw head + catch thickness
 
 trigger_shaft_range = 
     paint_pivot_inner_height 
     - trigger_shaft_catch_clearance
     - trigger_shaft_min_x ;
-    
+
+trigger_shaft_dx = 0;
 trigger_catch_color = "LightSkyBlue"; // [DodgerBlue, LightSkyBlue, Coral]
 trigger_catch_alpha = 1; // [0:0.05:1]
 
@@ -172,6 +180,22 @@ barrel_diameter = master_air_brush("barrel diameter");
 //            rotate([180,0,0])
 //            9g_motor_centered_for_mounting();
 //    } 
+
+
+
+
+
+show_gudgeon_assembly(
+    orient_for_build=orient_for_build_example,
+    viewing_orientation=viewing_orientation_example);
+
+
+module show_gudgeon_assembly(orient_for_build, viewing_orientation) {
+    //echo("show_gudgeon_assembly_parent_module(0)", parent_module(0));
+    rotate(viewing_orientation) {
+        show_gudgeon_assembly_design_orientation(orient_for_build);
+    }
+} 
 
 
 module show_gudgeon_assembly_design_orientation(orient_for_build) {
@@ -263,7 +287,8 @@ module air_flow_scotch_yoke(show_servo, angle) {
     extend_left = dx_scotch_yoke - frame.y/2 - paint_pivot_top_of_yoke;
 
     
-    dy_outside_plus = paint_pivot_cl_dy + paint_pivot_w/2 + scotch_yoke_extra_dy_right;
+    dy_outside_plus = 
+        paint_pivot_cl_dy + paint_pivot_w/2 + scotch_yoke_extra_dy_right;
     dy_inside = paint_pivot_cl_dy-paint_pivot_w/2; 
     
     left_base_plate = [
@@ -293,37 +318,30 @@ module air_flow_scotch_yoke(show_servo, angle) {
 
 
 module trigger_catch() {
-    dz_build_plane = paint_pivot_h/2; 
-    difference() {
-        rotate([-90, 180, 90]) master_air_brush_trigger_catch();
-        translate([0, 0, dz_build_plane]) {
-            block([100, 100, 50], center=ABOVE);
-        } 
-        // Make sure that the is no interference with the barrel:
-        rotate([0,-75,0]) 
-            translate([0, 0, 0.75*barrel_diameter]) 
-                rod(d=barrel_diameter, l=20);
+    module catch() {
+        dz_build_plane = paint_pivot_h/2; 
+        difference() {
+            rotate([-90, 180, 90]) {
+                master_air_brush_trigger_catch();
+                rotate([0, 0, 90]) 
+                    can_to_plate_connection(
+                        plate_side=true, diameter=5, slide_allowance=0.2);
+            }
+            translate([0, 0, dz_build_plane]) {
+                block([100, 100, 50], center=ABOVE);
+            } 
+            // Make sure that the is no interference with the barrel:
+            rotate([0,-75,0]) 
+                translate([0, 0, 0.75*barrel_diameter]) 
+                    rod(d=barrel_diameter, l=20);
+        }
+    }
+    if (orient_for_build_example) {
+        translate([0, 0, -0.1]) rotate([0,90, 0]) catch();
+    } else {
+        catch();
     }
 }
-
-
-//module trigger_shaft() {
-//    fa_as_arg = $fa;
-//    
-//    translate([-eps, 0, 0]) { 
-//        rod(
-//            d=trigger_shaft_diameter, 
-//            l=trigger_shaft_length, 
-//            center=FRONT,
-//            fa=fa_as_arg);
-//        // Slide section has support
-//        translate([trigger_shaft_length+eps, 0, 0]) 
-//            block(
-//                [trigger_slider_length, wall_thickness, paint_pivot_h/2], 
-//                center=BEHIND+ABOVE);  
-//    }   
-//}
-
 
 
 module paint_pivot_gudgeons() {
@@ -341,7 +359,6 @@ module paint_pivot_gudgeons() {
 
 module emplace_children_into_scotch_yoke() {
     dz = paint_pivot_h/2;
-
     rotate([0, 180, 0]) 
     mirror([0, -1, 0])
     rotate([0, 0, -90])
@@ -351,7 +368,8 @@ module emplace_children_into_scotch_yoke() {
 
 
 module bore_for_push_rod() {
-    air_flow_scotch_yoke = create_air_flow_scotch(angle=0, extra_push_rod=[100,100]);
+    air_flow_scotch_yoke = 
+        create_air_flow_scotch(angle=0, extra_push_rod=[100,100]);
     options=[["fin", false]];
     emplace_air_flow_scotch_yoke() { 
         scotch_yoke_operation(
@@ -401,7 +419,9 @@ module paint_pull_clearance() {
     z = 50;
     
     paint_pull_emplace() {
-        rotate([0, a, 0]) translate([-dx, 0, 0]) block([x, y, z], center=FRONT);
+        rotate([0, a, 0]) 
+            translate([-dx, 0, 0]) 
+                block([x, y, z], center=FRONT);
         
         translate([0, -paint_pull_nutcatch_depth, 0]) {
             rotate([90,90,0]) {
@@ -414,8 +434,7 @@ module paint_pull_clearance() {
 }
 
 
-module paint_pull_gudgeon() {
-    
+module paint_pull_gudgeon() {   
     paint_pull_emplace() {
         rotate ([0, 0, 0]) {
             gudgeon(
@@ -471,17 +490,3 @@ module paint_pivot_gudgeon_yoke() {
     paint_pull_gudgeon();
 
 }
-
-
-
-module show_gudgeon_assembly(orient_for_build, viewing_orientation) {
-    rotate(viewing_orientation) {
-        show_gudgeon_assembly_design_orientation(orient_for_build);
-    }
-} 
-
-
-show_gudgeon_assembly(
-    orient_for_build=orient_for_build_example,
-    viewing_orientation=viewing_orientation_example);
-

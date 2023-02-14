@@ -58,7 +58,8 @@ should be worked up.
 
 */
 
-
+//**************************************************************************************************
+//      10        20        30        40        50        60        70        80        90       100
 
 
 include <logging.scad>
@@ -71,13 +72,11 @@ use <9g_servo.scad>
 use <print_in_place_joints.scad>
 include <nutsnbolts-master/cyl_head_bolt.scad>
 
-
-
-eps = 0.001;
 fa_shape = 10;
 $fa = fa_shape;
 fa_as_arg = $fa;
 fa_bearing = 1;
+infintesimal = 0.01;
 
 /* [Logging] */
 
@@ -255,13 +254,8 @@ function scotch_yoke_create(
             provide_x_axis_servo_mounting ? false : support_axle[0],
             support_axle[1],
         ],
-
         last = undef
     )
-    assert(!is_undef(axle_height))
-    assert(!is_undef(support_x))
-    assert(!is_undef(end_clearance))
-    assert(!is_undef(dy_inside))
     [
         ["pin_diameter", pin_diameter],
         ["range_of_travel", range_of_travel],
@@ -358,7 +352,7 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
         translate([0, 0, axle_height]) assembly(support_axle);
         if (provide_x_axis_servo_mounting) {
             display(coloring("servo_mount")) {
-                translate([dx_bearing_outside+3*eps, 0, axle_height+3*eps]) {
+                translate([dx_bearing_outside, 0, axle_height]) {
                     sub_micro_servo_mount_to_axle(
                         axle_diameter=pin_diameter, 
                         axle_height=axle_height,
@@ -453,24 +447,24 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
     module bore_for_axle(eps_mul) {
         render() difference() {
             children();
-            rod(d=d_slot+eps_mul * eps, l=2*x_bearing, fa=fa_bearing); 
+            rod(d=d_slot, l=2*x_bearing, fa=fa_bearing, rank=eps_mul); 
         }
     }
     
     module bearing() {
         bore_for_axle(0) {
             hull() {
-                block([x_bearing+4*eps, y_bearing, axle_height], center=BELOW);
-                rod(d=y_bearing, l=x_bearing+0.1, fa=fa_shape);
+                block([x_bearing, y_bearing, axle_height], center=BELOW, rank=4);
+                rod(d=y_bearing, l=x_bearing, fa=fa_shape, rank=5);
             }
         }
 
     }
     
     module bearings() { 
-        dx = dx_inside + x_bearing/2 -4 * eps; // make it definitely on the inside
+        dx = dx_inside + x_bearing/2; 
         center_reflect([1, 0, 0]) {
-            translate([dx, 0, -4*eps]) {
+            translate([dx, 0, 0]) {
                 bearing();
             }
         } 
@@ -488,7 +482,7 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
         translate([-dx, 0, 0]) rod(d=pin_diameter, l=l_bearing_pin, fa=fa_bearing);
         
         // Traveller pin
-        translate([0, 0, -dz_travel]) rod(d=pin_diameter, l=pin_length+eps);
+        translate([0, 0, -dz_travel]) rod(d=pin_diameter, l=pin_length);
         
         // Joiner crank 
         dx_j = x_bearing;
@@ -584,8 +578,7 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
             }
         }
     }
-//**************************************************************************************************
-//      10        20        30        40        50        60        70        80        90       100
+
     module tearaway(
             support_locations, 
             d, 
@@ -594,10 +587,10 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
             center, 
             overlap_multiplier) {
                 
-        s_l = 5; // support length
+        s_l = 3; // support length
         z_p = h - d / 2;
-        base = [1.5*z_p, s_l, eps];
-        neck = [eps, s_l, eps];
+        base = [1.5*z_p, s_l, infintesimal];
+        neck = [infintesimal, s_l, infintesimal];
         z_neck = z_p + overlap_multiplier*radial_allowance;
         
         module tearaway_segment() {
@@ -612,7 +605,8 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
     }
     
     module support_push_rod(options) {
-        support_locations = is_list(options) ? find_in_dct(options, "push rod support") : undef;
+        support_locations = 
+            is_list(options) ? find_in_dct(options, "push rod support") : undef;
         reduced_locations = [
             for (location = support_locations) if (abs(location) < y_bearing) location 
         ];
@@ -639,7 +633,7 @@ module scotch_yoke_operation(self, operation, options, log_verbosity=INFO) {
         z = wall_thickness + pin_diameter/2;
         size_fins = [[x, ys[0], z+clearance], [x, ys[1], z+clearance]];
         
-        dz = -axle_height - 2 * eps;  // Move to build plate;
+        dz = -axle_height;  // Move to build plate;
         d = pin_diameter + 2 * clearance;
         dz_rod = wall_thickness - clearance; // Place at top of fin.
         
@@ -792,8 +786,8 @@ module scotch_yoke_mounting(
                 for (i = [0 : len(left_base_plate)-1]) {
                     side = [FRONT, BEHIND];
                     bore_for_push_rod_from_build_plate() {
-                        translate([0, dy_extend, -6*eps]) {
-                            block(left_base_plate[i], center=ABOVE+RIGHT+side[i]);
+                        translate([0, dy_extend, 0]) {
+                            block(left_base_plate[i], center=ABOVE+RIGHT+side[i], rank=6);
                         }
                     }
                 }
@@ -802,27 +796,27 @@ module scotch_yoke_mounting(
         }
         color("gray") { 
             center_reflect([1, 0, 0]) {
-                translate([dx_f, dy_f, -3*eps]) {
-                    block(push_rod_extension, center=ABOVE+LEFT+FRONT);
+                translate([dx_f, dy_f, 0]) {
+                    block(push_rod_extension, center=ABOVE+LEFT+FRONT, rank=3);
                 }
             }
         }
         color("LawnGreen") { 
             bore_for_push_rod_from_build_plate() {
-                translate([0, dy_extend, -6*eps]) {
-                    block(push_rod_extension_end, center=ABOVE+RIGHT);
+                translate([0, dy_extend, 0]) {
+                    block(push_rod_extension_end, center=ABOVE+RIGHT, rank=6);
                 }
             }
         }
 
         color("orange") { 
-            translate([dx_hf, dy_extend, -3*eps]) {
-                block(hub_frame_extension, center=ABOVE+RIGHT+BEHIND);
+            translate([dx_hf, dy_extend, 0]) {
+                block(hub_frame_extension, center=ABOVE+RIGHT+BEHIND, rank=3);
             }
         }
         color("cyan") { 
-            translate([dx_hf, dy_extend, -6*eps]) {
-                block(hub_frame_extension_end, center=ABOVE+RIGHT+BEHIND);
+            translate([dx_hf, dy_extend, 0]) {
+                block(hub_frame_extension_end, center=ABOVE+RIGHT+BEHIND, rank=6);
             }
         }
         if (screw_mounting=="M3") {

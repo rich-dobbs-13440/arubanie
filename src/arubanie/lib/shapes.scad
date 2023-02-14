@@ -1,3 +1,14 @@
+/*
+
+    The shapes are slightly oversized, and the placement adjusted
+    so that two shapes placed next to each other will have 
+    non-adjacent faces. Shaped can be ranked, so that if the
+    overlap, it is definite which will win the z-ordering fight.
+
+    This is an attempt to make the epsilon  
+*/
+
+
 
 include <centerable.scad>
 
@@ -5,7 +16,7 @@ include <centerable.scad>
 
 $fa = 1;
 $fs = 0.4;
-eps = 0.001;
+eps = 0.005;
 
 /* [Visual Tests] */
 
@@ -13,8 +24,11 @@ show_test_rod_all_octants = true;
 show_test_rod_rod_single_attribute = false;
 show_visual_test_for_crank = false;
 
+ 
+
 /* 
     Block is a cube with a specific translation about the origin.
+
     
     Example usage:
     
@@ -26,9 +40,11 @@ show_visual_test_for_crank = false;
     block(size, center=ABOVE+FRONT+LEFT); // One corner is at origin
     
 */
-module block(size, center=0) { 
+module block(size, center=0, rank=1) { 
+    function swell(w=0) = w + 2*rank*eps;
+    true_size = size + [swell(0), swell(0), swell(0)];
     disp = _center_to_displacement(center, size);
-    translate(disp) cube(size, center=true);  
+    translate(disp) cube(true_size, center=true);  
 }
 
 
@@ -44,7 +60,9 @@ module block(size, center=0) {
 
 */
 
-module rod(d, l, center=0, hollow=false, fa=undef) {
+module rod(d, l, center=0, hollow=false, rank=1, fa=undef) {
+    function swell(w=0) = w + 2*rank*eps;
+    function swell_inward(w=0) = w - 2*rank*eps;  
     $fa = is_undef(fa) ? $fa : fa;
     bv = _number_to_bitvector(center);
     is_sideways = bv[3] == 1;
@@ -54,15 +72,17 @@ module rod(d, l, center=0, hollow=false, fa=undef) {
     size=[x, y, z];
     disp = _center_to_displacement(center, size);
     a = is_sideways ? 90 : 0;
+
+
     translate(disp) {
         rotate([0, 0, a])
         rotate([0, 90, 0])
         if (hollow == false) {
-            cylinder(d=d, h=l, center=true);
+            cylinder(d=swell(d), h=swell(l), center=true);
         } else if (is_num(hollow)) {
             render() difference() {
-                cylinder(d=d, h=l, center=true);
-                cylinder(d=hollow, h=2*l, center=true);
+                cylinder(d=swell(d), h=swell(l), center=true);
+                cylinder(d=swell_inward(hollow), h=2*l, center=true);  
             }
         } else {
             assert(false, str("Don't know how to handle hollow=", hollow));
@@ -76,7 +96,9 @@ module rod(d, l, center=0, hollow=false, fa=undef) {
     about the origin.
     
 */
-module can(d,h, center=0, hollow=false, taper=false, fa=undef) {
+module can(d,h, center=0, hollow=false, taper=false, rank=1, fa=undef) {
+    function swell(w=0) = w + 2*rank*eps;
+    function swell_inward(w=0) = w - 2*rank*eps; 
     $fa = is_undef(fa) ? $fa : fa;
     bv = _number_to_bitvector(center);
     size = [d, d, h];
@@ -84,17 +106,17 @@ module can(d,h, center=0, hollow=false, taper=false, fa=undef) {
     translate(disp) {
         if (hollow == false) {
             if (taper == false) {
-                cylinder(d=d, h=h, center=true); 
+                cylinder(d=swell(d), h=swell(h), center=true); 
             } else if (is_num(taper)) {
-                cylinder(d1=d, d2=taper, h=h, center=true);
+                cylinder(d1=swell(d), d2=swell(taper), h=swell(h), center=true);
             } else {
                 assert(false, str("Don't know how to handle taper=", taper));
             }
         } else if (is_num(hollow)) {
             if (taper == false) {
                 render() difference() {
-                    cylinder(d=d, h=h, center=true);
-                    cylinder(d=hollow, h=2*h, center=true);
+                    cylinder(d=swell(d), h=swell(h), center=true);
+                    cylinder(d=swell_inward(hollow), h=2*h, center=true);
                 }
             } else {
                 assert(false, "Not implemented - hollow tapered.");
@@ -105,24 +127,26 @@ module can(d,h, center=0, hollow=false, taper=false, fa=undef) {
     }  
 }
 
-module crank(size, hole=false, center=0, rotation=0, fa=undef) {
+module crank(size, hole=false, center=0, rotation=0, rank=1, fa=undef) {
+    function swell(w=0) = w + 2*rank*eps;
+    function swell_inward(w=0) = w - 2*rank*eps; 
     $fa = is_undef(fa) ? $fa : fa;
     hole_d = is_num(hole) ? hole : 0;
     pivot_size = [size.z, size.y, size.z];
-    half_pivot = [pivot_size.x/2+eps,  pivot_size.y-eps, pivot_size.z-eps];
-    remainder =  [size.x - pivot_size.x/2+eps, size.y, size.z];
+    half_pivot = [swell(pivot_size.x/2),  swell(pivot_size.y), swell(pivot_size.z)];
+    remainder =  [swell(size.x - pivot_size.x/2), swell(size.y), swell(size.z)];
 
     center_translation(pivot_size, center) {
         center_rotation(rotation) {
             render() difference() {
                 union() {
                     block(half_pivot, center=FRONT);
-                    rod(d=size.z, l=size.y+5*eps, center=SIDEWISE);
+                    rod(d=swell(size.z), l=swell(size.y), center=SIDEWISE);
                 }
-                rod(d=hole_d, l=size.y + 10, center=SIDEWISE);
+                rod(d=swell_inward(hole_d), l=2*size.y, center=SIDEWISE);
             }
             // Rest of block
-            translate([half_pivot.x, 0, 0]) block(remainder, center=FRONT);
+            translate([pivot_size.x/2, 0, 0]) block(remainder, center=FRONT);
         }
     } 
 }

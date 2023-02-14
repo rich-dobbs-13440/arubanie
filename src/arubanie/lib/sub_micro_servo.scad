@@ -27,7 +27,9 @@ use <shapes.scad>
 use <9g_servo.scad>
 use <small_servo_cam.scad>
 
-eps = 0.001;
+fa_shape = 10;
+fa_bearing = 1;
+
 
 /* [Logging] */
 
@@ -105,12 +107,12 @@ screw_length_allowance = 2;
 module bare_pilot_hole() {
     l = screw_length+screw_length_allowance;
     d = pilot_diameter;
-    rod(d=d, l=l, center=FRONT);
+    rod(d=d, l=l, center=FRONT, rank=2, fa=4*fa_shape);
 }  
 
 module pilot_hole(screw_offset, screw_block) {
     t = [
-        -(screw_block.x/2 + eps), 
+        -(screw_block.x/2), 
         -screw_block.y/2 + screw_offset, 
         0
     ];
@@ -146,9 +148,9 @@ module back_wall(extent, servo_clearance, remainder) {
 
 module screw_blocks(screw_offset, extent, servo_clearance, remainder) {
     screw_block = [
-        min(extent.x, servo_clearance.x)+eps, 
+        min(extent.x, servo_clearance.x), 
         remainder.y/2, 
-        min(extent.z, servo_clearance.z)+eps];
+        min(extent.z, servo_clearance.z)];
     dx_screw_block = -(extent.x - screw_block.x)/2;
     dy_screw_block = servo_clearance.y/2 + screw_block.y/2;
     
@@ -269,7 +271,7 @@ module sub_micro_servo_mount_to_axle(
         color("red") servo_mounting_pillars();
         color("blue") hub_yoke();
         color("green") minus_joiner();
-        color("purple") plus_joiner();
+        color("lime") plus_joiner();
         color("brown") bearing();
         if (dy_wall_squared < 0) {
             central_joiner();
@@ -292,8 +294,10 @@ module sub_micro_servo_mount_to_axle(
         translate([0, 0, -axle_height]) {
             difference() {
                 hull() {    
-                    translate([-radial_allowance, 0, 0]) block([2*horn_thickness, 10, eps], center=ABOVE); 
-                    translate([0, 0, dz]) block([2*horn_thickness, 5, eps]); 
+                    translate([-radial_allowance, 0, 0]) 
+                        block([2*horn_thickness, 10, 0], center=ABOVE); 
+                    translate([0, 0, dz]) 
+                        block([2*horn_thickness, 5, 0]); 
                 }
                 translate([0,0, 1]) block([3*horn_thickness, 3, dz-1.5], center=ABOVE);
             }
@@ -321,8 +325,14 @@ module sub_micro_servo_mount_to_axle(
         rotate([angle, 0, 0]) {
             truncate_at_build_plane() {
                 translate([axial_allowance, 0, 0]) {
-                    rod(d=hub_backer_diameter, l=hub_backer_l, center=FRONT, fa=10);
-                    rod(d=axle_diameter, l=wall_thickness + 2 * axial_allowance, center=BEHIND, fa=1);
+                    rod(d=hub_backer_diameter, 
+                        l=hub_backer_l, 
+                        center=FRONT, 
+                        fa=2*fa_shape);
+                    rod(d=axle_diameter, 
+                        l=wall_thickness + 2 * axial_allowance, 
+                        center=BEHIND, 
+                        fa=fa_bearing);
                 }
                 supported_horn();
             }
@@ -363,7 +373,7 @@ module sub_micro_servo_mount_to_axle(
         ];
         center_reflect([0, 1, 0]) {
             translate([0, y_hub_clearance, -axle_height]) { 
-                block(side_wall, center=FRONT+ABOVE+RIGHT);
+                block(side_wall, center=FRONT+ABOVE+RIGHT, rank=2);
             }
         }
         bore_for_axle(axle_diameter, radial_allowance, l=50) {
@@ -375,28 +385,28 @@ module sub_micro_servo_mount_to_axle(
         y = y_minus - y_hub_clearance + size_pillar.y;
         dx = x_servo_side_wall;
         translate([dx, -y_hub_clearance, -axle_height])  
-            block([wall_thickness, y, wall_height], center=ABOVE+BEHIND+LEFT);
+            block([wall_thickness, y, wall_height], center=ABOVE+BEHIND+LEFT, rank=3);
     }
     
     module plus_joiner() {
         y = y_hub_clearance - y_plus + wall_thickness;
         dx = x_servo_side_wall;
         translate([dx, y_plus, -axle_height])  
-            block([wall_thickness, y, wall_height], center=ABOVE+FRONT+RIGHT);
+            block([wall_thickness, y, wall_height], center=ABOVE+FRONT+RIGHT, rank=4);
     }
     
     module central_joiner() {
         dx = x_servo_side_wall;
         translate([dx, 0, -axle_height])  
-            block([wall_thickness, 2*dy_wall, wall_height], center=ABOVE+BEHIND);
+            block([wall_thickness, 2*dy_wall, wall_height], center=ABOVE+BEHIND, rank=5);
     }
     
     module bearing() {
-        translate([4*eps, 0, 0]) {
+        translate([0, 0, 0]) {
             x_axle_bearing(
                 axle_diameter, 
                 axle_height, 
-                bearing_width=wall_thickness+8*eps, 
+                bearing_width=wall_thickness, 
                 radial_allowance=radial_allowance);
         }
     }
@@ -413,7 +423,7 @@ module sub_micro_servo_mount_to_axle(
 
         bore_for_axle(axle_diameter, radial_allowance) {
             hull() {
-                block([bearing_width, 3*axle_diameter, axle_height], center=BELOW+BEHIND);
+                block([bearing_width, 3*axle_diameter, axle_height], center=BELOW+BEHIND, rank=6);
                 rod(d=3*axle_diameter, l=bearing_width, center=BEHIND, fa=fa_shape);
             }
         }
