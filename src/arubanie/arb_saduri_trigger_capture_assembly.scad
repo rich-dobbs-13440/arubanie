@@ -82,14 +82,14 @@ show_air_flow_servo = false;
 air_flow_position = 0;  // [0 : 45: 270]
 air_flow_servo_angle = -air_flow_position; 
 
-support_offset_p1 = 10; //[0:0.25:30]
-support_offset_p2 = 6.75; //[0:0.25:30]
-support_offset_p3 = 4.25; //[0:0.25:30]
-support_offset_p4 = 4.0; //[0:0.25:30]
-support_offset_m1 = 10; //[0:0.25:30]
-support_offset_m2 = 7.0; //[0:0.25:30]
-support_offset_m3 = 11.5; //[0:0.25:30]
-support_offset_m4 = 5.5; //[0:0.25:30]
+support_offset_p1 = 0; //[0:0.25:60]
+support_offset_p2 = 0; //[0:0.25:60]
+support_offset_p3 = 0; //[0:0.25:60]
+support_offset_p4 = 0; //[0:0.25:60]
+support_offset_m1 = 0; //[0:0.25:60]
+support_offset_m2 = 0; //[0:0.25:60]
+support_offset_m3 = 0; //[0:0.25:60]
+support_offset_m4 = 0; //[0:0.25:60]
 
 
 p_offsets = [

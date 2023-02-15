@@ -659,12 +659,23 @@ module scotch_yoke_printing_support(self, options, log_verbosity) {
     radial_allowance = member("radial_allowance");
     dx_bearing_outside = member("dx_bearing_outside");
     y_bearing = member("y_bearing");
+    push_rod_height = member("push_rod_height");
+    dy_inside_plate = member("dy_inside_plate");
+    
+    support_locations = 
+        is_list(options) ? find_in_dct(options, "push rod support") : undef;
+
     
     display(coloring("support")) {
         translate([0, 0, axle_height]) {
             crank_shaft_support(support_axle);
-            support_push_rod(options);
+            
+
         }
+        if (is_list(support_locations)) {
+            support_push_rod(support_locations);
+        }
+        autogenerate_push_rod_support();
     }
     
     module crank_shaft_support(support_axle) {
@@ -749,28 +760,48 @@ module scotch_yoke_printing_support(self, options, log_verbosity) {
         }
     }
     
-    module support_push_rod(options) {
+    function flexible_range(start, stop, increment) =
+        increment < 0 ? 
+            [ for (minus_l = [-start : -increment : -stop]) -minus_l ] :
+            [ for (l = [start : increment : stop]) l ];
+
+    
+    module autogenerate_push_rod_support() {
+        s_l = 3;
+        gap = 5;
+        increment = (s_l + gap);
         
-        support_locations = 
-            is_list(options) ? find_in_dct(options, "push rod support") : undef;
-        reduced_locations = [
-            for (location = support_locations) if (abs(location) < y_bearing) location 
-        ];
-          // height of push rod cl
-        dz = -axle_height;
-        tear_away_fin = is_list(support_locations);
-        push_rod_height = member("push_rod_height");
-        if (tear_away_fin) {
-            translate([0, 0, dz]) {
-                tearaway(
-                    support_locations, 
-                    d=pin_diameter, 
-                    h=push_rod_height, 
-                    radial_allowance=radial_allowance,
-                    center=ABOVE,
-                    overlap_multiplier=1);
-            }
+        for (i = [0, 1]) {
+            side_sign = [1, -1][i];
+            start = dy_inside_plate[i] + 2*axial_allowance - s_l;
+            stop = y_bearing/2 + 2*axial_allowance;
+            auto_locations = flexible_range(side_sign*start, side_sign*stop, -side_sign * increment);
+            
+            log_s("start", start, log_verbosity, IMPORTANT);
+            log_s("stop", stop, log_verbosity, IMPORTANT);
+            log_s("increment", increment, log_verbosity, IMPORTANT);
+            log_v1("auto_locations", auto_locations, log_verbosity, IMPORTANT);
+            
+            support_push_rod(auto_locations);
         }
+    }
+    
+    module support_push_rod(support_locations) {
+        log_v1("support_locations", support_locations, log_verbosity, IMPORTANT);
+        
+        reduced_locations = [
+            for (location = support_locations) 
+                if (abs(location) > y_bearing/2 + 2 * axial_allowance) location 
+        ];
+        log_v1("reduced_locations", reduced_locations, log_verbosity, IMPORTANT);
+        tearaway(
+            reduced_locations, 
+            d=pin_diameter, 
+            h=push_rod_height, 
+            radial_allowance=radial_allowance,
+            center=ABOVE,
+            overlap_multiplier=1);
+            
     }
     
  
@@ -780,12 +811,12 @@ module scotch_yoke_printing_support(self, options, log_verbosity) {
             h, 
             radial_allowance, 
             center, 
-            overlap_multiplier) {
+            overlap_multiplier,
+            support_length=3) {
                 
-        s_l = 3; // support length
         z_p = h - d / 2;
-        base = [1.5*z_p, s_l, infintesimal];
-        neck = [infintesimal, s_l, infintesimal];
+        base = [1.5*z_p, support_length, infintesimal];
+        neck = [infintesimal, support_length, infintesimal];
         z_neck = z_p + overlap_multiplier*radial_allowance;
         
         module tearaway_segment() {
@@ -835,12 +866,9 @@ function scotch_yoke_mounting(
                     hub_clearance + plate_thickness[i],
                     dy_inside + plate_thickness[i])
             ],
-        y_servo_wall = 
-            [ for (i = [0, 1])  
-                _frame_to_base[i] 
-                -plate_thickness[i]  
-                -y_servo_cl_to_pillar_outside[i]
-            ],
+            
+        dy_inside_plate = _frame_to_base - plate_thickness,
+        y_servo_wall = _frame_to_base - plate_thickness - y_servo_cl_to_pillar_outside,
         x_servo_pillar = 5,
         x_hub_frame = 17,
         x_servo_mount = dx_bearing_outside + x_hub_frame, 
@@ -852,6 +880,7 @@ function scotch_yoke_mounting(
 
         self = [
             ["scotch_yoke_mounting attributes", "-------------------------"],
+            ["dy_inside_plate", dy_inside_plate],
             ["extra_push_rod", extra_push_rod],
             ["frame_to_base", _frame_to_base],
             ["nuts", nuts],
