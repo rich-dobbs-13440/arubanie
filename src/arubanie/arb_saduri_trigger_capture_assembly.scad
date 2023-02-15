@@ -115,12 +115,13 @@ support_locations = [for (item = support_location_list) if (item != 0) item];
 
 scotch_yoke_options = [
     ["push rod support", support_locations],
+    ["use_dove_tails", [false, true]],
     //["show only", ["push_rod"]]
 ]; 
 //undef; // [["show only", ["wall"]]]; //"push_rod"
 
 // (must clear paint pot)
-dx_scotch_yoke = 55; 
+dx_scotch_yoke = 58; 
 scotch_yoke_wall_thickness = 3; 
 
 
@@ -131,7 +132,7 @@ scotch_yoke_extend_trigger_cap = 5;
 scotch_yoke_radial_allowance = 0.4;
 scotch_yoke_axial_allowance = 0.6;
 scotch_yoke_bearing_width = 5;
-scotch_yoke_extra_push_rod = [0, 3];
+scotch_yoke_extra_push_rod = [0, 11];
 
 
 air_flow_servo_color = "PaleTurquoise"; // [DodgerBlue, PaleTurquoise, Coral]
@@ -227,13 +228,12 @@ module show_gudgeon_assembly_design_orientation(orient_for_build) {
         //show_servo = orient_for_build ? false : show_air_flow_servo;
         color(air_flow_servo_color, alpha=air_flow_servo_alpha) {
            air_flow_scotch_yoke();            
-            options = [];
             emplace_air_flow_scotch_yoke() {
                 scotch_yoke_moving_parts(
                     scotch_yoke_mounting_instance, 
                     air_flow_servo_angle, 
                     extra_push_rod=scotch_yoke_extra_push_rod, 
-                    options=options,
+                    options=scotch_yoke_options,
                     log_verbosity=verbosity);
             }
         } 
@@ -334,13 +334,10 @@ module air_flow_scotch_yoke_mounting() {
 
 module air_flow_scotch_yoke() {
     emplace_air_flow_scotch_yoke() {
-        scotch_yoke_operation(
+        scotch_yoke_stationary_parts(
             scotch_yoke_mounting_instance, 
-            "show", 
             options=scotch_yoke_options, 
             log_verbosity=verbosity);
-        scotch_yoke_mounting(
-            scotch_yoke_mounting_instance);
     }
 }
 
@@ -394,22 +391,6 @@ module emplace_children_into_scotch_yoke() {
     children(); 
 } 
 
-
-//module bore_for_push_rod() {
-//    air_flow_scotch_yoke = 
-//        create_air_flow_scotch(angle=0, extra_push_rod=[100,100]);
-//    options=[["fin", false]];
-//    emplace_air_flow_scotch_yoke() { 
-//        scotch_yoke_operation(
-//                air_flow_scotch_yoke, 
-//                "bore for push rod - build plate", 
-//                options=options) {
-//            emplace_children_into_scotch_yoke() {
-//                children();
-//            }
-//        }
-//    }
-//}
 
 module hole_through_clearance() {
 }
