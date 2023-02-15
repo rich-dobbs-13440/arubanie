@@ -269,9 +269,9 @@ module sub_micro_servo_mount_to_axle(
    
     module rotary_servo_mount() {
         color("red") servo_mounting_pillars();
-        color("blue") hub_yoke();
-        color("green") minus_joiner();
-        color("lime") plus_joiner();
+        *color("blue") hub_yoke();
+        *color("green") minus_joiner();
+        *color("lime") plus_joiner();
         color("brown") bearing();
         if (dy_wall_squared < 0) {
             central_joiner();

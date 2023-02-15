@@ -131,7 +131,7 @@ scotch_yoke_extend_trigger_cap = 5;
 scotch_yoke_radial_allowance = 0.4;
 scotch_yoke_axial_allowance = 0.6;
 scotch_yoke_bearing_width = 5;
-
+scotch_yoke_extra_push_rod = [0, 3];
 
 
 air_flow_servo_color = "PaleTurquoise"; // [DodgerBlue, PaleTurquoise, Coral]
@@ -185,7 +185,14 @@ barrel_diameter = master_air_brush("barrel diameter");
 //    } 
 
 
-
+scotch_yoke_mounting_base_instance = 
+    create_air_flow_scotch_base_instance();
+scotch_yoke_mounting_instance = 
+    scotch_yoke_mounting(
+        scotch_yoke_mounting_base_instance,
+        frame_to_base=[0, dx_scotch_yoke - paint_pivot_top_of_yoke],
+        screw_name="M3",
+        nuts=[false, true]);
 
 
 show_gudgeon_assembly(
@@ -217,9 +224,18 @@ module show_gudgeon_assembly_design_orientation(orient_for_build) {
     }  
 
     if (show_scotch_yoke) {
-        show_servo = orient_for_build ? false : show_air_flow_servo;
+        //show_servo = orient_for_build ? false : show_air_flow_servo;
         color(air_flow_servo_color, alpha=air_flow_servo_alpha) {
-           air_flow_scotch_yoke(show_servo, air_flow_servo_angle);
+           air_flow_scotch_yoke();            
+            options = [];
+            emplace_air_flow_scotch_yoke() {
+                scotch_yoke_moving_parts(
+                    scotch_yoke_mounting_instance, 
+                    air_flow_servo_angle, 
+                    extra_push_rod=scotch_yoke_extra_push_rod, 
+                    options=options,
+                    log_verbosity=verbosity);
+            }
         } 
     }
     if (show_scotch_yoke_mounting) {
@@ -238,9 +254,9 @@ module show_gudgeon_assembly_design_orientation(orient_for_build) {
 }
 
 
-function create_air_flow_scotch(angle, extra_push_rod) = 
+function create_air_flow_scotch_base_instance() = 
     let(
-        support_axle = ["servo horn", true],
+        support_axle = [false, true],
         last=undef
     )
     scotch_yoke_create(
@@ -251,8 +267,8 @@ function create_air_flow_scotch(angle, extra_push_rod) =
         scotch_yoke_wall_thickness,
         paint_pivot_h, 
         scotch_yoke_bearing_width,
-        angle,
-        extra_push_rod=extra_push_rod,
+        // angle,
+        //extra_push_rod=extra_push_rod,             =============================================================
         support_axle=support_axle);
 
         
@@ -270,13 +286,13 @@ module emplace_air_flow_scotch_yoke() {
 } 
 
 
-function air_flow_scotch_yoke_frame() =
-    let (
-        dummy_instance = create_air_flow_scotch(0, extra_push_rod=[0,0]),
-        frame = scotch_yoke_attribute(dummy_instance, "frame"),
-        last=undef
-    )
-    frame;
+//function air_flow_scotch_yoke_frame() =
+//    let (
+//        dummy_instance = create_air_flow_scotch(0, extra_push_rod=[0,0]),
+//        frame = scotch_yoke_attribute(dummy_instance, "frame"),
+//        last=undef
+//    )
+//    frame;
 
 
 function air_flow_scotch_yoke_extend_left() =
@@ -288,15 +304,14 @@ function air_flow_scotch_yoke_extend_left() =
     extend_left;
 
 
-function air_flow_scotch_extra_push_rod() = 
-    [0, air_flow_scotch_yoke_extend_left() - 3]; // kludge!
 
 
-function air_flow_scotch_with_extra_rod(angle) =
+
+function air_flow_scotch_with_extra_rod() =
     let (
-        instance = create_air_flow_scotch(
-            angle, 
-            extra_push_rod=air_flow_scotch_extra_push_rod()),
+        instance = create_air_flow_scotch(),
+            //angle, 
+            //extra_push_rod=air_flow_scotch_extra_push_rod()), ===========================================================
         //log_v1("air_flow_scotch_yoke", instance, verbosity, DEBUG);
         last = undef
     )
@@ -312,22 +327,20 @@ module air_flow_scotch_yoke_mounting() {
         + scotch_yoke_extra_dy_right;
     left_lengths = [dy_outside_plus, dy_inside];
     emplace_air_flow_scotch_yoke() {
-        scotch_yoke_mounting(
-            air_flow_scotch_with_extra_rod(0),
-            frame_to_base=[0, dx_scotch_yoke - paint_pivot_top_of_yoke],
-            screw_name="M3",
-            left_lengths=left_lengths);
+        
     }
 }
    
 
-module air_flow_scotch_yoke(show_servo, angle) {
+module air_flow_scotch_yoke() {
     emplace_air_flow_scotch_yoke() {
         scotch_yoke_operation(
-            air_flow_scotch_with_extra_rod(angle), 
+            scotch_yoke_mounting_instance, 
             "show", 
-            scotch_yoke_options, 
+            options=scotch_yoke_options, 
             log_verbosity=verbosity);
+        scotch_yoke_mounting(
+            scotch_yoke_mounting_instance);
     }
 }
 
