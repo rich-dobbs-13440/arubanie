@@ -11,6 +11,7 @@
 
 
 include <centerable.scad>
+include <logging.scad>
 
 /* [Boiler Plate] */
 
@@ -29,10 +30,10 @@ show_visual_test_for_rod_support = true;
 
 // h_by_one_hundred = 1; // [0 : 1 : 99.9]
 // echo("h_by_one_hundred", h_by_one_hundred);
-__l = 50; // [0 : 1 : 99.9]
+__l = 50; // [-99.9 : 1 : 99.9]
 //echo(__l);
-__x_start = 10; // [0 : 1 : 99.9]
-__x_stop = 40; // [0 : 1 : 99.9]
+__x_start = 10; // [-99.9 : 1 : 99.9]
+__x_stop = 40; // [-99.9 : 1 : 99.9]
 __support_end_start  = true;
 __support_end_stop  = true;
 __ends_supported = [__support_end_start, __support_end_stop];
@@ -289,12 +290,14 @@ if (show_test_rod_all_octants) {
 }
         
 function support_locations_for_segment(
-        segment, 
-        ends_supported = [true, true],
+        segment,
         support_length = 3, 
         max_bridge = 10) =
     let(
-        segment_length = abs(segment[0] - segment[1]),
+        p0 = segment[0],
+        p1 = segment[1],
+        segment_length = abs(p0[0] - p1[0]),
+        ends_supported = [p0[1], p1[1]],
         n_end_bridges = (ends_supported[0] ? 1 : 0) + (ends_supported[1] ? 1 : 0),
         n_supports_fractional = 
             (segment_length - (n_end_bridges - 1) * max_bridge) / (support_length + max_bridge),
@@ -312,37 +315,131 @@ function support_locations_for_segment(
     assert(bridge <= max_bridge)
     [
         for (i = [0 : 1 : n_supports-1])  
-            segment[0] 
+            p0[0] 
             + (ends_supported[0] ? bridge: 0)
             + i * (support_length + bridge)
     ];
+        
+        
+function point(x, supported) = [x, supported];
+        
+function segment(p1, p2) = [p1, p2];
+       
+function segment_difference(seg_0, seg_1) = 
+    let (
+        p_0_s = seg_0[0],
+        p_0_e = seg_0[1],
+        p_1_s = seg_1[0],
+        p_1_e = seg_1[1],
+        x_0_s = p_0_s[0],
+        x_0_e = p_0_e[0],
+        x_1_s = p_1_s[0],
+        x_1_e = p_1_e[0], 
+        no_overlap = (x_1_e < x_0_s) || (x_1_s > x_0_e),
+        contained_overlap = (x_1_s > x_0_s) && (x_1_e < x_0_e),
+        start_overlap = (x_1_s <= x_0_s) && (x_0_s <= x_1_e),
+        end_overlap = (x_1_s <= x_0_e) && (x_0_e <= x_1_e),
+        last = undef
+    )
+    echo("x_0_s", x_0_s)
+    echo("x_0_e", x_0_e)
+    echo("x_1_s", x_1_s)
+    echo("x_1_e", x_1_e)
+    echo("no_overlap", no_overlap)
 
-module _visual_test_for_rod_support() {
+    [ for (i = [0, 1]) 
+        if (i == 0 && no_overlap) seg_0 
+        else if (i == 0 && contained_overlap) echo("case1")  segment(p_0_s, p_1_s) 
+        else if (i == 1 && contained_overlap) echo("case2") segment(p_1_e, p_0_e)    
+        else if (i == 0 && start_overlap && !end_overlap) echo("case3") segment(p_1_e, p_0_e)
+        else if (i == 0 && end_overlap && !start_overlap) echo("case4") segment(p_0_s, p_1_s)
+    ];
+        
+function flatten(l) = [ for (a = l) for (b = a) b ] ;
+   
+function overall_difference(remainder_list, take_away_list, i=0) =
+    let (
+        current_remainder = 
+            flatten([ for (item = remainder_list) segment_difference(item, take_away_list[i])]),
+        result = i < len(take_away_list) - 1 ? overall_difference(current_remainder, take_away_list, i=i+1) : current_remainder 
+    ) 
+    result;
+            
+module visualize_segment(segment, color_name) {
+    s_segment = segment[1][0] - segment[0][0];
+    color(color_name, alpha=0.25)
+        translate([segment[0][0], 0, 0]) block([s_segment, 10, 10], center=FRONT);
+}
+
+
+module support_locations(d, l, z, bridges, supports, center=0) {
+    bridge_segments = [ 
+        for (bridge = bridges) 
+            segment(point(bridge[0], false), point(bridge[1], false))
+    ];
+    support_segments = [ 
+        for (support = supports) 
+            segment(point(bridge[0], true), point(bridge[1], true))
+    ];
+    segment_all = segment(point(0, false), point(l, false));
+    segments = overall_difference([seg_all], concat(bridge_segments, support_segments));
+    for (segment = segments) {
+        support_locations = support_locations_for_segment(segment);
+        echo("support_locations", support_locations);
+        tearaway(
+            support_locations, 
+            d, 
+            l,
+            z,
+            center);
+    }
+}
+        
+module _visual_test_for_rod_support_development() {
     z = 5;
     d = 5;
     l = __l;
+    // [__x_start, min(__x_stop, l)]
+
+    p_0 = point(0, false);
+    p_l = point(__l, false);
+    seg_all = segment(p_0, p_l);
     
+    p_start = point(__x_start, true);
+    p_stop =  point(__x_stop, true);
+
+    seg1 = segment(p_start, p_stop);
+    seg2 = segment(point(40, false), point(60, false));
+    seg3 = segment(point(60, false), point(70, false));
+    
+    
+//    segments_from_segment_difference = segment_difference(seg_all, seg);
+//    log_v1("segments_from_segment_difference", segments_from_segment_difference, DEBUG, IMPORTANT);
+    segments = overall_difference([seg_all], [seg1, seg2, seg3]);
+    log_v1("segments", segments, DEBUG, IMPORTANT);
+    
+    for (segment = segments) {
+        support_locations = support_locations_for_segment(segment);
+        echo("support_locations", support_locations);
+        tearaway(
+            support_locations, 
+            d, 
+            l,
+            z,
+            center);
+    }
     center=FRONT;
     translate([0, 0, z]) rod(d, l, center=center);
-    support_locations = support_locations_for_segment(
-        [__x_start, min(__x_stop, l)],
-        ends_supported = __ends_supported);
-    echo("support_locations", support_locations);
-    tearaway(
-        support_locations, 
-        d, 
-        l,
-        z,
-        center);
-    
-    
-    color("red") block([__x_start, 10, 10], center=FRONT);
-    color("blue") translate([__x_stop, 0, 0]) block([10, 10, 10], center=FRONT);
+    //sx = __x_stop - __x_start;
+    //color("red", alpha=0.25) translate([__x_start, 0, 0]) block([sx, 10, 10], center=FRONT);
+    visualize_segment(seg1, "red");
+    visualize_segment(seg2, "blue");
+    visualize_segment(seg3, "green");
     
 } 
 
 if (show_visual_test_for_rod_support) {
-    _visual_test_for_rod_support();
+    _visual_test_for_rod_support_development();
 }
 
 
