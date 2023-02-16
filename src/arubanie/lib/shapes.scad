@@ -12,6 +12,7 @@
 
 include <centerable.scad>
 include <logging.scad>
+use <not_included_batteries.scad>
 
 /* [Boiler Plate] */
 
@@ -359,9 +360,17 @@ function flatten(l) = [ for (a = l) for (b = a) b ] ;
    
 function overall_difference(remainder_list, take_away_list, i=0) =
     let (
-        current_remainder = 
-            flatten([ for (item = remainder_list) segment_difference(item, take_away_list[i])]),
-        result = i < len(take_away_list) - 1 ? overall_difference(current_remainder, take_away_list, i=i+1) : current_remainder 
+        
+        current_remainder = (i > len(take_away_list)-1) ? remainder_list :
+            flatten(
+                [ for (item = remainder_list) 
+                    segment_difference(item, take_away_list[i])
+                ]
+            ),
+        result = i < len(take_away_list) - 1 ? 
+                overall_difference(current_remainder, take_away_list, i=i+1) : 
+                current_remainder,
+        last = undef 
     ) 
     result;
             
@@ -371,19 +380,36 @@ module visualize_segment(segment, color_name) {
         translate([segment[0][0], 0, 0]) block([s_segment, 10, 10], center=FRONT);
 }
 
+function support_rod(d, l, z, bridges, supports, center=0) = 
+    let (
+        segment_all = segment(point(0, false), point(l, false)),
+        bridge_segments = [ 
+            for (bridge = bridges) 
+                segment(point(bridge[0], false), point(bridge[1], false))
+        ],
+        support_segments = [ 
+            for (support = supports) 
+                segment(point(support[0], true), point(support[1], true))
+        ],
+        segments_to_support = overall_difference(
+                    [segment_all], 
+                    concat(bridge_segments, support_segments)),
+        last = undef
+    )
+    [
+        ["segment_all", segment_all],
+        ["bridge_segments", bridge_segments],
+        ["support_segments", support_segments],
+        ["segments_to_support", segments_to_support],
+    ];
+    
 
-module support_locations(d, l, z, bridges, supports, center=0) {
-    bridge_segments = [ 
-        for (bridge = bridges) 
-            segment(point(bridge[0], false), point(bridge[1], false))
-    ];
-    support_segments = [ 
-        for (support = supports) 
-            segment(point(bridge[0], true), point(bridge[1], true))
-    ];
-    segment_all = segment(point(0, false), point(l, false));
-    segments = overall_difference([seg_all], concat(bridge_segments, support_segments));
-    for (segment = segments) {
+
+module support_rod(d, l, z, bridges, supports, center=0) {
+    segments_dct = support_rod(d, l, z, bridges, supports, center);
+    segments_to_support = find_in_dct(segments_dct, "segments_to_support");
+
+    for (segment = segments_to_support) {
         support_locations = support_locations_for_segment(segment);
         echo("support_locations", support_locations);
         tearaway(
@@ -394,52 +420,86 @@ module support_locations(d, l, z, bridges, supports, center=0) {
             center);
     }
 }
+
+
+module __visual_tests_for_rod_support(d, l, z, bridges, supports, center=0, dy=0) {
+    translate([0, dy, 0]) {
+        support_rod(d, l, z, bridges, supports, center=center);
         
-module _visual_test_for_rod_support_development() {
+        translate([0, 0, z]) rod(d, l, center=center); 
+        segments_dct = support_rod(d, l, z, bridges, supports, center);
+        bridge_segments = find_in_dct(segments_dct, "bridge_segments");
+        for (segment = bridge_segments) {
+            visualize_segment(segment, "blue");
+        }
+        support_segments = find_in_dct(segments_dct, "support_segments");
+        for (segment = support_segments) {
+            visualize_segment(segment, "red");
+        }
+    }
+}
+
+module _visual_tests_for_rod_support() {
     z = 5;
     d = 5;
     l = __l;
-    // [__x_start, min(__x_stop, l)]
-
-    p_0 = point(0, false);
-    p_l = point(__l, false);
-    seg_all = segment(p_0, p_l);
-    
-    p_start = point(__x_start, true);
-    p_stop =  point(__x_stop, true);
-
-    seg1 = segment(p_start, p_stop);
-    seg2 = segment(point(40, false), point(60, false));
-    seg3 = segment(point(60, false), point(70, false));
-    
-    
-//    segments_from_segment_difference = segment_difference(seg_all, seg);
-//    log_v1("segments_from_segment_difference", segments_from_segment_difference, DEBUG, IMPORTANT);
-    segments = overall_difference([seg_all], [seg1, seg2, seg3]);
-    log_v1("segments", segments, DEBUG, IMPORTANT);
-    
-    for (segment = segments) {
-        support_locations = support_locations_for_segment(segment);
-        echo("support_locations", support_locations);
-        tearaway(
-            support_locations, 
-            d, 
-            l,
-            z,
-            center);
+    center = FRONT;
+    module a_test(bridges, supports, dy) {
+        __visual_tests_for_rod_support(d, l, z, bridges, supports, center, dy);
     }
-    center=FRONT;
-    translate([0, 0, z]) rod(d, l, center=center);
-    //sx = __x_stop - __x_start;
-    //color("red", alpha=0.25) translate([__x_start, 0, 0]) block([sx, 10, 10], center=FRONT);
-    visualize_segment(seg1, "red");
-    visualize_segment(seg2, "blue");
-    visualize_segment(seg3, "green");
-    
-} 
+    a_test(bridges=[], supports=[], dy=20);
+    a_test(bridges=[], supports=[[0, 10]], dy=40);
+    a_test(bridges=[[30, 40]], supports=[[0, 10]], dy=60);
+    a_test(bridges=[[30, 40],[50, 60]], supports=[[0, 10]], dy=80);
+    a_test(bridges=[[30, 40],[40, 50]], supports=[[0, 10]], dy=100);
+    a_test(bridges=[[30, 40],[40, 50]], supports=[[0, 10], [__l, __l]], dy=120);
+}
+        
+//module _visual_test_for_rod_support_development() {
+//    z = 5;
+//    d = 5;
+//    l = __l;
+//    // [__x_start, min(__x_stop, l)]
+//
+//    p_0 = point(0, false);
+//    p_l = point(__l, false);
+//    seg_all = segment(p_0, p_l);
+//    
+//    p_start = point(__x_start, true);
+//    p_stop =  point(__x_stop, true);
+//
+//    seg1 = segment(p_start, p_stop);
+//    seg2 = segment(point(40, false), point(60, false));
+//    seg3 = segment(point(60, false), point(70, false));
+//    
+//    
+////    segments_from_segment_difference = segment_difference(seg_all, seg);
+////    log_v1("segments_from_segment_difference", segments_from_segment_difference, DEBUG, IMPORTANT);
+//    segments = overall_difference([seg_all], [seg1, seg2, seg3]);
+//    log_v1("segments", segments, DEBUG, IMPORTANT);
+//    
+//    for (segment = segments) {
+//        support_locations = support_locations_for_segment(segment);
+//        echo("support_locations", support_locations);
+//        tearaway(
+//            support_locations, 
+//            d, 
+//            l,
+//            z,
+//            center);
+//    }
+//    center=FRONT;
+//    translate([0, 0, z]) rod(d, l, center=center);
+//    //sx = __x_stop - __x_start;
+//    //color("red", alpha=0.25) translate([__x_start, 0, 0]) block([sx, 10, 10], center=FRONT);
+//    visualize_segment(seg1, "red");
+//    visualize_segment(seg2, "blue");
+//    visualize_segment(seg3, "green");
+//    
+//} 
 
 if (show_visual_test_for_rod_support) {
-    _visual_test_for_rod_support_development();
+    _visual_tests_for_rod_support();  
 }
 
 
