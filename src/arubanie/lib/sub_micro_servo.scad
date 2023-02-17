@@ -42,7 +42,9 @@ show_default = false;
 show_with_servo = false;
 show_with_back = false;
 show_translation_test = false;
-show_mount_to_axle = true;
+show_mount_to_axle = false;
+
+show_single_horn = true;
 
 /* [Mount to axle example] */
 angle = 0; // [-180: 5: +180]
@@ -102,6 +104,69 @@ servo_lip = 4;
 pilot_diameter = 2;
 screw_length = 8;
 screw_length_allowance = 2;
+
+if (show_single_horn) {
+    //single_horn("clearance", 0.4);
+    //single_horn("arm blank", 0.4);
+    single_horn("arm holder", 0.4);
+}
+
+module single_horn(action, allowance) {
+    if (action == "clearance") {
+        single_horn_clearance(allowance, allowance);
+    } else if (action == "arm blank") {
+        arm_clearance(2, 1);
+    } if (action == "arm holder") {
+        arm_holder(allowance);
+        
+    }
+    
+    d_out_hub = 5.72;
+    d_inner_hub = 3.81;
+    h_hub = 3.30;
+    d_arm_end = 3.83;
+    h_arm = 1.96;
+    r_arm = 25.1;
+    screw_diameter = 2;
+    slot_width = 1.54;
+    
+    module arm_holder(allowance) {
+        difference() {
+            // The blank
+            arm_clearance(2, 3.5);
+            // The clearance for the arm
+            translate([0, 0, 2]) center_reflect([1, 0, 0]) arm_clearance(allowance, allowance);
+            // Implement the catch to hold the arm
+            translate([0, 0, 2.6]) center_reflect([1, 0, 0]) arm_clearance(-0.7*allowance, 1);
+            // Access to center screw
+            can(d=5, h=20, fa=fa_shape);
+            // Avoid the hub
+            translate([0, 0, 2.0]) can(d=13, h=5, center=ABOVE);
+            // Screw pilot holes the arm holder
+            translate([8, 0, 0]) can(d=1.5, h=20, fa=fa_shape);  
+            translate([11, 0, 0]) can(d=1.5, h=20, fa=fa_shape);  // 
+            translate([14, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
+            translate([17, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
+            translate([20, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
+            translate([23, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
+            translate([26, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
+        }
+       
+    }
+  
+    module arm_clearance(d_allowance, h_allowance) {
+        function swell(d) = d + 2*d_allowance; 
+        function swell_h(d) = d + h_allowance; 
+        hull() {
+            can(d=swell(d_out_hub), h=swell_h(h_arm), center=ABOVE, fa=fa_shape);
+            translate([r_arm, 0, 0]) 
+                can(d=swell(d_arm_end), h=swell_h(h_arm), center=ABOVE, fa=fa_shape);
+            
+        }
+    }
+    
+    
+}
 
 
 module bare_pilot_hole() {
