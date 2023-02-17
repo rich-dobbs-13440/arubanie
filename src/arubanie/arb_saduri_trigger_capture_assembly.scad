@@ -10,6 +10,7 @@ The coordinate system is based center of rotation of the paint pivot.
 //**************************************************************************************************
 //      10        20        30        40        50        60        70        80        90       100
 
+include <nutsnbolts-master/cyl_head_bolt.scad>
 include <lib/logging.scad>
 include <lib/centerable.scad>
 use <lib/shapes.scad>
@@ -30,7 +31,7 @@ fa_as_arg = $fa;
 $fs = 0.8;
 eps = 0.001;
 
-infinity = 1000;
+infinity = 300;
 
 /* [Logging] */
 
@@ -60,14 +61,20 @@ paint_gudgeon_alpha = 1; // [0:0.05:1]
 
 
 
+/* [Paint Pull Gudgeon Design] */
+dx_paint_pull_gudgeon_offset = -20; // [-20:0.5:20]
+dy_paint_pull_gudgeon_offset = 8;  // [-20:20]
+paint_pull_gudgeon_length = 30;  // [0:40]
+paint_pull_nutcatch_depth = 9;
+paint_pull_range_of_motion = [145,45];
+
+
+
+
 /* [Paint Pull Rod Design] */
 show_paint_pull_rod = true;
 paint_pull_rod_length = 54;
-paint_pull_gudgeon_length = 17;
-paint_pull_gudgeon_offset = 6;
-dy_paint_pull_gudgeon_offset = 8;
-paint_pull_nutcatch_depth = 9;
-paint_pull_range_of_motion = [120,60];
+
 //paint_pull_rod_angle = 34; // [0: 5 : 40]
 paint_pull_rod_color = "Orange"; // [DodgerBlue, Orange, Coral]
 paint_pull_rod_alpha = 1; // [0:0.05:1]
@@ -385,14 +392,18 @@ module paint_pivot_gudgeons() {
 module emplace_children_into_scotch_yoke() {
     dz = paint_pivot_h/2;
     rotate([0, 180, 0]) 
-    mirror([0, -1, 0])
-    rotate([0, 0, -90])
-    translate([-dx_scotch_yoke, 0, -dz]) 
-    children(); 
+        mirror([0, -1, 0])
+            rotate([0, 0, -90])
+                translate([-dx_scotch_yoke, 0, -dz]) 
+                    children(); 
 } 
 
 
 module hole_through_clearance() {
+    center_reflect([0, 1, 0]) 
+        translate([25, 6, 0]) 
+            rotate([0, 90, 0]) 
+                hole_through(name="M3");  
 }
 
 module trigger_shaft_clearance() {
@@ -410,7 +421,6 @@ module bore_for_nuts_and_push_rod() {
         hole_through_clearance();
         trigger_shaft_clearance();
     }
-    //trigger_shaft_clearance();
 }
 
 
@@ -428,7 +438,7 @@ module paint_pivot_gudgeon_bridge() {
 
 
 module paint_pull_emplace() {
-    dx = paint_pivot_top_of_yoke - paint_pull_gudgeon_offset ;
+    dx = paint_pivot_top_of_yoke - dx_paint_pull_gudgeon_offset ;
     dy = paint_pivot_cl_dy + dy_paint_pull_gudgeon_offset;
     translate([dx, dy, 0]) { 
         children();
@@ -487,6 +497,7 @@ module paint_pull_rod() {
         range_of_motion=[145, 90], 
         pin= "M3 captured nut",
         fa=fa_as_arg);
+    
     translate([paint_pull_rod_length, 0, 0]) 
         gudgeon(
             paint_pivot_h, 
@@ -495,19 +506,108 @@ module paint_pull_rod() {
             paint_pull_pivot_allowance, 
             range_of_motion=[135, 135],
             pin= "M3 captured nut", 
-            fa=fa_as_arg);
-        
+            fa=fa_as_arg);     
 }
 
 
 module connected_paint_pull_rod(angle=0) {
-    dx = paint_pivot_top_of_yoke + paint_pivot_h;
-    dy = paint_pivot_cl_dy + 7.31;
+    dx = paint_pivot_top_of_yoke - dx_paint_pull_gudgeon_offset;
+    dy = paint_pivot_cl_dy + dy_paint_pull_gudgeon_offset;
     translate([dx, dy, 0]) {
         rotate([0, angle, 0]) { 
             paint_pull_rod();
         }
     }
+}
+
+connected_paint_servo_adapter();
+
+module connected_paint_servo_adapter() {
+    dx = 150;
+    dy = -(paint_pivot_cl_dy + dy_paint_pull_gudgeon_offset);
+    
+    translate([dx, dy, 0]) {
+        paint_servo_adapter();
+    }
+}
+
+module paint_servo_adapter_clearance() {
+    // Origin is at the cl of the servo rotation
+    rotate([90, 0, 180]) {
+        single_horn_long("arm nutcatch_clearance");
+    } 
+    
+}
+
+module paint_servo_adapter_pintle() {
+    pivot_arm_length = 25;
+    paint_pull_pivot_allowance = paint_pivot_allowance;
+    pintle_length = pivot_arm_length;
+
+        translate([-pivot_arm_length, 0, 0]) { // To pivot around the end of the pintle
+            pintle(
+                paint_pivot_h, 
+                paint_pivot_w, 
+                pintle_length, 
+                paint_pull_pivot_allowance,
+                range_of_motion=[135, 135], 
+                pin= "M3 captured nut",
+                fa=fa_as_arg);
+        }
+    //}
+}
+
+module paint_servo_adapter_mounting_block(pivot_angle) {
+    module blank() {
+        dy = paint_pivot_w/2;
+        x = 24; // Match up with the mounting clearance
+        y = wall_thickness;
+        z = paint_pivot_h; // Match up with the mounting clearance
+        dz = -paint_pivot_h/2;
+        translate([0, dy, dz]) {
+            block([x, y, z], center=LEFT+BEHIND+ABOVE);
+        }
+        rod(d=paint_pivot_h, l=paint_pivot_w, center=SIDEWISE);
+        translate([-24, dy, 0]) rod(d=paint_pivot_h, l=y, center=SIDEWISE+LEFT);
+        
+        // Additional support for the pintle:
+        translate([0, 0, dz]) {
+            block([10, paint_pivot_w, paint_pivot_h], center=BEHIND+ABOVE);
+        }
+        z_s = sin(pivot_angle) * x;
+        color("green") 
+            translate([-x, dy, 0]) 
+                rotate([0, -pivot_angle, 0])
+                    block([7, y, z_s], center=BELOW+LEFT, rank=0); 
+    } 
+    difference() {
+        rotate([0, pivot_angle, 0]) blank();
+        hull() paint_servo_adapter_pintle();
+    }
+}
+
+module build_plate_clearance() {
+    translate([0, 0, -paint_pivot_h/2])
+        block([infinity, infinity, infinity], center=BELOW);
+}
+
+module behind_arm_clearance() {
+    translate([4, 0, 0]) block([20, 20, 20], center=FRONT);
+}
+
+module paint_servo_adapter() {
+    pivot_angle = 33; 
+    //mirror([0, 1, 0]) {
+        difference() {
+            union() {
+                paint_servo_adapter_pintle();
+                paint_servo_adapter_mounting_block(pivot_angle);
+            }
+            rotate([0, pivot_angle, 0]) paint_servo_adapter_clearance();
+            build_plate_clearance();
+            behind_arm_clearance();
+        }
+    //}
 }
 
 

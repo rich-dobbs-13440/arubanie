@@ -26,6 +26,7 @@ include <centerable.scad>
 use <shapes.scad>
 use <9g_servo.scad>
 use <small_servo_cam.scad>
+include <nutsnbolts-master/cyl_head_bolt.scad>
 
 fa_shape = 10;
 fa_bearing = 1;
@@ -38,13 +39,13 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 
 /* [Show] */
 
-show_default = false;
+show_default = true;
 show_with_servo = false;
 show_with_back = false;
 show_translation_test = false;
 show_mount_to_axle = false;
 
-show_single_horn = true;
+show_single_horn = false;
 
 /* [Mount to axle example] */
 angle = 0; // [-180: 5: +180]
@@ -100,25 +101,27 @@ module end_of_customization() {}
 
 servo_size = [15.45, 23.54, 11.73];
 
-servo_lip = 4;
-pilot_diameter = 2;
-screw_length = 8;
-screw_length_allowance = 2;
+
 
 if (show_single_horn) {
     //single_horn("clearance", 0.4);
     //single_horn("arm blank", 0.4);
-    single_horn("arm holder", 0.4);
+//    single_horn("arm holder", 0.4);
+//    single_horn("arm nutcatch", 0.4);
+    single_horn_long("arm nutcatch_clearance");
 }
 
-module single_horn(action, allowance) {
-    if (action == "clearance") {
+module single_horn_long(item, allowance=0.4) {
+    if (item == "clearance") {
         single_horn_clearance(allowance, allowance);
-    } else if (action == "arm blank") {
+    } else if (item == "arm blank") {
         arm_clearance(2, 1);
-    } if (action == "arm holder") {
+    } else if (item == "arm holder") {
         arm_holder(allowance);
-        
+    } else if (item == "arm nutcatch") {
+        color("green") arm_nutcatch_extension();
+    } else if (item ==  "arm nutcatch_clearance") {
+        color("red") arm_nutcatch_clearance();
     }
     
     d_out_hub = 5.72;
@@ -138,20 +141,28 @@ module single_horn(action, allowance) {
             translate([0, 0, 2]) center_reflect([1, 0, 0]) arm_clearance(allowance, allowance);
             // Implement the catch to hold the arm
             translate([0, 0, 2.6]) center_reflect([1, 0, 0]) arm_clearance(-0.7*allowance, 1);
-            // Access to center screw
-            can(d=5, h=20, fa=fa_shape);
+            
             // Avoid the hub
-            translate([0, 0, 2.0]) can(d=13, h=5, center=ABOVE);
+            translate([0, 0, 4.0]) can(d=13, h=5, center=ABOVE);
             // Screw pilot holes the arm holder
-            translate([8, 0, 0]) can(d=1.5, h=20, fa=fa_shape);  
-            translate([11, 0, 0]) can(d=1.5, h=20, fa=fa_shape);  // 
-            translate([14, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
-            translate([17, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
-            translate([20, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
-            translate([23, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
-            translate([26, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
+            translate([9, 0, 0]) can(d=1.5, h=20, fa=fa_shape);  
+            translate([12, 0, 0]) can(d=1.5, h=20, fa=fa_shape);  // 
+            translate([18, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
+            translate([21, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
+            nutcatch_clearance();
+            servo_screw_access_clearance();
         }
        
+    }
+    
+   module arm_nutcatch_clearance() {
+       servo_screw_access_clearance();
+       nutcatch_clearance(side_cuts=false);
+   }
+    
+    module servo_screw_access_clearance() {
+       // Access to center screw
+        can(d=5, h=50, fa=fa_shape);
     }
   
     module arm_clearance(d_allowance, h_allowance) {
@@ -165,9 +176,46 @@ module single_horn(action, allowance) {
         }
     }
     
+
+    
+    module nutcatch_clearance(side_cuts) {
+        module cut(dx) {
+            if (side_cuts) {
+                dz_nut_offset = 1.5;
+                translate([dx, 0, dz_nut_offset]) {
+                    rotate([0, 0, 90]) {             
+                        nutcatch_sidecut(name="M3");
+                    }
+                }
+            }
+            dz_hole = 25;
+            translate([dx, 0, 0]) {
+                rotate([0, 0, 90]) {
+                        translate([0, 0, dz_hole]) hole_through(name="M3");
+                }
+            }
+        }
+        cut(6);
+        cut(15);
+        cut(24);
+    }
+    
+
+    module arm_nutcatch_extension() {
+        difference() {
+            mirror([0, 0, 1]) arm_clearance(2, 1);
+            arm_nutcatch_clearance(side_cuts=true);
+        }
+    }
+    
     
 }
 
+
+servo_lip = 4;
+pilot_diameter = 2;
+screw_length = 8;
+screw_length_allowance = 2;
 
 module bare_pilot_hole() {
     l = screw_length+screw_length_allowance;
