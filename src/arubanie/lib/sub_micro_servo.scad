@@ -125,69 +125,166 @@ module radial_stall_limiter() {
     d_shaft = 5;
     d_rim = 20;
     h_hub = 1;
-    w_arm = 1;
+    w_arm = 2;
 
-    
+    clearance = 0.5;
     
     d_hub = 2 * d_shaft;
     offset_hub = w_arm/2 + d_hub/2;
     
-    hole_side();
+    spring();
+    shaft_connection(allowance=0);
     
-    module hole_side() {
-        hub();
+    module shaft_connection(allowance) {
+        size = [w_arm, w_arm, 2*h_hub+allowance];
+        color("red") 
+            translate([3.0, clearance, 0]) block(size, center=ABOVE+RIGHT+FRONT);
+        color("blue")
+            translate([-3.0, -clearance, 0]) block(size, center=ABOVE+LEFT+BEHIND);
+    }
+    
+    module spring() {
+        y_hc = 3*clearance + w_arm; 
+
         difference() {
-            arms();
-            pins();
+            union() {
+                arms();
+                block([5, 5, h_hub], center=ABOVE);
+                
+            }
+            block([3, 3, 4*h_hub], center=ABOVE, rank=10);
+            translate([3, 0, 0]) 
+                block([clearance, y_hc, h_hub], center=ABOVE+RIGHT+BEHIND, rank=3);
+            mirror([0, 1, 0]) mirror([1, 0, 0]) translate([3, 0, 0]) 
+                block([clearance, y_hc, h_hub], center=ABOVE+RIGHT+BEHIND, rank=3);
         }
-        holes();
-        
     }
     
-    module pin_side() {
-        hub();
-        arms();
-        pins();
-    }
+     
     
-    module holes() {
-        d = 2 * w_arm;
-        hollow = w_arm; // No clearance, will it work for press fit???
-        center_reflect([1, 0, 0]) 
-            translate([d_rim/2, 0, 0]) 
-                can(d=d, h=h_hub, hollow=hollow, center=ABOVE, fa=fa_bearing); 
-        center_reflect([0, 1, 0]) 
-            translate([0, d_rim/2, 0]) 
-                can(d=d, h=h_hub, hollow=hollow, center=ABOVE, fa=fa_bearing);
-    }
-    
-    module pins() {
-        center_reflect([1, 0, 0]) 
-            translate([d_rim/2, 0, 0]) 
-                can(d=w_arm, h=2*h_hub, center=ABOVE, fa=fa_bearing, rank=10); 
-        center_reflect([0, 1, 0]) 
-            translate([0, d_rim/2, 0]) 
-                can(d=w_arm, h=2*h_hub, center=ABOVE, fa=fa_bearing, rank=10);  
-    }
     
     module arms() {
-        block([d_rim, w_arm, h_hub], center=ABOVE, rank=5);  
-        block([w_arm, d_rim, h_hub], center=ABOVE, rank=5); 
-    }
-    
-    module hub() {
-        difference() {
-            block([2*offset_hub, 2*offset_hub, h_hub], center=ABOVE);
-            hub_clearance();
+        bridge = 5;
+
+        
+        module side_arms() {
+            x = d_rim/2 - clearance;
+            translate([clearance, clearance, 0]) {
+                block([x, w_arm, h_hub], center=ABOVE+RIGHT+FRONT);
+            }
+            translate([d_rim/2, clearance, 0]) {  
+                block([w_arm, bridge, h_hub], center=ABOVE+RIGHT+BEHIND);
+                translate([0, bridge, 0]) {
+                    block([bridge, w_arm, h_hub], center=ABOVE+LEFT+BEHIND); 
+                }
+            }
+
+        }
+        
+        module central_arms() {
+            dy = 3*clearance + w_arm; //3 * clearance + w_arm;
+            dx = dy;
+            y = d_rim/2 - dy;
+            translate([0, dy, 0]) 
+                block([bridge/2, w_arm, h_hub], center=ABOVE+RIGHT+FRONT);
+            translate([clearance, dy, 0]) 
+                block([w_arm, y, h_hub], center=ABOVE+RIGHT+FRONT);
+            translate([clearance, d_rim/2, 0]) 
+                block([bridge, w_arm, h_hub], center=ABOVE+LEFT+FRONT);
+            translate([dx, d_rim/2, 0]) {
+                block([w_arm, y, h_hub], center=ABOVE+LEFT+FRONT);
+            }
+        }
+        center_reflect([0, 1, 0]) {
+            center_reflect([1, 0, 0]) {
+                side_arms();
+                central_arms();
+            }
         }
     }
     
+//    module arms() {
+//        module spring_arm(dx_inner, x_outer) {
+//            x = d_rim/2 - dx_inner;
+//            clearance = 1;
+//            y = 2*w_arm + clearance;
+//            translate([dx_inner, 0, 0]) {
+//                block([x, w_arm, h_hub], center=ABOVE+RIGHT+FRONT);
+//            }
+//            translate([d_rim/2, 0, 0])  block([w_arm, y, h_hub], center=ABOVE+RIGHT+FRONT);
+//            translate([d_rim/2, 3, 0]) {
+//                block([x_outer, w_arm, h_hub], center=ABOVE+RIGHT+BEHIND);
+//            }
+//        }
+//        for (a = [0 : 180 : 360]) {
+//            rotate([0, 0, a]) {
+//                spring_arm(dx_inner=0, x_outer=8);
+//            }    
+//        }
+//        for (a = [0 : 45 : 360]) {
+//            rotate([0, 0, a]) {
+//                spring_arm(dx_inner=4, x_outer=8);
+//            }    
+//        }
+//        
+//    }
     
-    module hub_clearance() {
-        center_reflect([0, 1, 0])
-            center_reflect([1, 0, 0]) 
-                translate([offset_hub, offset_hub, 0]) can(d=d_hub, h=5, fa=fa_shape);
-    }
+//    hole_side();
+//    
+//    module hole_side() {
+//        hub();
+//        difference() {
+//            arms();
+//            pins();
+//        }
+//        holes();
+//        
+//    }
+//    
+//    module pin_side() {
+//        hub();
+//        arms();
+//        pins();
+//    }
+//    
+//    module holes() {
+//        d = 2 * w_arm;
+//        hollow = w_arm; // No clearance, will it work for press fit???
+//        center_reflect([1, 0, 0]) 
+//            translate([d_rim/2, 0, 0]) 
+//                can(d=d, h=h_hub, hollow=hollow, center=ABOVE, fa=fa_bearing); 
+//        center_reflect([0, 1, 0]) 
+//            translate([0, d_rim/2, 0]) 
+//                can(d=d, h=h_hub, hollow=hollow, center=ABOVE, fa=fa_bearing);
+//    }
+//    
+//    module pins() {
+//        center_reflect([1, 0, 0]) 
+//            translate([d_rim/2, 0, 0]) 
+//                can(d=w_arm, h=2*h_hub, center=ABOVE, fa=fa_bearing, rank=10); 
+//        center_reflect([0, 1, 0]) 
+//            translate([0, d_rim/2, 0]) 
+//                can(d=w_arm, h=2*h_hub, center=ABOVE, fa=fa_bearing, rank=10);  
+//    }
+//    
+//    module arms() {
+//        block([d_rim, w_arm, h_hub], center=ABOVE, rank=5);  
+//        block([w_arm, d_rim, h_hub], center=ABOVE, rank=5); 
+//    }
+//    
+//    module hub() {
+//        difference() {
+//            block([2*offset_hub, 2*offset_hub, h_hub], center=ABOVE);
+//            hub_clearance();
+//        }
+//    }
+//    
+//    
+//    module hub_clearance() {
+//        center_reflect([0, 1, 0])
+//            center_reflect([1, 0, 0]) 
+//                translate([offset_hub, offset_hub, 0]) can(d=d_hub, h=5, fa=fa_shape);
+//    }
     
 }
 
