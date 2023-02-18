@@ -124,205 +124,119 @@ module radial_stall_limiter() {
     // Allow the servo to rotate a bit after the mechanism hits a hard stop,
     // without the motor stalling, by having the mechanism flex a bit.
     // Ideally, before the hard stop is hit, there will be little
-    // flex.  
-    
-    d_shaft = 5;
-    d_rim = 22;
-    h_hub = 5;
-    w_hub = 5;
-    
-    d_hub_clearance = w_hub + 2;
-
-    clearance = 0.5;
-    allowance = 0.5;
-    
-    h_pintle_hub = w_hub/4 - allowance/2;
-    h_pintle_extension = 4;
-    
-    dy_spring = -(w_hub/2 + h_pintle_extension);
-    
-    d_hub = 2 * d_shaft;
-    range_of_motion = [70, 90];// [180-gap_angle + flex_angle/2, 60];
+    // flex.
+    dz_shaft_engagement = 2; 
+    strength = 1;
+    d_shaft_hub = 8;
+    h_shaft_hub = dz_shaft_engagement + strength;
+    d_rim = 24;
+    clearance = 1;
+    h_servo_bottom = h_shaft_hub + clearance;
+    dy_servo_bottom_inner = d_shaft_hub/2  + clearance;
+    d_servo_hub_inner = 2 * dy_servo_bottom_inner;
+    d_servo_hub = d_servo_hub_inner + strength;
+    h_spring = 1;
+    allowance = 0.4;
     horn_thickness = 2;
-    r_1_spring = 8;
-    r_2_spring_back = 4.5;
-    r_2_spring_front = 7.5;
-    sectors = 8;
-    w_spring = 1;
     
-    translate([0, 0, 25]) hole_through("M3");
+    spring();
+    bottom_hub();
+    servo_wiper();
+    shaft_hub();
+    servo_hub();
     
-    //color("PaleGreen") 
-    oriented_gudgeon();
-    color("LightSteelBlue") oriented_pintle();
-    color("PaleGreen")  spring();
-    * color("LightCyan") supported_hub();
-    
-
-    
-
-    
-    module spring_clearance(
-            r_1, r_2, sectors, sectors_in_circle=8, allowance=0, h=infinity, center=0) {
-        da = (360/sectors_in_circle)/4;
-        module sector() {
-            function d_at_r(r) = (da / 360) * 2 * PI * r - allowance;
-            hull() {
-                translate([r_1, 0, 0]) can(d=d_at_r(r_1), h=h, center=center, rank=20);
-                can(d=0.1, h=h, center=center, rank=10);
-            }
-            r_big = r_1*2;
-            rotate([0, 0, 2* da]) {
-                hull() {
-                    translate([r_2, 0, 0]) can(d=d_at_r(r_2), h=h, center=center, rank=20);
-                    translate([r_big, 0, 0]) can(d=d_at_r(r_big), h=h, center=center, rank=20);
-                }
-            }
-        }
-        rotate([0, 0, spring_offset_angle]) {
-            for (i = [0 : 1 : sectors-1]) {
-                a = i * (360/sectors_in_circle);
-                rotate([0, 0, a]) sector();
-            }
-        } 
+    module servo_hub() {
+        dz = h_servo_bottom + horn_thickness;
+        translate([0, 0, dz]) bare_hub(horn_thickness);
     }
-    
-    
     
     module spring() {
-        dy = -h_hub/2;
-        d_out = d_rim - 2;
-        hollow = w_hub + 2;
-        
-        dx_outer = d_rim/2 - 1;
-        dx_inner = h_hub/2 + 1;
-        dx_circle = dx_outer - 2.5;
-        
-        x_inner = dx_outer - dx_inner;
-
-        
-        x_cut = dx_circle;
-        dx_cut = x_cut/2;
-        da_cut = 15;
-        
-        module blank() {
-            x = (d_out - x_inner)/2;
-            y = w_spring;
-            dy = -w_hub/2;
-            dx = dx_inner; //x_inner;
-            rotate_extrude(angle = spring_coverage_angle) {
-                translate([dx_inner, dy_spring, 0]) square(size = [x, y], center = false);
+        d_inner = d_servo_hub+clearance;
+        d_outer = d_rim-strength-clearance;
+        module inner(a) {
+            rotate([0, 0, a])
+                translate([d_inner/2, 0 , 0]) 
+                    can(d=2*allowance, h=h_spring, center=ABOVE+FRONT, fa=fa_shape);
+        }
+        module outer(a) {
+            rotate([0, 0, a])
+                translate([d_outer/2, 0 , 0]) 
+                    can(d=2*allowance, h=h_spring, center=ABOVE+BEHIND, fa=fa_shape);
+        }  
+        da = 30;
+        for (a = [0 : da : 360]) {
+            hull() {
+                inner(a);
+                outer(a);
+            }
+            hull() {
+                outer(a);
+                outer(a + da/2); 
+            }
+            hull() {
+                outer(a + da/2);
+                inner(a + da/2); 
+            }
+            hull() {
+                inner(a + da/2);  
+                inner(a + da); 
             }
         }
-
-        difference() {
-            blank();
-            spring_clearance(
-                r_1_spring, 
-                r_2_spring_back, 
-                sectors=sectors, 
-                sectors_in_circle=sectors);
-        }
-
-    } 
-
-    module oriented_pintle() {
-        rotate([90, 0, 0]) {
-            pintle(
-                h=h_hub, 
-                w=w_hub, 
-                l=-1, 
-                al=allowance, 
-                range_of_motion=range_of_motion, 
-                pin="permanent pin",
-                fa=fa_bearing);
-        }
-        // Extend pintle to give thickness to to attach to axle
-        # translate([0, 0, -w_hub/2]) can(d=h_hub, h=h_pintle_extension, center=BELOW);
-
-        
-        // Attach spring to pintle
-        y = d_rim/2-1;
-        z = h_pintle_hub;
-        dz = - w_hub/2;
-        color("red") rotate([0, 0, 208]) translate([0, 0, dz]) block([1.5, y, z], center=ABOVE+RIGHT); 
     }
     
-    
-    
-    module oriented_gudgeon() {
-        
-        difference() {
-            rotate([90, 0, 180]) {      
-                gudgeon(
-                    h=h_hub, 
-                    w=w_hub, 
-                    l=d_rim/2, 
-                    al=allowance, 
-                    range_of_motion=range_of_motion, 
-                    pin="permanent pin",
-                    fa=fa_bearing);
-            }
-            translate([0, 0, -h_hub/2]) {
-                spring_clearance(
-                    r_1_spring, 
-                    r_2_spring_back, 
-                    sectors=1, 
-                    sectors_in_circle=sectors,
-                    h=h_hub/4, 
-                    center=ABOVE);
-            }
-            // Cut the overlapping spring free from the spring
-            dz_snip = -h_hub/4- allowance/2;
-            translate([0, h_hub/2, dz_snip]) 
-                block([6.5, 1.5, allowance], center=ABOVE+LEFT+FRONT, rank=10);
-        }
-        
-            
-    }
-    
-    module supported_hub() {
-        // Embed the hub in the gudgeon
-        dz_hub = horn_thickness + allowance; //h_hub/4 + horn_thickness+ allowance/2;
-        translate([0, 0, dz_hub]) bare_hub(horn_thickness);
-        // fill in the hole for access to servo screw
-        // dz_filler = h_hub/4 + allowance/2;
-        //translate([0, 0, dz_filler]) can(d=10, h=1, center=ABOVE);
-        // Support the rim
-        rim_thickness = 1;
-        rotate([0, 0, 11.1]) {
-            rotate_extrude(angle = 360) {
-                translate([d_rim/2, -h_hub/2, 0]) square(size = [rim_thickness, h_hub], center = false);
-            }
-        }
-        //hub_support_within_spring();
-    }
-        
-    module raw_hub_support_within_spring() {
-        intersection() {
-            can(d=d_rim, hollow=d_hub_clearance+3, h=h_hub);
-            spring_clearance(r_1_spring, r_2_spring_back, sectors=sectors, allowance=allowance);
-        }
-    }
-        
-    module hub_support_within_spring() {
+    module bottom_hub() {
+        color("green")
         render() difference() {
-            raw_hub_support_within_spring();
-            // Remove inteference with gudgeon:
-            block([d_rim/2, 2*w_hub, infinity], center=FRONT);
-            // binding with front part of spring
-            translate([1, 0, 0]) block([4, 14, infinity], center=FRONT);
+            union() {
+                can(
+                    d=d_servo_hub, 
+                    h=h_servo_bottom, 
+                    hollow=d_servo_hub_inner, 
+                    center=ABOVE,
+                    rank=8);
+                can(
+                    d=d_rim, 
+                    h=h_servo_bottom, 
+                    hollow=d_rim-strength, 
+                    center=ABOVE,
+                    rank=4);
+            }
+            block([d_rim, strength + 2 * clearance, h_servo_bottom], center=ABOVE, rank=10);
         }
-        
+    }
+    
+    module servo_wiper() {
+        x = strength;
+        y = d_rim/2 - d_servo_hub_inner/2; 
+        z = h_servo_bottom;
+        dy = d_servo_hub_inner/2;
+        color("blue") 
+            center_reflect([0, 1, 0]) {
+                translate([0, dy, 0]) block([x, y, z], center=ABOVE+RIGHT);
+            }
+   } 
+    
+    module shaft_hub() {
+        difference() {
+            union() {
+                can(d=d_shaft_hub, h=h_shaft_hub, center=ABOVE);
+                block([d_rim, strength, h_shaft_hub], center=ABOVE);
+            }
+            shaft_clearance();
+        }
     }
     
     
-    module top_of_gudgeon_clearance() {
-        dz = h_hub/4 - allowance/2;
-        translate([0, 0, dz]) {
-                block([infinity, infinity, infinity], center=ABOVE, rank=-5);
-        }
-    }  
+    module shaft_clearance() {
+        translate([0, 0, 25]) hole_through("M3");
+        translate([0, 0, dz_shaft_engagement]) nutcatch_parallel("M3", clh=4);
+        d_shaft = 5;
+        can(d=d_shaft, h=20, center=BELOW);
+    }
+    
+    
+
+
 }
 
 
