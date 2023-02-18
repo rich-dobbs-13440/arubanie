@@ -39,13 +39,13 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 
 /* [Show] */
 
-show_default = true;
+show_default = false;
 show_with_servo = false;
 show_with_back = false;
 show_translation_test = false;
 show_mount_to_axle = false;
-
 show_single_horn = false;
+show_stall_limiter = true;
 
 /* [Mount to axle example] */
 angle = 0; // [-180: 5: +180]
@@ -99,7 +99,7 @@ if (show_mount_to_axle) {
 module end_of_customization() {}
 
 
-servo_size = [15.45, 23.54, 11.73];
+
 
 
 
@@ -110,6 +110,87 @@ if (show_single_horn) {
 //    single_horn("arm nutcatch", 0.4);
     single_horn_long("arm nutcatch_clearance");
 }
+
+
+if (show_stall_limiter) {
+    radial_stall_limiter();
+}
+
+module radial_stall_limiter() {
+    // Allow the servo to rotate a bit after the mechanism hits a hard stop,
+    // without the motor stalling, by having the mechanism flex a bit.
+    // Ideally, before the hard stop is hit, there will be little
+    // flex.  
+    
+    d_shaft = 5;
+    d_rim = 20;
+    h_hub = 1;
+    w_arm = 1;
+
+    
+    
+    d_hub = 2 * d_shaft;
+    offset_hub = w_arm/2 + d_hub/2;
+    
+    hole_side();
+    
+    module hole_side() {
+        hub();
+        difference() {
+            arms();
+            pins();
+        }
+        holes();
+        
+    }
+    
+    module pin_side() {
+        hub();
+        arms();
+        pins();
+    }
+    
+    module holes() {
+        d = 2 * w_arm;
+        hollow = w_arm; // No clearance, will it work for press fit???
+        center_reflect([1, 0, 0]) 
+            translate([d_rim/2, 0, 0]) 
+                can(d=d, h=h_hub, hollow=hollow, center=ABOVE, fa=fa_bearing); 
+        center_reflect([0, 1, 0]) 
+            translate([0, d_rim/2, 0]) 
+                can(d=d, h=h_hub, hollow=hollow, center=ABOVE, fa=fa_bearing);
+    }
+    
+    module pins() {
+        center_reflect([1, 0, 0]) 
+            translate([d_rim/2, 0, 0]) 
+                can(d=w_arm, h=2*h_hub, center=ABOVE, fa=fa_bearing, rank=10); 
+        center_reflect([0, 1, 0]) 
+            translate([0, d_rim/2, 0]) 
+                can(d=w_arm, h=2*h_hub, center=ABOVE, fa=fa_bearing, rank=10);  
+    }
+    
+    module arms() {
+        block([d_rim, w_arm, h_hub], center=ABOVE, rank=5);  
+        block([w_arm, d_rim, h_hub], center=ABOVE, rank=5); 
+    }
+    
+    module hub() {
+        difference() {
+            block([2*offset_hub, 2*offset_hub, h_hub], center=ABOVE);
+            hub_clearance();
+        }
+    }
+    
+    
+    module hub_clearance() {
+        center_reflect([0, 1, 0])
+            center_reflect([1, 0, 0]) 
+                translate([offset_hub, offset_hub, 0]) can(d=d_hub, h=5, fa=fa_shape);
+    }
+    
+}
+
 
 module single_horn_long(item, allowance=0.4) {
     if (item == "clearance") {
@@ -211,7 +292,7 @@ module single_horn_long(item, allowance=0.4) {
     
 }
 
-
+servo_size = [15.45, 23.54, 11.73];
 servo_lip = 4;
 pilot_diameter = 2;
 screw_length = 8;
