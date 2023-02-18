@@ -49,7 +49,7 @@ infinity = 1000;
 
 
 /* [Show] */
-show_example = true;
+show_ = true;
 show_gudgeon = false;
 show_pintle = false;
 show_removable_pin_clearance = false;
@@ -60,26 +60,104 @@ show_pintle_external_nut_catch = false;
 /* [Example] */
 
 // Height of connecting linkages
-h_example = 8; // [4 : 10]
+h_ = 8; // [4 : 10]
 //Width of the connecting linkages
-w_example = 5; // [4 : 10]           
+w_= 5; // [4 : 10]           
 // Pintle length measured from the pivot center.
-lp_example = 10; // [0 : 20]          
+lp_ = 10; // [-1 : 20]          
 // Gudgeon length measured from the pivot center.
-lg_example = 20; // [0 : 20]              
+lg_ = 20; // [-1 : 20]              
 // Size of gaps in the part for printability.
-allowance_example = 0.4; // [0.4 : 0.05 : 0.6] 
+allowance_ = 0.4; // [0.4 : 0.05 : 0.6] 
 // Range of motion above and below the horizontal plain.
-top_range_example = 135; //[60 : 5: 175] 
-bottom_range_example = 135; //[60 : 5: 175]  
-permanent_pin_example = true;
+top_range_ = 135; //[60 : 5: 175] 
+bottom_range_ = 135; //[60 : 5: 175]  
+pin_ = "permanent pin";
 // Angle for positioning the pintle.
-angle_example = 0; // [-180 : 5 : +180]  
+angle_ = 0; // [-180 : 5 : +180]  
 
-catch_strength_l = w_example/2;
+catch_strength_l = w_/2;
 
 
 module end_of_customization() {}
+
+// ------------------------ Start of demonstration -------------------------------
+if (show_removable_pin_clearance) {
+    removable_pin_clearance(
+        h_, 
+        w_, 
+        lp_, 
+        allowance_, 
+        catch_strength_l, 
+        catch_max_l=5);
+}
+
+
+if (show_) {
+    small_pivot_vertical_rotation(
+        h_, 
+        w_, 
+        lp_, 
+        lg_, 
+        allowance_, 
+        range=[top_range_, bottom_range_], 
+        angle=angle_);    
+}
+
+
+if (show_gudgeon) {
+    color("ForestGreen", alpha=0.5) 
+        gudgeon(
+            h_, 
+            w_, 
+            lg_, 
+            allowance_, 
+            [top_range_, bottom_range_]);
+}
+
+
+if (show_pintle) {
+    color("CornflowerBlue", alpha=0.5) 
+        pintle(
+            h_, 
+            w_, 
+            lp_, 
+            allowance_, 
+            [top_range_, bottom_range_],
+            pin=pin_);    
+}
+
+
+if (show_pintle_external_nut_catch) {
+    w = 6;
+    h = 8;
+    difference() {
+        translate([0, w/2, 0]) crank([8, w/2, h], center=RIGHT);
+        pintle(
+            h=h, 
+            w=w, 
+            l=20,
+            al=0.4,
+            pin="M3 captured nut",
+            just_pin_clearance=true); 
+    } 
+    pintle(
+        h=h, 
+        w=w, 
+        l=16,
+        al=0.4,
+        pin="M3 captured nut"); 
+    
+    gudgeon(
+        h=h, 
+        w=w, 
+        l=16,
+        al=0.4,
+        pin="M3 captured nut"); 
+}
+
+// ------------------------ Start of Implementation -------------------------------
+
 
 function _nominal_diameter(h, w, l, al) = h/2;
 function _pin_od(h, w, l, al)           = _nominal_diameter(h, w, l, al) - al/2;
@@ -131,6 +209,23 @@ module build_pintle(
         pin,
         fa) {
             
+    module blank(size, hole=-1) {
+        if (l >=0) {
+            if (hole > 0) {
+                crank(size, hole=hole);
+            }
+            else {
+                crank(size);
+            }
+        } else {
+            if (hole > 0) {
+                rod(d=h, l=size.y, hollow=hole, center=SIDEWISE);
+            } else {
+                rod(d=h, l=size.y, center=SIDEWISE);
+            }
+        }
+    }
+            
     leaf_width = _leaf_width(h, w, l, al);
     leaf_disp = _leaf_disp(h, w, l, al);
     pin_od = _pin_od(h, w, l, al);
@@ -144,10 +239,10 @@ module build_pintle(
     for (disp_sign = [-1, 1]) {
     translate([0, disp_sign*(leaf_disp + leaf_width/2) , 0]) {
             if (pin == "permanent pin") {
-                crank(size);
+                blank(size);
             } else if (pin == "M3 captured nut") {
                 difference() {
-                    crank(size);
+                    blank(size);
                     translate([0, -w/2, 0]) rotate([90, 0, 0]) hole_through(name = "M3", l=w); 
                         // name of screw family (i.e. M4, M5, etc)
 //                        l    = 50.0,  // length of main bolt
@@ -156,7 +251,7 @@ module build_pintle(
 //                        hcld =  1.0)  // dia clearances for the head
                 }
             } else {
-                crank(size, hole=pin_od+al/2);
+                blank(size, hole=pin_od+al/2);
             }
         }
     }
@@ -259,85 +354,3 @@ module small_pivot_vertical_rotation(
     gudgeon(h, w, lg, al, range);
 }
 
-
-if (show_removable_pin_clearance) {
-    removable_pin_clearance(
-        h_example, 
-        w_example, 
-        lp_example, 
-        allowance_example, 
-        catch_strength_l, 
-        catch_max_l=5);
-}
-
-
-if (show_example) {
-    small_pivot_vertical_rotation(
-        h_example, 
-        w_example, 
-        lp_example, 
-        lg_example, 
-        allowance_example, 
-        range=[top_range_example, bottom_range_example], 
-        angle=angle_example);    
-}
-
-
-if (show_gudgeon) {
-    color("ForestGreen", alpha=0.5) 
-        gudgeon(
-            h_example, 
-            w_example, 
-            lg_example, 
-            allowance_example, 
-            [top_range_example, bottom_range_example]);
-}
-
-
-if (show_pintle) {
-    color("CornflowerBlue", alpha=0.5) 
-        pintle(
-            h_example, 
-            w_example, 
-            lp_example, 
-            allowance_example, 
-            [top_range_example, bottom_range_example],
-            permanent_pin=permanent_pin_example);    
-}
-
-
-if (show_pintle_external_nut_catch) {
-    w = 6;
-    h = 8;
-    difference() {
-        translate([0, w/2, 0]) crank([8, w/2, h], center=RIGHT);
-        pintle(
-            h=h, 
-            w=w, 
-            l=20,
-            al=0.4,
-            pin="M3 captured nut",
-            just_pin_clearance=true); 
-    } 
-    pintle(
-        h=h, 
-        w=w, 
-        l=16,
-        al=0.4,
-        pin="M3 captured nut"); 
-    
-    gudgeon(
-        h=h, 
-        w=w, 
-        l=16,
-        al=0.4,
-        pin="M3 captured nut"); 
-}
-
-
-//    gudgeon(
-//        //h=8, 
-//        w=8,
-//        l=8, 
-//        al=0.4,
-//        pin="M3 captured nut"); 
