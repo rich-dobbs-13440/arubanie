@@ -35,20 +35,14 @@ show_air_brush = true;
 
 air_brush_alpha = 0.10; // [0:0.05:1]
 
-//barrel_allowance = 0.2;
 barrel_clearance = 0.3;
-
 wall_thickness = 2;
-
-barrel_clip_inside_diameter = master_air_brush("barrel diameter") + barrel_clearance;
-    
+barrel_clip_inside_diameter = master_air_brush("barrel diameter") + barrel_clearance; 
 barrel_clip_outside_diameter = barrel_clip_inside_diameter + 2 * wall_thickness;
 
 
 /* [Air Barrel Clip Design] */
 show_air_barrel_clip = true;
-
-//air_barrel_allowance = 0.3;
 air_barrel_clearance = 0.7;
 
 air_barrel_clip_color = "PaleGreen"; // [DodgerBlue, PaleGreen, Coral]
@@ -168,10 +162,7 @@ module paint_pivot_pintle_bridge(use_crank=false) {
         paint_pivot_pin_clearance();
         paint_pivot_pintle_bridge_mounting_nut_clearance();
     }
-    //paint_pivot_pintle_bridge_mounting_nut_clearance();
 }
-
-
 
 
 module paint_pivot_pintle_bridge_mounting_nut_clearance() {
@@ -183,6 +174,7 @@ module paint_pivot_pintle_bridge_mounting_nut_clearance() {
         translate([dx, dy, 25]) hole_through(name = "M3");
     }
 }
+
 
 module paint_pivot_pintles() {    
     center_reflect([0, 1, 0]) {
@@ -200,14 +192,11 @@ module paint_pivot_pintle_yoke() {
 
 
 
-
 module air_brush_trigger_on_top(disp_air_brush_relative_paint_pivot_cl, trigger_angle) {
     translate(disp_air_brush_relative_paint_pivot_cl) {
         rotate([90, 0, 0]) air_brush(trigger_angle, alpha=air_brush_alpha);
     }
 }
-
-//translate(disp_air_brush_relative_paint_pivot_cl) {
 
 
 module show_pintle_assembly(
@@ -215,10 +204,7 @@ module show_pintle_assembly(
         viewing_orientation,
         trigger_angle) {
 
-             
-
-    rotate(viewing_orientation) {
-            
+    rotate(viewing_orientation) {     
         if (show_air_barrel_clip) {
             color(air_barrel_clip_color , alpha=air_barrel_clip_alpha) {
                 air_barrel_clip();
@@ -231,8 +217,6 @@ module show_pintle_assembly(
             }
         }    
 
-
-
         if (show_air_brush && !orient_for_build) {
             air_brush_trigger_on_top(
                     disp_air_brush_relative_paint_pivot_cl, 
@@ -240,7 +224,6 @@ module show_pintle_assembly(
         }
     }
 }
-
 
 
 show_pintle_assembly(

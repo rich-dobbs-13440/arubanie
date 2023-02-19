@@ -1,5 +1,6 @@
 /* 
 
+9g micro servo mounting.
 
 Usage:
 
@@ -41,13 +42,13 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 
 /* [Show] */
 
-show_default = false;
+show_default = true;
 show_with_servo = false;
 show_with_back = false;
 show_translation_test = false;
 show_mount_to_axle = false;
 show_single_horn = false;
-show_stall_limiter = true;
+show_stall_limiter = false;
 
 /* [Mount to axle example] */
 angle_ = 0; // [-180: 5: +180]
@@ -70,31 +71,31 @@ end_of_customization() {}
 //------------------------------ Start of Demonstration ----------------------------
 
 if (show_default) {
-    sub_micro_servo_mounting();
+    sub_micro_servo__mounting();
     
 }
 
 if (show_with_servo) {
-    sub_micro_servo_mounting() {
+    sub_micro_servo__mounting() {
         9g_motor_centered_for_mounting();
     }
 }
 
 if (show_with_back) {
-    sub_micro_servo_mounting(size=[18, 32, 18]);
+    sub_micro_servo__mounting(size=[18, 32, 18]);
 }
 
 
 if (show_translation_test) {
-    color("red") sub_micro_servo_mounting(center=ABOVE);
-    color("blue") sub_micro_servo_mounting(omit_top=false, center=BELOW);
-    color("green") sub_micro_servo_mounting(center=LEFT);
-    color("yellow") sub_micro_servo_mounting(center=RIGHT);
+    color("red") sub_micro_servo__mounting(center=ABOVE);
+    color("blue") sub_micro_servo__mounting(omit_top=false, center=BELOW);
+    color("green") sub_micro_servo__mounting(center=LEFT);
+    color("yellow") sub_micro_servo__mounting(center=RIGHT);
 }
 
 
 if (show_mount_to_axle) {
-    sub_micro_servo_mount_to_axle(
+    sub_micro_servo__mount_to_axle(
         axle_diameter=axle_diameter_, 
         axle_height= axle_height_,
         wall_height=wall_height_,
@@ -106,21 +107,33 @@ if (show_mount_to_axle) {
 }
 
 if (show_single_horn) {
-    //single_horn("clearance", 0.4);
-    //single_horn("arm blank", 0.4);
-//    single_horn("arm holder", 0.4);
-//    single_horn("arm nutcatch", 0.4);
-    single_horn_long("arm nutcatch_clearance");
+    //sub_micro_servo__single_horn_long("clearance", 0.4);
+    //sub_micro_servo__single_horn_long("arm blank", 0.4);
+    //sub_micro_servo__single_horn_long("arm holder", 0.4);
+    //sub_micro_servo__single_horn_long("arm nutcatch", 0.4);
+    sub_micro_servo__single_horn_long("arm nutcatch_clearance");
 }
 
 
 if (show_stall_limiter) {
-    radial_stall_limiter();
+    sub_micro_servo__radial_stall_limiter();
 }
 
 //-------------------------------- Start of Implementation -------------------------
 
-module radial_stall_limiter() {
+module sub_micro_servo__pilot_hole() {
+    pilot_diameter = 2;
+    screw_length = 8;
+    screw_length_allowance = 2;
+    l = screw_length+screw_length_allowance;
+    d = pilot_diameter;
+    rod(d=d, l=l, center=FRONT, rank=2, fa=4*fa_shape);
+}
+
+module sub_micro_servo__radial_stall_limiter() {
+    // WARNING - This is a work in progress.  Doesn't do what we want at this time.
+
+
     // Allow the servo to rotate a bit after the mechanism hits a hard stop,
     // without the motor stalling, by having the mechanism flex a bit.
     // Ideally, before the hard stop is hit, there will be little
@@ -237,7 +250,7 @@ module radial_stall_limiter() {
 }
 
 
-module single_horn_long(item, allowance=0.4) {
+module sub_micro_servo__single_horn_long(item, allowance=0.4) {
     if (item == "clearance") {
         single_horn_clearance(allowance, allowance);
     } else if (item == "arm blank") {
@@ -337,87 +350,21 @@ module single_horn_long(item, allowance=0.4) {
     
 }
 
-servo_size = [15.45, 23.54, 11.73];
-servo_lip = 4;
-pilot_diameter = 2;
-screw_length = 8;
-screw_length_allowance = 2;
-
-module bare_pilot_hole() {
-    l = screw_length+screw_length_allowance;
-    d = pilot_diameter;
-    rod(d=d, l=l, center=FRONT, rank=2, fa=4*fa_shape);
-}  
-
-module pilot_hole(screw_offset, screw_block) {
-    t = [
-        -(screw_block.x/2), 
-        -screw_block.y/2 + screw_offset, 
-        0
-    ];
-    translate(t) bare_pilot_hole(); 
-}
 
 
-module drill_pilot_hole(screw_offset, screw_block) {
-    difference() {
-        children();
-        pilot_hole(screw_offset, screw_block);
-    }
-}
+
+  
 
 
-module back_wall(extent, servo_clearance, remainder) {
-    back_wall = [
-        remainder.x, 
-        extent.y, 
-        min(extent.z, servo_clearance.z)];
-    dx_back_wall = servo_clearance.x/2;
-   
-    servo_connector_window = [4, 7, 9];
-    dy_window = servo_clearance.y/2; 
-    
-    translate([dx_back_wall, 0, 0])
-        render() difference() {
-            cube(back_wall, center=true);
-            translate([0, dy_window, 0]) cube(servo_connector_window, center=true);
-            translate([0, -dy_window, 0]) cube(servo_connector_window, center=true);
-        } 
-}
-
-module screw_blocks(screw_offset, extent, servo_clearance, remainder) {
-    screw_block = [
-        min(extent.x, servo_clearance.x), 
-        remainder.y/2, 
-        min(extent.z, servo_clearance.z)];
-    dx_screw_block = -(extent.x - screw_block.x)/2;
-    dy_screw_block = servo_clearance.y/2 + screw_block.y/2;
-    
-    center_reflect([0,1,0]) 
-        translate([dx_screw_block, dy_screw_block, 0]) 
-            drill_pilot_hole(screw_offset, screw_block) 
-                cube(screw_block, center=true);  
-}
-
-module base_and_top(extent, servo_clearance, remainder, omit_top) {
-    base = [
-        extent.x, 
-        extent.y,
-        remainder.z/2
-    ];
-    dz_base = -servo_clearance.z/2- base.z/2;
-    
-    translate([0, 0, dz_base]) 
-    cube(base, center=true);
-
-    if (!omit_top) {
-        translate([0, 0, -dz_base]) 
-            cube(base, center=true);
-    }
-}
 
 
-module sub_micro_servo_mounting(
+
+
+
+
+
+
+module sub_micro_servo__mounting(
     size=undef, 
     screw_offset=1.5, 
     clearance = [0.5, 1, 1],
@@ -427,6 +374,10 @@ module sub_micro_servo_mounting(
     include_children=true) {
         
     extent = is_undef(size) ? [16, 32, 18] : size;
+
+    servo_size = [15.45, 23.54, 11.73];
+    servo_lip = 4;
+
     
     servo_clearance = servo_size + clearance + clearance;
     remainder = extent - servo_clearance;
@@ -446,13 +397,78 @@ module sub_micro_servo_mounting(
         }
     } 
     
+    module base_and_top(extent, servo_clearance, remainder, omit_top) {
+        base = [
+            extent.x, 
+            extent.y,
+            remainder.z/2
+        ];
+        dz_base = -servo_clearance.z/2- base.z/2;
+        
+        translate([0, 0, dz_base]) 
+        cube(base, center=true);
+
+        if (!omit_top) {
+            translate([0, 0, -dz_base]) 
+                cube(base, center=true);
+        }
+    }
+
+    module screw_blocks(screw_offset, extent, servo_clearance, remainder) {
+        screw_block = [
+            min(extent.x, servo_clearance.x), 
+            remainder.y/2, 
+            min(extent.z, servo_clearance.z)];
+        dx_screw_block = -(extent.x - screw_block.x)/2;
+        dy_screw_block = servo_clearance.y/2 + screw_block.y/2;
+        
+        center_reflect([0,1,0]) 
+            translate([dx_screw_block, dy_screw_block, 0]) 
+                drill_pilot_hole(screw_offset, screw_block) 
+                    cube(screw_block, center=true);  
+    }
+
+    module back_wall(extent, servo_clearance, remainder) {
+        back_wall = [
+            remainder.x, 
+            extent.y, 
+            min(extent.z, servo_clearance.z)];
+        dx_back_wall = servo_clearance.x/2;
     
+        servo_connector_window = [4, 7, 9];
+        dy_window = servo_clearance.y/2; 
+        
+        translate([dx_back_wall, 0, 0])
+            render() difference() {
+                cube(back_wall, center=true);
+                translate([0, dy_window, 0]) cube(servo_connector_window, center=true);
+                translate([0, -dy_window, 0]) cube(servo_connector_window, center=true);
+            } 
+    }
+
+
+    module pilot_hole(screw_offset, screw_block) {
+        t = [
+            -(screw_block.x/2), 
+            -screw_block.y/2 + screw_offset, 
+            0
+        ];
+        translate(t) sub_micro_servo__pilot_hole(); 
+    }
+
+
+    module drill_pilot_hole(screw_offset, screw_block) {
+        difference() {
+            children();
+            pilot_hole(screw_offset, screw_block);
+        }
+    }
     
 }
 
 
 
-module sub_micro_servo_mount_to_axle(
+module sub_micro_servo__mount_to_axle(
         axle_diameter=4, 
         axle_height= 10,
         wall_height=6,
@@ -518,17 +534,7 @@ module sub_micro_servo_mount_to_axle(
     }
     
     module horn_support() {
-//        center_reflect([1, 0, 0]) {
-//            translate([0.8, 0, -horn_radius+ radial_allowance]) {
-//                intersection() {
-//                    rotate([-45, 0, 0]) {
-//                        block([1.8, axle_height, axle_height], 
-//                        center=BELOW+RIGHT+FRONT);
-//                    }
-//                    block([2*horn_thickness, 10, axle_height]);
-//                }
-//            }
-//        }
+
         dz = axle_height - horn_radius + radial_allowance;
         translate([0, 0, -axle_height]) {
             difference() {
@@ -583,7 +589,7 @@ module sub_micro_servo_mount_to_axle(
         screw_offset = 2;
         difference() {
             block(size_pillar, center=BEHIND+ABOVE+RIGHT);
-            translate([1, screw_offset, axle_height]) rotate([0, 180, 0]) bare_pilot_hole();
+            translate([1, screw_offset, axle_height]) rotate([0, 180, 0]) sub_micro_servo__pilot_hole();
         }
     }
 
