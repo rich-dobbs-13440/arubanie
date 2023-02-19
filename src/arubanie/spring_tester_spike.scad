@@ -80,7 +80,8 @@ module plate_with_screw_holes() {
 }
 
 
-module spring_for_testing(length, width, thickness, arch_diameter) {
+module spring_for_testing(
+        length, width, thickness, arch_diameter, show_connection_block=true) {
 
     l = length;
     w = thickness;
@@ -92,15 +93,18 @@ module spring_for_testing(length, width, thickness, arch_diameter) {
     z = h;
     cs = spring_connection_size;
     connection_block = [x+3*cs, cs, cs];
-    block(connection_block, center=RIGHT+ABOVE);
+    
     render() difference() {
         union() {
             block([x, y, z], center=RIGHT+ABOVE);
             translate([0, l, 0]) can(d=od, hollow=id, h=h, center=ABOVE);
+            if (show_connection_block) {
+                block(connection_block, center=RIGHT+ABOVE);
+            }
         }
         hull() {
-            translate([0, l, 0]) can(d=id, h=10);
-            block([id, l, 10], center=RIGHT, rank=10);
+            translate([0, l, 0]) can(d=id, h=infinity);
+            block([id, l, infinity], center=RIGHT, rank=10);
         }
     }
 }
