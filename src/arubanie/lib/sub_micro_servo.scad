@@ -126,7 +126,7 @@ module radial_stall_limiter() {
     // Ideally, before the hard stop is hit, there will be little
     // flex.
     dz_shaft_engagement = 2; 
-    strength = 1;
+    strength = 1;+
     d_shaft_hub = 8;
     h_shaft_hub = dz_shaft_engagement + strength;
     d_rim = 24;
@@ -135,9 +135,10 @@ module radial_stall_limiter() {
     dy_servo_bottom_inner = d_shaft_hub/2  + clearance;
     d_servo_hub_inner = 2 * dy_servo_bottom_inner;
     d_servo_hub = d_servo_hub_inner + strength;
-    h_spring = 1;
+    h_spring = 0.75;
     allowance = 0.4;
     horn_thickness = 2;
+    y_rotation_gap = 7;
     
     spring();
     bottom_hub();
@@ -201,7 +202,7 @@ module radial_stall_limiter() {
                     center=ABOVE,
                     rank=4);
             }
-            block([d_rim, strength + 2 * clearance, h_servo_bottom], center=ABOVE, rank=10);
+            block([d_rim, y_rotation_gap, h_servo_bottom], center=ABOVE, rank=10);
         }
     }
     
@@ -233,10 +234,6 @@ module radial_stall_limiter() {
         d_shaft = 5;
         can(d=d_shaft, h=20, center=BELOW);
     }
-    
-    
-
-
 }
 
 
