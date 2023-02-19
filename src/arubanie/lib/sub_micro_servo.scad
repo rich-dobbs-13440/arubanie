@@ -126,7 +126,7 @@ module radial_stall_limiter() {
     // Ideally, before the hard stop is hit, there will be little
     // flex.
     dz_shaft_engagement = 2; 
-    strength = 1;+
+    strength = 1;
     d_shaft_hub = 8;
     h_shaft_hub = dz_shaft_engagement + strength;
     d_rim = 24;

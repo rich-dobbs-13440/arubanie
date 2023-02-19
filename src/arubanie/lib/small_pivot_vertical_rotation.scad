@@ -345,10 +345,6 @@ module gudgeon(
 
 module small_pivot_vertical_rotation(
         h, w, lp, lg, allowance, range=[135, 135], angle=0) {
-    
-
-   
-
     al = allowance;
     rotate([0, angle, 0]) pintle(h, w, lp, al, range);
     gudgeon(h, w, lg, al, range);

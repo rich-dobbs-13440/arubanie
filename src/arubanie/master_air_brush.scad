@@ -20,21 +20,32 @@ include <lib/centerable.scad>
 use <lib/shapes.scad>
 
 /* [Boiler Plate] */
-
-$fa = 15;
-$fs = 2;
-eps = 0.001;
+fa_shape = 10;
+fa_bearing = 1;
 
 infinity = 1000;
 
 /* [Show] */
 
 show_air_brush = true;
+show_simple_clearance = false;
 example_trigger_angle = 0; // [-45: 5: 45]
 show_brace = false;
 barrel_diameter_clearance = 0.75;
+barrel_clearance = 0; // [0:0.1:3]
+air_barrel_clearance = 0; // [0:0.1:3]
 
 module end_of_customization() {}
+
+if (show_air_brush) {
+    air_brush(trigger_angle=example_trigger_angle);
+}
+
+if (show_simple_clearance) {
+    air_brush_simple_clearance(air_barrel_clearance, barrel_clearance);
+}
+
+// ----------------------------------------- Start of implementation ---------------------
 
 
 barrel_diameter = 12.01; 
@@ -104,9 +115,9 @@ module _bucket() {
 
 module _barrel() {
     // Display horizontal zero 
-    h = barrel_length +2*eps;
+    h = barrel_length;
     d = barrel_diameter;
-    translate([-eps, 0, 0]) rotate([0,90,0]) cylinder(h=h, d=d, center=false);
+    rotate([0,90,0]) cylinder(h=h, d=d, center=false);
 }
 
 module _air_hose_barrel() {
@@ -203,12 +214,33 @@ module air_brush(trigger_angle=0, color_value="SlateGray", alpha=1.0) {
     
 }
     
-
-if (show_air_brush) {
-    air_brush(trigger_angle=example_trigger_angle);
+module air_brush_simple_clearance(air_barrel_clearance, barrel_clearance) {
+    
+    assert(is_num(air_barrel_clearance));
+    assert(is_num(barrel_clearance)); 
+    air_id = air_hose_diameter + air_barrel_clearance;  
+    barrel_id = barrel_diameter + barrel_clearance;
+    
+    can(d=air_id, h=80, fa=fa_shape);
+    rod(d=barrel_id, l=120, fa=fa_shape);
+    // The nut at the end of the barrel:
+    d_nut = 11.95+2;
+    l_nut_exc = 8;
+    dx_nut = barrel_back_to_air_hose + barrel_diameter/2;
+    translate([-dx_nut, 0, 0]) rod(d=d_nut, l=l_nut_exc, fa=fa_shape);
+    // A very rough approximation to the brace
+    
+    brace_z = brace_height + barrel_diameter/2 + brace_width;
+    translate([0, 0, -brace_z]) 
+        rod(
+            d=brace_width + air_barrel_clearance, 
+            l=brace_length + air_barrel_clearance, 
+            center=FRONT, 
+            fa=fa_shape);
+    block([
+        brace_length + air_barrel_clearance, 
+        brace_width + air_barrel_clearance, 
+        brace_z], center=BELOW+FRONT);
 }
-
-
-
 
 

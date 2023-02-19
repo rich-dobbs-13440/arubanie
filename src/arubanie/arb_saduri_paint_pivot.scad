@@ -7,11 +7,12 @@ dz_paint_pivot_offset = -3; // [-5:0.05:0]
 paint_pivot_h = 10; 
 paint_pivot_w = 8; 
 paint_pivot_inside_dy = 11; // 16.5/2;
+paint_pivot_screw_dy = 25;
 
 // This controls printablity vs play in the pivot.
 paint_pivot_allowance = 0.4;
 paint_pivot_top_range_of_motion = 140;
-paint_pivot_bottom_range_of_motion = 90;
+paint_pivot_bottom_range_of_motion = 140;
 
 paint_pivot_pin = "M3 captured nut"; // ["M3 captured nut", "permanent pin"]
 

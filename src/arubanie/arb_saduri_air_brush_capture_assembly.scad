@@ -10,8 +10,6 @@ The coordinate system is based center of rotation of the paint pivot.
 include <lib/centerable.scad>
 use <lib/shapes.scad>
 use <lib/small_pivot_vertical_rotation.scad>
-use <lib/sub_micro_servo.scad>
-use <lib/9g_servo.scad>
 use <trigger_holder.scad>
 use <master_air_brush.scad>
 include <arb_saduri_paint_pivot.scad>
@@ -26,26 +24,23 @@ eps = 0.001;
 
 infinity = 1000;
 
-/* [ Example for demonstration] */
-orient_for_build_example = true;
-trigger_angle_example = 0;;
+/* [ Build or Design] */
 
+orient_for_build_example = true;
 
 
 /* [Master Air Brush Design] */
+// Only works if not in build orientation
 show_air_brush = true;
 
 air_brush_alpha = 0.10; // [0:0.05:1]
 
-barrel_allowance = 0.2;
-barrel_clearance = 0.1;
+//barrel_allowance = 0.2;
+barrel_clearance = 0.3;
 
 wall_thickness = 2;
 
-barrel_clip_inside_diameter = 
-    master_air_brush("barrel diameter")
-    + barrel_allowance 
-    + barrel_clearance;
+barrel_clip_inside_diameter = master_air_brush("barrel diameter") + barrel_clearance;
     
 barrel_clip_outside_diameter = barrel_clip_inside_diameter + 2 * wall_thickness;
 
@@ -53,30 +48,24 @@ barrel_clip_outside_diameter = barrel_clip_inside_diameter + 2 * wall_thickness;
 /* [Air Barrel Clip Design] */
 show_air_barrel_clip = true;
 
-air_barrel_allowance = 0.3;
-air_barrel_clearance = 0.4;
+//air_barrel_allowance = 0.3;
+air_barrel_clearance = 0.7;
 
 air_barrel_clip_color = "PaleGreen"; // [DodgerBlue, PaleGreen, Coral]
 air_barrel_clip_alpha = 1; // [0:0.05:1]
 
 
-air_barrel_clip_inside_diameter = 
-    master_air_brush("air barrel diameter")
-    + air_barrel_allowance 
-    + air_barrel_clearance; 
+air_barrel_clip_inside_diameter =  master_air_brush("air barrel diameter") + air_barrel_clearance; 
 
 air_barrel_clip_outside_diameter = 
     air_barrel_clip_inside_diameter + 2 * wall_thickness; 
 
-brace_inside_diameter = master_air_brush("brace width") +
-    + air_barrel_allowance 
-    + air_barrel_clearance;
+brace_inside_diameter = master_air_brush("brace width") + air_barrel_clearance;
     
-brace_length = master_air_brush("brace length")
-    + air_barrel_allowance 
-    + air_barrel_clearance;
+brace_length = master_air_brush("brace length") + air_barrel_clearance;
     
-brace_height = master_air_brush("brace height")
+brace_height = 
+    master_air_brush("brace height")
     + master_air_brush("barrel diameter")/2
     - master_air_brush("brace width") /2;
 
@@ -95,16 +84,9 @@ paint_pintle_alpha = 1; // [0:0.05:1]
 
 
 
-/* [Paint Flow Servo Design] */
-show_paint_flow_servo_mount = true;
-show_paint_flow_servo = false;
+/* [ Example for demonstration] */
 
-size_paint_servo_mount = [10, 32, 36];
-
-paint_flow_servo_color = "MediumTurquoise"; // [DodgerBlue, MediumTurquoise, Coral]
-paint_flow_servo_alpha = 1; // [0:0.05:1]
-
-
+trigger_angle_example = 0;;
 
 module end_of_customization() {}
 
@@ -114,7 +96,7 @@ FOR_BUILD = [180, 0, 0];
 viewing_orientation_example = orient_for_build_example ? FOR_BUILD : FOR_DESIGN;
 
 
-module air_barrel_clip() {
+module air_barrel_clip(include_fillet=false) {
     id = air_barrel_clip_inside_diameter;
     od = air_barrel_clip_outside_diameter;
     h = master_air_brush("bottom length"); 
@@ -123,9 +105,13 @@ module air_barrel_clip() {
         render() difference() {
             translate(disp_air_brush_relative_paint_pivot_cl) { 
                 can(d=od, h=h, hollow=id, center=BELOW, fa=fa_as_arg);
-                block([od/2+eps,od/2+eps,h], center=BELOW+LEFT+BEHIND);  // fillet with servo support
+                if (include_fillet) {
+                    block([od/2+eps,od/2+eps,h], center=BELOW+LEFT+BEHIND);  // fillet with servo support
+                }
             }
-            air_brush_simple_clearance();
+            translate(disp_air_brush_relative_paint_pivot_cl) { 
+                air_brush_simple_clearance(air_barrel_clearance, barrel_clearance);
+            }
             paint_pivot_pin_clearance();
         }
     }
@@ -145,35 +131,58 @@ module pintle_barrel_clip() {
 }
 
 
-module paint_pivot_pintle_bridge() {
-    x = bridge_thickness;
+module paint_pivot_pintle_bridge(use_crank=false) {
+    x = wall_thickness;
     // Make the pintle bridge go inside, so as to not interfere with 
     // rotation stops:
-    y = 2 * paint_pivot_inside_dy + eps;
-    z = barrel_clip_inside_diameter/2 - dz_paint_pivot_offset + wall_thickness;
-    dx = -air_barrel_clip_outside_diameter/2;
+    y = 2 * paint_pivot_inside_dy;
+    z = paint_pivot_h;
+    dx = -paint_pivot_length_pintle; //-air_barrel_clip_outside_diameter/2;
     dz = paint_pivot_h/2;
     
-    x_crank = paint_pivot_length_pintle;
-    y_crank = 2 * paint_pivot_inside_dy + eps;
-    z_crank = paint_pivot_h;
+    module mounting_screw_plate() {
+        x = 10;
+        y = paint_pivot_screw_dy + 10;
+        z = 2*wall_thickness;
+        translate([dx, 0, dz]) block([x, y, z], center=BELOW+BEHIND);
+    } 
     
-
     render() difference() {
         union() {
-            translate([dx, 0, dz]) block([x, y, z], center=BEHIND+BELOW);
-            translate([0, 0, dz]) 
-                crank([x_crank, y_crank, z_crank], center=BELOW, rotation=BEHIND);
-            pintle_barrel_clip(); 
-            
+            translate([dx, 0, dz]) block([x, y, z], center=FRONT+BELOW);
+            translate([0, 0, dz])
+                if (use_crank){
+                    x_crank = paint_pivot_length_pintle;
+                    y_crank = 2 * paint_pivot_inside_dy;
+                    z_crank = paint_pivot_h;
+                    crank([x_crank, y_crank, z_crank], center=BELOW, rotation=BEHIND);
+                } else {
+                    rod(d=paint_pivot_h, l=2 * paint_pivot_inside_dy, center=BELOW+SIDEWISE);
+                }
+            pintle_barrel_clip();
+            mounting_screw_plate(); 
         }
-        air_brush_simple_clearance();
+        translate(disp_air_brush_relative_paint_pivot_cl) { 
+            air_brush_simple_clearance(air_barrel_clearance, barrel_clearance);
+        }
         paint_pivot_pin_clearance();
+        paint_pivot_pintle_bridge_mounting_nut_clearance();
     }
-    
-
+    //paint_pivot_pintle_bridge_mounting_nut_clearance();
 }
 
+
+
+
+module paint_pivot_pintle_bridge_mounting_nut_clearance() {
+    dx = -(paint_pivot_length_pintle + 5);
+    dy = paint_pivot_screw_dy/2;
+    dz = paint_pivot_h/2 - wall_thickness;
+    center_reflect([0, 1, 0]) {
+        translate([dx, dy, dz]) nutcatch_parallel("M3", clh=25, clk=0.2);
+        translate([dx, dy, 25]) hole_through(name = "M3");
+    }
+}
 
 module paint_pivot_pintles() {    
     center_reflect([0, 1, 0]) {
@@ -190,30 +199,7 @@ module paint_pivot_pintle_yoke() {
 }
 
 
-module paint_flow_servo_mount(show_servo) {
-    dx = 
-        - size_paint_servo_mount.y/2 
-        - air_barrel_clip_outside_diameter/2; 
-    dz = paint_pivot_h/2; 
-    difference() {
-        translate([dx, 0, dz]) { 
-            rotate([0,180,0]) { // To handle building toward negative z
 
-                sub_micro_servo_mounting(
-                    size=size_paint_servo_mount,
-                    center=ABOVE,
-                    rotation=LEFT,
-                    include_children=show_servo) {
-                        
-                    9g_motor_centered_for_mounting();
-                }
-                
-                
-            }
-        }
-        air_brush_simple_clearance();
-    }  
-}
 
 module air_brush_trigger_on_top(disp_air_brush_relative_paint_pivot_cl, trigger_angle) {
     translate(disp_air_brush_relative_paint_pivot_cl) {
@@ -221,31 +207,7 @@ module air_brush_trigger_on_top(disp_air_brush_relative_paint_pivot_cl, trigger_
     }
 }
 
-module air_brush_simple_clearance() {
-
-    translate(disp_air_brush_relative_paint_pivot_cl) {
-    
-        can(d=air_barrel_clip_inside_diameter, h=80, fa=fa_as_arg);
-        rod(d=barrel_clip_inside_diameter, l=120, fa=fa_as_arg);
-        // The nut at the end of the barrel:
-        d_nut = 11.95+2;
-        l_nut_exc = 4;
-        dx_nut = 
-            master_air_brush("back length") 
-            + master_air_brush("barrel radius");
-        translate([-dx_nut, 0, 0]) rod(d=d_nut, l=l_nut_exc, fa=fa_as_arg, center=FRONT);
-        // A very rough approximation to the brace
-        translate([0, 0, -brace_height]) 
-            rod(
-                d=brace_inside_diameter, 
-                l=brace_length, 
-                center=FRONT, 
-                fa=fa_as_arg);
-        block(
-            [brace_length, brace_inside_diameter, brace_height], 
-            center=BELOW+FRONT);
-    }
-}
+//translate(disp_air_brush_relative_paint_pivot_cl) {
 
 
 module show_pintle_assembly(
@@ -269,12 +231,7 @@ module show_pintle_assembly(
             }
         }    
 
-        if (show_paint_flow_servo_mount) {
-            show_servo = orient_for_build ? false : show_paint_flow_servo;
-            color(paint_flow_servo_color, alpha=paint_flow_servo_alpha) {
-                paint_flow_servo_mount(show_servo);
-            } 
-        }
+
 
         if (show_air_brush && !orient_for_build) {
             air_brush_trigger_on_top(
@@ -290,5 +247,3 @@ show_pintle_assembly(
     orient_for_build=orient_for_build_example,
     viewing_orientation=viewing_orientation_example, 
     trigger_angle=trigger_angle_example);
-
-* color("orange", alpha = 0.25) air_brush_simple_clearance();
