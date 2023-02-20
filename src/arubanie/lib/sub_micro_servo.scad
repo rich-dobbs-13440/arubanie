@@ -387,7 +387,8 @@ module sub_micro_servo__single_horn_long(item, allowance=0.4) {
 module sub_micro_servo__mounting(
         screw_offset=1.5, 
         clearance = [0.5, 1, 1],
-        omit_top=true, 
+        omit_top=true,
+        omit_base=false,
         mount=FRONT, //LEFT, FRONT, BACK
         locate_relative_to="SERVO", // "SERVO", "MOUNTING SURFACE
         show_servo=false,
@@ -395,7 +396,7 @@ module sub_micro_servo__mounting(
         log_verbosity=INFO) {
 
 
-    assert(flip_servo==false, "Not implemented flip_servo");
+    
             
     extent = [16, 32, 18];
             
@@ -424,34 +425,38 @@ module sub_micro_servo__mounting(
         log_v2("servo_dimensions", servo_dimensions, log_verbosity, DEBUG);
         mcbt = find_in_dct(servo_dimensions[0], "mount_cl_bottom_translation");
         rotated_mounting_translation = [-mcbt.z, mcbt.x, 0];
-        translate(rotated_mounting_translation) {
-            translate([extent.x/2, 0, 0]) {
-                back_wall(extent, servo_clearance, remainder);
-                screw_blocks(screw_offset, extent, servo_clearance, remainder);
-                base_and_top(extent, servo_clearance, remainder, omit_top);
-            }
-        }     
-        if (show_servo) {
-            rotate([-90,0,90]) { // Translate so that servo is to the front
-                9g_motor_sprocket_at_origin(highlight=true);
+
+        mirroring_for_flip_servo = flip_servo ? [0, 1, 0] : [0, 0, 0];
+
+        mirror(mirroring_for_flip_servo)  {
+            translate(rotated_mounting_translation) {
+                translate([extent.x/2, 0, 0]) {
+                    back_wall(extent, servo_clearance, remainder);
+                    screw_blocks(screw_offset, extent, servo_clearance, remainder);
+                    base_and_top(extent, servo_clearance, remainder, omit_top, omit_base);
+                }
+            }  
+            if (show_servo) {
+                rotate([-90,0,90]) { // Translate so that servo is to the front
+                    9g_motor_sprocket_at_origin(highlight=true);
+                }
             }
         }
     }
 
-    module base_and_top(extent, servo_clearance, remainder, omit_top) {
+    module base_and_top(extent, servo_clearance, remainder, omit_top, omit_base) {
         base = [
             extent.x, 
             extent.y,
             remainder.z/2
         ];
         dz_base = -servo_clearance.z/2- base.z/2;
-        
-        translate([0, 0, dz_base]) 
-        cube(base, center=true);
-
         if (!omit_top) {
-            translate([0, 0, -dz_base]) 
-                cube(base, center=true);
+            translate([0, 0, dz_base]) cube(base, center=true);
+        }
+
+        if (!omit_base) {
+            translate([0, 0, -dz_base]) cube(base, center=true);
         }
     }
 
