@@ -37,121 +37,153 @@ use <small_servo_cam.scad>
 include <nutsnbolts-master/cyl_head_bolt.scad>
 use <small_pivot_vertical_rotation.scad>
 
+/* [Boiler Plate] */
 fa_shape = 10;
 fa_bearing = 2;
 infinity = 300;
 
 
 /* [Logging] */
-
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice); 
 
+
 /* [Show] */
+show__sub_micro_servo__mounting = true;
+show__sub_micro_servo__mount_to_axle = true;
+show__sub_micro_servo__single_horn_long = true;
+show__sub_micro_servo__radial_stall_limiter = true;
 
-show_default = false;
-show_with_servo = false;
-show_with_back = false;
-//show_translation_test = false;
-//show_rotate_left_translation_test = true;
-show_mount_to_axle = false;
-show_single_horn = false;
-show_stall_limiter = false;
-show_offset_relative_to_servo = true;
+dy_spacing = 50; // [40:5:99.9]
 
-/* [Mount to axle example] */
-angle_ = 0; // [-180: 5: +180]
-axle_height_ = 18.5; // [6: 0.5: 20]
+dy_mounting = 0 + 0;
+dy_mount_to_axle = 
+    dy_mounting 
+    + (show__sub_micro_servo__mounting ? dy_spacing : 0);
+dy_single_horn_long = 
+    dy_mount_to_axle
+    + (show__sub_micro_servo__mount_to_axle ? dy_spacing : 0); 
+dy_radial_stall_limiter = 
+    dy_single_horn_long
+    + (show__sub_micro_servo__single_horn_long ? dy_spacing : 0); 
 
-axle_diameter_ = 4; // [2: 1: 20]
+    
+/* [Options for sub_micro_servo__mounting  Module] */
+show_with_servo_mtg = false;
+show_with_back_mtg = false; 
+show_offset_relative_to_servo_mtg = false;
 
-wall_height_ = 6; // [2: 1: 20]
-radial_allowance_ = 0.4; // [0 : 0.2 : 10]
-axial_allowance_ = 0.4; // [0 : 0.2 : 10]
-wall_thickness_ = 2; // [2: 0.5: 10]
 
-/* [Stall Limiter Design] */ 
-spring_offset_angle = 15; // [-45 : 0.5: 45]
-x_right_gudgeon_clearance = 7.5; // [-1 : 0.5: 10]
-spring_coverage_angle = 330; // [270 : 0.5: 360]
+/* [Options for sub_micro_servo__mount_to_axle  Module] */
+angle_mta = 0; // [-180: 5: +180]
+axle_height_mta  = 18.5; // [6: 0.5: 20]
+axle_diameter_mta  = 4; // [2: 1: 20]
+wall_height_mta  = 6; // [2: 1: 20]
+radial_allowance_mta  = 0.4; // [0 : 0.2 : 10]
+axial_allowance_mta  = 0.4; // [0 : 0.2 : 10]
+wall_thickness_mta  = 2; // [2: 0.5: 10]
+
+
+/* [Options for show__sub_micro_servo__single_horn_long  Module] */
+show_default_shl = true;
+show_nutcatch_extension_shl = true;
+allowance_shl = 0.4;
+// Debugging items
+debug_1_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
+debug_2_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
+debug_3_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
+debug_4_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
+debug_5_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
+debug_6_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
+debug_7_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
+debug_items_shl = [debug_1_shl, debug_2_shl, debug_3_shl, debug_4_shl, debug_5_shl, debug_6_shl, debug_7_shl]; 
+
+
+/* [Options for sub_micro_servo__radial_stall_limiter  Module] */
+//spring_offset_angle_rsl = 15; // [-45 : 0.5: 45]
+//x_right_gudgeon_clearance_rsl = 7.5; // [-1 : 0.5: 10]
+//spring_coverage_angle_rsl = 330; // [270 : 0.5: 360]
+
 
 end_of_customization() {}
 
 //------------------------------ Start of Demonstration ----------------------------
 
-if (show_default) {
-    sub_micro_servo__mounting();
-    
+if (show__sub_micro_servo__mounting) {
+    translate([0, dy_mounting, 0]) {
+        if (show_with_back_mtg) {
+            sub_micro_servo__mounting(size=[18, 32, 18]);
+        } else if (show_with_servo_mtg) {
+            sub_micro_servo__mounting() {
+                9g_motor_centered_for_mounting();
+            }
+        } else {
+            sub_micro_servo__mounting();
+        }
+        
+        if (show_offset_relative_to_servo_mtg) {
+            sub_micro_servo__mounting(
+                mount=RIGHT, //LEFT, FRONT, BACK
+                locate_relative_to="SERVO", //"MOUNTING SURFACE
+                show_servo=true,
+                flip_servo=false,
+                log_verbosity=INFO);
+        }
+    }
+    // Obsolete for now!
+    //if (show_translation_test) {
+    //    color("red") sub_micro_servo__mounting(center=ABOVE);
+    //    color("blue") sub_micro_servo__mounting(omit_top=false, center=BELOW);
+    //    color("green") sub_micro_servo__mounting(center=LEFT);
+    //    color("yellow") sub_micro_servo__mounting(center=RIGHT);
+    //    color("white") sub_micro_servo__mounting(center=BEHIND);
+    //    color("black") sub_micro_servo__mounting(center=FRONT);
+    //}
+    //
+    //if (show_rotate_left_translation_test) {
+    //    color("orange") sub_micro_servo__mounting(rotation=LEFT);
+    //    color("red") sub_micro_servo__mounting(center=ABOVE, rotation=LEFT);
+    //    color("blue") sub_micro_servo__mounting(omit_top=false, center=BELOW, rotation=LEFT);
+    //    color("green") sub_micro_servo__mounting(center=LEFT, rotation=LEFT);
+    //    color("yellow") sub_micro_servo__mounting(center=RIGHT, rotation=LEFT);
+    //    color("white") sub_micro_servo__mounting(center=BEHIND, rotation=LEFT);
+    //    color("black") sub_micro_servo__mounting(center=FRONT, rotation=LEFT);
+    //}
 }
+    
 
-if (show_with_servo) {
-    sub_micro_servo__mounting() {
-        9g_motor_centered_for_mounting();
+if (show__sub_micro_servo__mount_to_axle) {
+    translate([0, dy_mount_to_axle, 0]) {
+        sub_micro_servo__mount_to_axle(
+            axle_diameter=axle_diameter_mta, 
+            axle_height= axle_height_mta,
+            wall_height=wall_height_mta,
+            radial_allowance=radial_allowance_mta, 
+            axial_allowance=axial_allowance_mta, 
+            wall_thickness=wall_thickness_mta, 
+            angle=angle_mta,
+            log_verbosity=verbosity);
     }
 }
 
-if (show_with_back) {
-    sub_micro_servo__mounting(size=[18, 32, 18]);
+if (show__sub_micro_servo__single_horn_long) {
+    translate([0, dy_single_horn_long, 0]) {
+        al = allowance_shl;
+        if (show_default_shl) {
+            sub_micro_servo__single_horn_long(allowance=al, log_verbosity=verbosity);
+        }
+        if (show_nutcatch_extension_shl) {
+            sub_micro_servo__single_horn_long(items=["nutcatch_extension"], allowance=al, log_verbosity=verbosity);
+        }
+        sub_micro_servo__single_horn_long(items=debug_items_shl, allowance=al, log_verbosity=verbosity);
+    }
 }
 
 
-//if (show_translation_test) {
-//    color("red") sub_micro_servo__mounting(center=ABOVE);
-//    color("blue") sub_micro_servo__mounting(omit_top=false, center=BELOW);
-//    color("green") sub_micro_servo__mounting(center=LEFT);
-//    color("yellow") sub_micro_servo__mounting(center=RIGHT);
-//    color("white") sub_micro_servo__mounting(center=BEHIND);
-//    color("black") sub_micro_servo__mounting(center=FRONT);
-//}
-//
-//if (show_rotate_left_translation_test) {
-//    color("orange") sub_micro_servo__mounting(rotation=LEFT);
-//    color("red") sub_micro_servo__mounting(center=ABOVE, rotation=LEFT);
-//    color("blue") sub_micro_servo__mounting(omit_top=false, center=BELOW, rotation=LEFT);
-//    color("green") sub_micro_servo__mounting(center=LEFT, rotation=LEFT);
-//    color("yellow") sub_micro_servo__mounting(center=RIGHT, rotation=LEFT);
-//    color("white") sub_micro_servo__mounting(center=BEHIND, rotation=LEFT);
-//    color("black") sub_micro_servo__mounting(center=FRONT, rotation=LEFT);
-//}
-
-
-
-
-if (show_offset_relative_to_servo) {
-    sub_micro_servo__mounting(
-        mount=RIGHT, //LEFT, FRONT, BACK
-        locate_relative_to="SERVO", //"MOUNTING SURFACE
-        show_servo=true,
-        flip_servo=false,
-        log_verbosity=INFO);
-}
-
-
-
-
-if (show_mount_to_axle) {
-    sub_micro_servo__mount_to_axle(
-        axle_diameter=axle_diameter_, 
-        axle_height= axle_height_,
-        wall_height=wall_height_,
-        radial_allowance=radial_allowance_, 
-        axial_allowance=axial_allowance_, 
-        wall_thickness=wall_thickness_, 
-        angle=angle_,
-        log_verbosity=verbosity);
-}
-
-if (show_single_horn) {
-    //sub_micro_servo__single_horn_long("clearance", 0.4);
-    //sub_micro_servo__single_horn_long("arm blank", 0.4);
-    //sub_micro_servo__single_horn_long("arm holder", 0.4);
-    //sub_micro_servo__single_horn_long("arm nutcatch", 0.4);
-    sub_micro_servo__single_horn_long("arm nutcatch_clearance");
-}
-
-
-if (show_stall_limiter) {
-    sub_micro_servo__radial_stall_limiter();
+if (show__sub_micro_servo__radial_stall_limiter) {
+    translate([0, dy_radial_stall_limiter, 0]) {
+        sub_micro_servo__radial_stall_limiter();
+    }
 }
 
 //-------------------------------- Start of Implementation -------------------------
@@ -165,138 +197,11 @@ module sub_micro_servo__pilot_hole() {
     rod(d=d, l=l, center=FRONT, rank=2, fa=4*fa_shape);
 }
 
-module sub_micro_servo__radial_stall_limiter() {
-    // WARNING - This is a work in progress.  Doesn't do what we want at this time.
 
-
-    // Allow the servo to rotate a bit after the mechanism hits a hard stop,
-    // without the motor stalling, by having the mechanism flex a bit.
-    // Ideally, before the hard stop is hit, there will be little
-    // flex.
-    dz_shaft_engagement = 2; 
-    strength = 1;
-    d_shaft_hub = 8;
-    h_shaft_hub = dz_shaft_engagement + strength;
-    d_rim = 24;
-    clearance = 1;
-    h_servo_bottom = h_shaft_hub + clearance;
-    dy_servo_bottom_inner = d_shaft_hub/2  + clearance;
-    d_servo_hub_inner = 2 * dy_servo_bottom_inner;
-    d_servo_hub = d_servo_hub_inner + strength;
-    h_spring = 0.75;
-    allowance = 0.4;
-    horn_thickness = 2;
-    y_rotation_gap = 7;
+module sub_micro_servo__single_horn_long(allowance=0.4, items=["default"], log_verbosity=INFO) {
     
-    spring();
-    bottom_hub();
-    servo_wiper();
-    shaft_hub();
-    servo_hub();
-    
-    module servo_hub() {
-        dz = h_servo_bottom + horn_thickness;
-        translate([0, 0, dz]) bare_hub(horn_thickness);
-    }
-    
-    module spring() {
-        d_inner = d_servo_hub+clearance;
-        d_outer = d_rim-strength-clearance;
-        module inner(a) {
-            rotate([0, 0, a])
-                translate([d_inner/2, 0 , 0]) 
-                    can(d=2*allowance, h=h_spring, center=ABOVE+FRONT, fa=fa_shape);
-        }
-        module outer(a) {
-            rotate([0, 0, a])
-                translate([d_outer/2, 0 , 0]) 
-                    can(d=2*allowance, h=h_spring, center=ABOVE+BEHIND, fa=fa_shape);
-        }  
-        da = 30;
-        for (a = [0 : da : 360]) {
-            hull() {
-                inner(a);
-                outer(a);
-            }
-            hull() {
-                outer(a);
-                outer(a + da/2); 
-            }
-            hull() {
-                outer(a + da/2);
-                inner(a + da/2); 
-            }
-            hull() {
-                inner(a + da/2);  
-                inner(a + da); 
-            }
-        }
-    }
-    
-    module bottom_hub() {
-        color("green")
-        render() difference() {
-            union() {
-                can(
-                    d=d_servo_hub, 
-                    h=h_servo_bottom, 
-                    hollow=d_servo_hub_inner, 
-                    center=ABOVE,
-                    rank=8);
-                can(
-                    d=d_rim, 
-                    h=h_servo_bottom, 
-                    hollow=d_rim-strength, 
-                    center=ABOVE,
-                    rank=4);
-            }
-            block([d_rim, y_rotation_gap, h_servo_bottom], center=ABOVE, rank=10);
-        }
-    }
-    
-    module servo_wiper() {
-        x = strength;
-        y = d_rim/2 - d_servo_hub_inner/2; 
-        z = h_servo_bottom;
-        dy = d_servo_hub_inner/2;
-        color("blue") 
-            center_reflect([0, 1, 0]) {
-                translate([0, dy, 0]) block([x, y, z], center=ABOVE+RIGHT);
-            }
-   } 
-    
-    module shaft_hub() {
-        difference() {
-            union() {
-                can(d=d_shaft_hub, h=h_shaft_hub, center=ABOVE);
-                block([d_rim, strength, h_shaft_hub], center=ABOVE);
-            }
-            shaft_clearance();
-        }
-    }
-    
-    
-    module shaft_clearance() {
-        translate([0, 0, 25]) hole_through("M3");
-        translate([0, 0, dz_shaft_engagement]) nutcatch_parallel("M3", clh=4);
-        d_shaft = 5;
-        can(d=d_shaft, h=20, center=BELOW);
-    }
-}
-
-
-module sub_micro_servo__single_horn_long(item, allowance=0.4) {
-    if (item == "clearance") {
-        single_horn_clearance(allowance, allowance);
-    } else if (item == "arm blank") {
-        arm_clearance(2, 1);
-    } else if (item == "arm holder") {
-        arm_holder(allowance);
-    } else if (item == "arm nutcatch") {
-        color("green") arm_nutcatch_extension();
-    } else if (item ==  "arm nutcatch_clearance") {
-        color("red") arm_nutcatch_clearance();
-    }
+    log_s("allowance", allowance, log_verbosity, DEBUG);
+    log_s("items", items, log_verbosity, DEBUG);
     
     d_out_hub = 5.72;
     d_inner_hub = 3.81;
@@ -304,58 +209,145 @@ module sub_micro_servo__single_horn_long(item, allowance=0.4) {
     d_arm_end = 3.83;
     h_arm = 1.96;
     r_arm = 25.1;
-    screw_diameter = 2;
+    screw_diameter = 1.5;
     slot_width = 1.54;
+    wall_thickness = 2;
+    base_thickness = 1;
+    catch_thickness = 1.5;
+    blank_h_allowance = base_thickness + catch_thickness;
+    blank_d_allowance = wall_thickness;
+ 
+    function want(name) = in_list(items, name);
     
+    if (want("default") || want("arm holder")) {
+        color("Turquoise") arm_holder(allowance);
+    }
+    if (want("nutcatch_extension")) {
+        color("DarkTurquoise") nutcatch_extension(); 
+    }
+    // These items are for debugging - Order them from inside to outside
+    if (want("screw_pilot_holes")) {
+        color("brown") screw_pilot_holes();
+    }
+    
+    if (want("screw_access_clearance")) {
+        color("orange") servo_screw_access_clearance(with_screw_driver=false);
+        color("orange", alpha=0.5) servo_screw_access_clearance(with_screw_driver=true);
+    }  
+     
+    if (want("nutcatch_clearance")) {
+        color("yellow", alpha=0.25) nutcatch_clearance(side_cuts=true);
+    }
+    if (want("servo_hub_clearance")) {
+        color("pink", alpha=0.25)  servo_hub_clearance();
+    }
+    if (want("slot_clearance")) {
+        color("pink", alpha=0.25)  slot_clearance();
+    }
+    if (want("catch_clearance")) {
+        color("pink", alpha=0.25)  catch_clearance();
+    }
+    if (want("arm_blank")) {
+        color("purple", alpha=0.25) arm_blank();
+    } 
+    if (want("nutcatch_extension_blank")) {
+        color("purple", alpha=0.25) arm_blank();
+    } 
+
+    // TODO verify that items are possible
+    debug_options = [
+        "", 
+        "screw_pilot_holes",
+        "screw_access_clearance",
+        "nutcatch_clearance", 
+        "servo_hub_clearance", 
+        "slot_clearance", 
+        "catch_clearance", 
+        "arm_blank", 
+        "nutcatch_extension_blank",  
+    ];
+    echo("log_verbosity", log_verbosity);
+    log_s("Debugging options", debug_options, log_verbosity, DEBUG);
+
     module arm_holder(allowance) {
         difference() {
-            // The blank
-            arm_clearance(2, 3.5);
-            // The clearance for the arm
-            translate([0, 0, 2]) center_reflect([1, 0, 0]) arm_clearance(allowance, allowance);
-            // Implement the catch to hold the arm
-            translate([0, 0, 2.6]) center_reflect([1, 0, 0]) arm_clearance(-0.7*allowance, 1);
-            
-            // Avoid the hub
-            translate([0, 0, 4.0]) can(d=13, h=5, center=ABOVE);
-            // Screw pilot holes the arm holder
-            translate([9, 0, 0]) can(d=1.5, h=20, fa=fa_shape);  
-            translate([12, 0, 0]) can(d=1.5, h=20, fa=fa_shape);  // 
-            translate([18, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
-            translate([21, 0, 0]) can(d=1.5, h=20, fa=fa_shape);
-            nutcatch_clearance();
+            arm_blank();
+            screw_pilot_holes();
             servo_screw_access_clearance();
+            slot_clearance();
+            catch_clearance();
+            servo_hub_clearance();
         }
-       
     }
     
-   module arm_nutcatch_clearance() {
-       servo_screw_access_clearance();
-       nutcatch_clearance(side_cuts=false);
-   }
+    module nutcatch_extension() {
+        difference() {
+            nutcatch_extension_blank()
+            servo_screw_access_clearance();
+            nutcatch_clearance(side_cuts=true);
+            servo_screw_access_clearance(with_screw_driver=true);
+        }
+    } 
     
-    module servo_screw_access_clearance() {
+    module arm_blank() {
+        arm_clearance(blank_d_allowance, blank_h_allowance);
+    }
+    
+    module servo_hub_clearance() {
+        dz = base_thickness + 2; // Make at the top of the arm
+        translate([0, 0, dz]) can(d=13, h=5, center=ABOVE);
+    }
+    
+    module arm_catch_clearance() {
+        translate([0, 0, 2.6]) center_reflect([1, 0, 0]) 
+            arm_clearance(-0.7*allowance, 1);
+    }
+    
+    module screw_pilot_holes() {
+        for (dx = [9 : 3 :24]) {
+            translate([dx, 0, 0]) can(d=screw_diameter, h=20, fa=fa_shape); 
+        }
+    }
+ 
+    module servo_screw_access_clearance(with_screw_driver=false) {
        // Access to center screw
-        can(d=5, h=50, fa=fa_shape);
+        screw_head = 2.5;
+        d = with_screw_driver ? 5: screw_head;
+        can(d=d, h=50, fa=fa_shape);
     }
   
+    module slot_clearance() {
+        translate([0, 0, base_thickness]) {
+            center_reflect([1, 0, 0]) {
+                arm_clearance(allowance, allowance);
+            }
+        } 
+    } 
+
+    module catch_clearance() {
+        translate([0, 0, 2.6]) 
+            center_reflect([1, 0, 0]) 
+                arm_clearance(-0.7*allowance, 1);
+    }      
+                
     module arm_clearance(d_allowance, h_allowance) {
+        assert(is_num(d_allowance));
+        assert(is_num(h_allowance));
         function swell(d) = d + 2*d_allowance; 
-        function swell_h(d) = d + h_allowance; 
+        function swell_h(d) = d + h_allowance;     
         hull() {
             can(d=swell(d_out_hub), h=swell_h(h_arm), center=ABOVE, fa=fa_shape);
             translate([r_arm, 0, 0]) 
-                can(d=swell(d_arm_end), h=swell_h(h_arm), center=ABOVE, fa=fa_shape);
-            
+                can(d=swell(d_arm_end), h=swell_h(h_arm), center=ABOVE, fa=fa_shape);  
         }
-    }
-    
 
-    
+    }
+
     module nutcatch_clearance(side_cuts) {
+        eps = 0.01;
         module cut(dx) {
             if (side_cuts) {
-                dz_nut_offset = 1.5;
+                dz_nut_offset = eps; //1.5;
                 translate([dx, 0, dz_nut_offset]) {
                     rotate([0, 0, 90]) {             
                         nutcatch_sidecut(name="M3");
@@ -365,38 +357,33 @@ module sub_micro_servo__single_horn_long(item, allowance=0.4) {
             dz_hole = 25;
             translate([dx, 0, 0]) {
                 rotate([0, 0, 90]) {
-                        translate([0, 0, dz_hole]) hole_through(name="M3");
+                    translate([0, 0, dz_hole]) 
+                        hole_through(name="M3");
                 }
             }
         }
-        cut(6);
-        cut(15);
-        cut(24);
+        cut(8);
+        cut(20);
     }
     
+    module nutcatch_extension_blank() {
+        h_nut = 2;
+        mirror([0, 0, 1]) arm_clearance(blank_d_allowance, h_nut);
+    }
 
-    module arm_nutcatch_extension() {
-        difference() {
-            mirror([0, 0, 1]) arm_clearance(2, 1);
-            arm_nutcatch_clearance(side_cuts=true);
-        }
-    }   
+  
 }
 
 
 module sub_micro_servo__mounting(
         screw_offset=1.5, 
         clearance = [0.5, 1, 1],
-        omit_top=true,
-        omit_base=false,
+        omit_top=true, 
         mount=FRONT, //LEFT, FRONT, BACK
         locate_relative_to="SERVO", // "SERVO", "MOUNTING SURFACE
         show_servo=false,
         flip_servo=false,
         log_verbosity=INFO) {
-
-
-    
             
     extent = [16, 32, 18];
             
@@ -428,35 +415,35 @@ module sub_micro_servo__mounting(
 
         mirroring_for_flip_servo = flip_servo ? [0, 1, 0] : [0, 0, 0];
 
-        mirror(mirroring_for_flip_servo)  {
+        mirror(mirroring_for_flip_servo)  
             translate(rotated_mounting_translation) {
                 translate([extent.x/2, 0, 0]) {
                     back_wall(extent, servo_clearance, remainder);
                     screw_blocks(screw_offset, extent, servo_clearance, remainder);
-                    base_and_top(extent, servo_clearance, remainder, omit_top, omit_base);
+                    base_and_top(extent, servo_clearance, remainder, omit_top);
                 }
-            }  
-            if (show_servo) {
-                rotate([-90,0,90]) { // Translate so that servo is to the front
-                    9g_motor_sprocket_at_origin(highlight=true);
-                }
+            }   
+        if (show_servo) {
+            rotate([-90,0,90]) { // Translate so that servo is to the front
+                9g_motor_sprocket_at_origin(highlight=true);
             }
         }
     }
 
-    module base_and_top(extent, servo_clearance, remainder, omit_top, omit_base) {
+    module base_and_top(extent, servo_clearance, remainder, omit_top) {
         base = [
             extent.x, 
             extent.y,
             remainder.z/2
         ];
         dz_base = -servo_clearance.z/2- base.z/2;
-        if (!omit_top) {
-            translate([0, 0, dz_base]) cube(base, center=true);
-        }
+        
+        translate([0, 0, dz_base]) 
+        cube(base, center=true);
 
-        if (!omit_base) {
-            translate([0, 0, -dz_base]) cube(base, center=true);
+        if (!omit_top) {
+            translate([0, 0, -dz_base]) 
+                cube(base, center=true);
         }
     }
 
@@ -719,6 +706,126 @@ module sub_micro_servo__mount_to_axle(
             }
         }
 
+    }
+}
+
+
+module sub_micro_servo__radial_stall_limiter() {
+    // WARNING - This is a work in progress.  Doesn't do what we want at this time.
+
+
+    // Allow the servo to rotate a bit after the mechanism hits a hard stop,
+    // without the motor stalling, by having the mechanism flex a bit.
+    // Ideally, before the hard stop is hit, there will be little
+    // flex.
+    dz_shaft_engagement = 2; 
+    strength = 1;
+    d_shaft_hub = 8;
+    h_shaft_hub = dz_shaft_engagement + strength;
+    d_rim = 24;
+    clearance = 1;
+    h_servo_bottom = h_shaft_hub + clearance;
+    dy_servo_bottom_inner = d_shaft_hub/2  + clearance;
+    d_servo_hub_inner = 2 * dy_servo_bottom_inner;
+    d_servo_hub = d_servo_hub_inner + strength;
+    h_spring = 0.75;
+    allowance = 0.4;
+    horn_thickness = 2;
+    y_rotation_gap = 7;
+    
+    spring();
+    bottom_hub();
+    servo_wiper();
+    shaft_hub();
+    servo_hub();
+    
+    module servo_hub() {
+        dz = h_servo_bottom + horn_thickness;
+        translate([0, 0, dz]) bare_hub(horn_thickness);
+    }
+    
+    module spring() {
+        d_inner = d_servo_hub+clearance;
+        d_outer = d_rim-strength-clearance;
+        module inner(a) {
+            rotate([0, 0, a])
+                translate([d_inner/2, 0 , 0]) 
+                    can(d=2*allowance, h=h_spring, center=ABOVE+FRONT, fa=fa_shape);
+        }
+        module outer(a) {
+            rotate([0, 0, a])
+                translate([d_outer/2, 0 , 0]) 
+                    can(d=2*allowance, h=h_spring, center=ABOVE+BEHIND, fa=fa_shape);
+        }  
+        da = 30;
+        for (a = [0 : da : 360]) {
+            hull() {
+                inner(a);
+                outer(a);
+            }
+            hull() {
+                outer(a);
+                outer(a + da/2); 
+            }
+            hull() {
+                outer(a + da/2);
+                inner(a + da/2); 
+            }
+            hull() {
+                inner(a + da/2);  
+                inner(a + da); 
+            }
+        }
+    }
+    
+    module bottom_hub() {
+        color("green")
+        render() difference() {
+            union() {
+                can(
+                    d=d_servo_hub, 
+                    h=h_servo_bottom, 
+                    hollow=d_servo_hub_inner, 
+                    center=ABOVE,
+                    rank=8);
+                can(
+                    d=d_rim, 
+                    h=h_servo_bottom, 
+                    hollow=d_rim-strength, 
+                    center=ABOVE,
+                    rank=4);
+            }
+            block([d_rim, y_rotation_gap, h_servo_bottom], center=ABOVE, rank=10);
+        }
+    }
+    
+    module servo_wiper() {
+        x = strength;
+        y = d_rim/2 - d_servo_hub_inner/2; 
+        z = h_servo_bottom;
+        dy = d_servo_hub_inner/2;
+        color("blue") 
+            center_reflect([0, 1, 0]) {
+                translate([0, dy, 0]) block([x, y, z], center=ABOVE+RIGHT);
+            }
+   } 
+    
+    module shaft_hub() {
+        difference() {
+            union() {
+                can(d=d_shaft_hub, h=h_shaft_hub, center=ABOVE);
+                block([d_rim, strength, h_shaft_hub], center=ABOVE);
+            }
+            shaft_clearance();
+        }
+    }
+    
+    
+    module shaft_clearance() {
+        translate([0, 0, 25]) hole_through("M3");
+        translate([0, 0, dz_shaft_engagement]) nutcatch_parallel("M3", clh=4);
+        d_shaft = 5;
+        can(d=d_shaft, h=20, center=BELOW);
     }
 }
 

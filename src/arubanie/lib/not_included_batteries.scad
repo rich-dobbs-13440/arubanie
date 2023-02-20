@@ -50,6 +50,15 @@ function find_in_dct(dct, key, required=false) =
     required ? 
         _dct_assert_one_and_only(find_all_in_kv_list(dct, key)) :
         find_all_in_kv_list(dct, key)[0];
+
+function in_list(list, item) = len([for (element = list) if (element == item) element]) > 0;
+
+function find_in_set(set, key) = 
+    let (
+        finds = [ for (element = set) if (element==key) true]
+    )
+    assert(len(finds)<=1) 
+    (len(finds) == 1);
         
 module construct_plane(vector, orientation, extent=100) {
     axis_offset = v_o_dot(vector, orientation);
