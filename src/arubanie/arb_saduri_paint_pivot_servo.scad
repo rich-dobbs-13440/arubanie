@@ -95,13 +95,10 @@ module paint_flow_servo_mount(show_servo) {
     difference() {
         translate([dx, 0, 0]) { 
 
-                sub_micro_servo__mounting(
-                    //size=size_paint_servo_mount,
-                    center=ABOVE+BEHIND,
-                    rotation=LEFT,
-                    include_children=show_servo) {
-                        
-                    9g_motor_centered_for_mounting();
+                sub_micro_servo__mounting(  
+                    mount=RIGHT, 
+                    locate_relative_to="SERVO ABOVE", 
+                    show_servo=true) {    
                 }
                 
                 

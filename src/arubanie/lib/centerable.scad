@@ -67,8 +67,15 @@ function _rotation_to_angles(angles) =
     )
     rotation;
 
-module center_translation(size, center) {
-    disp = _center_to_displacement(center, size);
+function _rotate_size(size, rotation) =
+    is_undef(rotation) ? size :
+    rotation==LEFT ? [size.y, size.x, size.z] :
+    assert(false);
+
+
+module center_translation(size, center, rotation) {
+    size_for_disp = _rotate_size(size, rotation); 
+    disp = _center_to_displacement(center, size_for_disp);
     translate(disp) { 
         children();
     }
@@ -81,7 +88,6 @@ module center_rotation(rotation) {
     }
 
 }
-
 
 module center_reflect(v) {
     assert(!is_undef(v), "You must pass an mirroring argument to center_reflect()");

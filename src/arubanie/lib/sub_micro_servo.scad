@@ -21,9 +21,16 @@ sub_micro_servo_mount_to_axle(
         angle = 0);
 
 
+Notes:  
+
+    For sub_micro_servo__mounting, the default origin is at the 
+    half way between the two mounting screws,
+    at the front of the mounting.surface.
+
 */
 include <logging.scad>
 include <centerable.scad>
+use <not_included_batteries.scad>
 use <shapes.scad>
 use <9g_servo.scad>
 use <small_servo_cam.scad>
@@ -42,13 +49,15 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 
 /* [Show] */
 
-show_default = true;
+show_default = false;
 show_with_servo = false;
 show_with_back = false;
-show_translation_test = false;
+//show_translation_test = false;
+//show_rotate_left_translation_test = true;
 show_mount_to_axle = false;
 show_single_horn = false;
 show_stall_limiter = false;
+show_offset_relative_to_servo = true;
 
 /* [Mount to axle example] */
 angle_ = 0; // [-180: 5: +180]
@@ -86,12 +95,38 @@ if (show_with_back) {
 }
 
 
-if (show_translation_test) {
-    color("red") sub_micro_servo__mounting(center=ABOVE);
-    color("blue") sub_micro_servo__mounting(omit_top=false, center=BELOW);
-    color("green") sub_micro_servo__mounting(center=LEFT);
-    color("yellow") sub_micro_servo__mounting(center=RIGHT);
+//if (show_translation_test) {
+//    color("red") sub_micro_servo__mounting(center=ABOVE);
+//    color("blue") sub_micro_servo__mounting(omit_top=false, center=BELOW);
+//    color("green") sub_micro_servo__mounting(center=LEFT);
+//    color("yellow") sub_micro_servo__mounting(center=RIGHT);
+//    color("white") sub_micro_servo__mounting(center=BEHIND);
+//    color("black") sub_micro_servo__mounting(center=FRONT);
+//}
+//
+//if (show_rotate_left_translation_test) {
+//    color("orange") sub_micro_servo__mounting(rotation=LEFT);
+//    color("red") sub_micro_servo__mounting(center=ABOVE, rotation=LEFT);
+//    color("blue") sub_micro_servo__mounting(omit_top=false, center=BELOW, rotation=LEFT);
+//    color("green") sub_micro_servo__mounting(center=LEFT, rotation=LEFT);
+//    color("yellow") sub_micro_servo__mounting(center=RIGHT, rotation=LEFT);
+//    color("white") sub_micro_servo__mounting(center=BEHIND, rotation=LEFT);
+//    color("black") sub_micro_servo__mounting(center=FRONT, rotation=LEFT);
+//}
+
+
+
+
+if (show_offset_relative_to_servo) {
+    sub_micro_servo__mounting(
+        mount=RIGHT, //LEFT, FRONT, BACK
+        locate_relative_to="SERVO", //"MOUNTING SURFACE
+        show_servo=true,
+        flip_servo=false,
+        log_verbosity=INFO);
 }
+
+
 
 
 if (show_mount_to_axle) {
@@ -345,58 +380,64 @@ module sub_micro_servo__single_horn_long(item, allowance=0.4) {
             mirror([0, 0, 1]) arm_clearance(2, 1);
             arm_nutcatch_clearance(side_cuts=true);
         }
-    }
-    
-    
+    }   
 }
 
 
-
-
-  
-
-
-
-
-
-
-
-
-
-
 module sub_micro_servo__mounting(
-    size=undef, 
-    screw_offset=1.5, 
-    clearance = [0.5, 1, 1],
-    omit_top=true, 
-    center=0, 
-    rotation=0,
-    include_children=true) {
-        
-    extent = is_undef(size) ? [16, 32, 18] : size;
+        screw_offset=1.5, 
+        clearance = [0.5, 1, 1],
+        omit_top=true, 
+        mount=FRONT, //LEFT, FRONT, BACK
+        locate_relative_to="SERVO", // "SERVO", "MOUNTING SURFACE
+        show_servo=false,
+        flip_servo=false,
+        log_verbosity=INFO) {
 
+
+    assert(flip_servo==false, "Not implemented flip_servo");
+            
+    extent = [16, 32, 18];
+            
+    offset_for_locate = 
+        locate_relative_to== "SERVO" ? [0, 0, 0] :
+        locate_relative_to=="SERVO ABOVE" ? [0, 0, extent.z/2] :
+        assert(false, str("Not implemented locate_relative_to=", locate_relative_to)); 
+    
+    rotation_for_mount =  
+        mount==FRONT ? [0, 0, 0] :
+        mount==RIGHT ? [0, 0, 90] :
+        assert(false, str("Not implemented mount=", mount));
+            
+    translate(offset_for_locate) {
+        rotate(rotation_for_mount) {
+            mount_and_servo();
+        }
+    }
     servo_size = [15.45, 23.54, 11.73];
     servo_lip = 4;
-
-    
     servo_clearance = servo_size + clearance + clearance;
     remainder = extent - servo_clearance;
-        
-    
 
-    center_translation(extent, center) {
-        center_rotation(rotation) {
+    module mount_and_servo() {
+        servo_dimensions = 9g_motor();
+        log_v2("servo_dimensions", servo_dimensions, log_verbosity, DEBUG);
+        mcbt = find_in_dct(servo_dimensions[0], "mount_cl_bottom_translation");
+        rotated_mounting_translation = [-mcbt.z, mcbt.x, 0];
+        translate(rotated_mounting_translation) {
             translate([extent.x/2, 0, 0]) {
                 back_wall(extent, servo_clearance, remainder);
                 screw_blocks(screw_offset, extent, servo_clearance, remainder);
                 base_and_top(extent, servo_clearance, remainder, omit_top);
             }
-            if (include_children) {
-                # children();  // Show mounted servo, if any
+        }     
+        if (show_servo) {
+            rotate([-90,0,90]) { // Translate so that servo is to the front
+                9g_motor_sprocket_at_origin(highlight=true);
             }
         }
-    } 
-    
+    }
+
     module base_and_top(extent, servo_clearance, remainder, omit_top) {
         base = [
             extent.x, 

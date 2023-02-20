@@ -119,13 +119,14 @@ module log_s(label, s, verbosity, level=INFO, important=0) {
 }
 
 
-function log_v1_styled(label, v1, style_level) = 
+function log_v1_styled(label, v1, style_level, nesting=0) = 
     let (
         style = console_styling(style_level),
-        dummy1 = echo(style, "---"),
-        dummy2 = echo(style, label, "= ["),
-        dummy3 = [for (v = v1) echo(style, "-........", v)],
-        dummy4 = echo(style, "-------]")
+        modified_label = nesting == 0 ? str(label, "= ") : "---",
+        dummy1 = nesting==0 ? echo(str(style, "---")):undef,
+        dummy2 = echo(str(style, modified_label, "[")),
+        dummy3 = [for (v = v1) echo(str(style, "........", v))],
+        dummy4 = echo(str(style, "---]"))
     )
     undef;
 
@@ -136,6 +137,31 @@ function log_v1(label, v1, verbosity, level=INFO, important=0) =
         dummy = overridden_level >= verbosity ? log_v1_styled(label, v1, overridden_level) : undef
     )
     undef;
+
+
+function log_v2_styled(label, v2, style_level) = 
+    let (
+        style = console_styling(style_level),
+        dummy1 = echo(str(style, "...")),
+        dummy2 = echo(str(style, label, "= [")),
+        dummy3 = [for (v = v2) log_v1_styled("", v, style_level, nesting=1)],
+        dummy4 = echo(str(style, "]"))
+    )
+    undef;
+
+
+function log_v2(label, v2, verbosity, level=INFO, important=0) =
+    let (
+        overridden_level = max(level, important),
+        dummy = overridden_level >= verbosity ? log_v2_styled(label, v2, overridden_level) : undef
+    )
+    undef;
+
+
+module log_v2(label, v2, verbosity, level=INFO, important=0) {
+    dummy=log_v2(label, v2, verbosity, level=level, important=important);
+    children();
+}
 
 
 module log_v1(label, v1, verbosity, level=INFO, important=0) {

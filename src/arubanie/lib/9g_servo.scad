@@ -51,11 +51,15 @@ function 9g_motor() =
 
 * 9g_motor_sprocket_at_origin();
 
-module 9g_motor_sprocket_at_origin() {
+module 9g_motor_sprocket_at_origin(alpha=1, highlight=false) {
     offset_for_sprocket_orgin = 9g_motor()[0][0][1];
     tran_mnt_cl = 9g_motor()[0][1][1];
-    color("black") translate(tran_mnt_cl) sphere(1);
-    color("green", alpha=0.5)  translate(offset_for_sprocket_orgin)  9g_motor();  
+    //color("black") translate(tran_mnt_cl) sphere(1);
+    if (highlight) {
+        # translate(offset_for_sprocket_orgin)  9g_motor();  
+    } else {
+        color("green", alpha=alpha)  translate(offset_for_sprocket_orgin)  9g_motor(); 
+    } 
 }
 
 
