@@ -4,6 +4,7 @@ include <lib/centerable.scad>
 use <lib/shapes.scad>
 use <lib/sub_micro_servo.scad>
 use <lib/9g_servo.scad>
+use <lib/small_pivot_vertical_rotation.scad>
 use <master_air_brush.scad>
 include <arb_saduri_paint_pivot.scad>
 
@@ -35,6 +36,22 @@ barrel_clip_strap_length = 10;
 
 dy_servo_support = 15;
 
+
+/* [Paint Pull Rod Design] */
+    show_paint_pull_rod = true;
+    paint_pull_rod_length = 54;
+
+    //paint_pull_rod_angle = 34; // [0: 5 : 40]
+    paint_pull_rod_color = "Orange"; // [DodgerBlue, Orange, Coral]
+    paint_pull_rod_alpha = 1; // [0:0.05:1]
+    
+/* [Paint Pull Gudgeon Design] */
+    dx_paint_pull_gudgeon_offset = -20; // [-20:0.5:20]
+    dy_paint_pull_gudgeon_offset = 8;  // [-20:20]
+    paint_pull_gudgeon_length = 30;  // [0:40]
+    paint_pull_nutcatch_depth = 9;
+    paint_pull_range_of_motion = [145,45];
+
 /* [Master Air Brush Design] */
 // Only works if not in build orientation
 show_air_brush = true;
@@ -50,6 +67,14 @@ barrel_clip_outside_diameter = barrel_clip_inside_diameter + 2 * wall_thickness;
 
 paint_flow_servo_color = "MediumTurquoise"; // [DodgerBlue, MediumTurquoise, Coral]
 paint_flow_servo_alpha = 1; // [0:0.05:1]
+
+    if (show_paint_pull_rod) {
+        color(paint_pull_rod_color, alpha=paint_pull_rod_alpha) {
+            //angle = orient_for_build ? 0: paint_pull_rod_angle;
+            connected_paint_pull_rod(); //angle);
+        }
+    }
+    
 
 if (show_paint_flow_servo_mount) {
     show_servo = orient_for_build ? false : show_paint_flow_servo;
@@ -99,14 +124,15 @@ module build_plane_clearance() {
 
 module simple_barrel_clearance() {
     translate(-disp_air_brush_relative_paint_pivot_cl) { 
-        rod(d=barrel_clip_inside_diameter, l=100);
+        rod(d=barrel_clip_inside_diameter, l=100, fa=fa_shape);
     }
 }
 
 module mounting_screw_clearance() {
     dy = paint_pivot_screw_dy/2;
+    $fn=12;
     center_reflect([0, 1, 0]) 
-        translate([0, dy, 25]) hole_through(name="M3");
+        translate([0, dy, 25]) hole_through(name="M3", cld=0.4);
 }
 
 module mounting_screw_plate() {
@@ -118,7 +144,7 @@ module mounting_screw_plate() {
         union() {
             block([x, y, z], center=ABOVE);
             translate(-disp_air_brush_relative_paint_pivot_cl) {
-                rod(d=barrel_clip_outside_diameter, l=barrel_clip_strap_length);
+                rod(d=barrel_clip_outside_diameter, l=barrel_clip_strap_length, fa=fa_shape);
             }
                 
         }
@@ -196,4 +222,46 @@ module paint_flow_servo_mount(show_servo) {
         }
     }
      
+}
+
+module paint_pull_rod() {
+    eps = 0.01;
+    paint_pull_pivot_allowance = paint_pivot_allowance;
+    pintle_length = paint_pull_rod_length/2+eps;
+    pintle(
+        paint_pivot_h, 
+        paint_pivot_w, 
+        pintle_length, 
+        paint_pull_pivot_allowance,
+        range_of_motion=[145, 180], 
+        pin= "M3 captured nut",
+        fa=fa_bearing);
+    
+    translate([paint_pull_rod_length, 0, 0])
+        rotate([0, 0, 180])
+            pintle(
+                paint_pivot_h, 
+                paint_pivot_w, 
+                pintle_length, 
+                paint_pull_pivot_allowance, 
+                range_of_motion=[145, 180],
+                pin= "M3 captured nut", 
+                fa=fa_bearing);
+     x = paint_pull_rod_length - 15; 
+     y = paint_pivot_w;
+     z = wall_thickness;
+     dz = paint_pivot_h/2; 
+     dx = paint_pull_rod_length/2;
+     translate([dx, 0, dz]) block([x, y, z], center=CENTER+BELOW);      
+}
+
+
+module connected_paint_pull_rod(angle=0) {
+    dx = 50; //paint_pivot_top_of_yoke - dx_paint_pull_gudgeon_offset;
+    dy = 0; //paint_pivot_cl_dy + dy_paint_pull_gudgeon_offset;
+    translate([dx, dy, 0]) {
+        rotate([0, angle, 0]) { 
+            paint_pull_rod();
+        }
+    }
 }

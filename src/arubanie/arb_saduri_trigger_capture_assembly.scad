@@ -41,11 +41,13 @@ infinity = 300;
 /* [ Build Or Design] */
     orient_for_build_example = true;
 
+/* [ Show ] */
 
+    show_paint_pivot_gudgeon_yoke = true;
+    show_scotch_yoke = true;
+    show_trigger_catch = true;
 
 /* [ Paint Gudgeon Design] */
-    show_paint_pivot_gudgeon_yoke = true;
-
     // Set to clear the trigger, at depressed with clearance for trigger cap.
     // But also need to allow air barrel clip to clear!
     paint_pivot_inner_height = 25;
@@ -66,19 +68,10 @@ infinity = 300;
     paint_pull_gudgeon_length = 30;  // [0:40]
     paint_pull_nutcatch_depth = 9;
     paint_pull_range_of_motion = [145,45];
-
-
-/* [Paint Pull Rod Design] */
-    show_paint_pull_rod = true;
-    paint_pull_rod_length = 54;
-
-    //paint_pull_rod_angle = 34; // [0: 5 : 40]
-    paint_pull_rod_color = "Orange"; // [DodgerBlue, Orange, Coral]
-    paint_pull_rod_alpha = 1; // [0:0.05:1]
-    
+ 
 
 /* [Air Flow Actuator Design] */
-    show_scotch_yoke = true;
+    
     show_scotch_yoke_mounting = true;
     show_air_flow_servo = false;
 
@@ -148,7 +141,7 @@ infinity = 300;
 
 /* [Trigger Catch Design] */
 
-    show_trigger_catch = true;
+
 
     trigger_shaft_diameter = 5;
     trigger_shaft_bore = trigger_shaft_diameter + 2 * scotch_yoke_radial_allowance;
@@ -186,7 +179,7 @@ scotch_yoke_mounting_instance =
         scotch_yoke_mounting_base_instance,
         frame_to_base=[0, dx_scotch_yoke - paint_pivot_top_of_yoke],
         screw_name="M3",
-        nuts=[false, true]);
+        nuts=[true, true]);
 
 
 show_gudgeon_assembly(
@@ -204,12 +197,7 @@ module show_gudgeon_assembly(orient_for_build, viewing_orientation) {
 
 module show_gudgeon_assembly_design_orientation(orient_for_build) {
 
-    if (show_paint_pull_rod) {
-        color(paint_pull_rod_color, alpha=paint_pull_rod_alpha) {
-            //angle = orient_for_build ? 0: paint_pull_rod_angle;
-            connected_paint_pull_rod(); //angle);
-        }
-    }
+
       
     if (show_paint_pivot_gudgeon_yoke) {
         color(paint_gudgeon_color, alpha=paint_gudgeon_alpha) {
@@ -469,46 +457,7 @@ module paint_pivot_gudgeon_yoke() {
 }
 
 
-module paint_pull_rod() {
-    paint_pull_pivot_allowance = paint_pivot_allowance;
-    pintle_length = paint_pull_rod_length/2+eps;
-    pintle(
-        paint_pivot_h, 
-        paint_pivot_w, 
-        pintle_length, 
-        paint_pull_pivot_allowance,
-        range_of_motion=[145, 180], 
-        pin= "M3 captured nut",
-        fa=fa_as_arg);
-    
-    translate([paint_pull_rod_length, 0, 0])
-        rotate([0, 0, 180])
-            pintle(
-                paint_pivot_h, 
-                paint_pivot_w, 
-                pintle_length, 
-                paint_pull_pivot_allowance, 
-                range_of_motion=[145, 180],
-                pin= "M3 captured nut", 
-                fa=fa_as_arg);
-     x = paint_pull_rod_length - 15; 
-     y = paint_pivot_w;
-     z = wall_thickness;
-     dz = paint_pivot_h/2; 
-     dx = paint_pull_rod_length/2;
-     translate([dx, 0, dz]) block([x, y, z], center=CENTER+BELOW);      
-}
 
-
-module connected_paint_pull_rod(angle=0) {
-    dx = paint_pivot_top_of_yoke - dx_paint_pull_gudgeon_offset;
-    dy = paint_pivot_cl_dy + dy_paint_pull_gudgeon_offset;
-    translate([dx, dy, 0]) {
-        rotate([0, angle, 0]) { 
-            paint_pull_rod();
-        }
-    }
-}
 
 
 

@@ -72,49 +72,47 @@ use <print_in_place_joints.scad>
 include <nutsnbolts-master/cyl_head_bolt.scad>
 
 fa_shape = 10;
-$fa = fa_shape;
-fa_as_arg = $fa;
 fa_bearing = 1;
 infintesimal = 0.01;
 
 /* [Logging] */
-log_verbosity_choice = "DEBUG"; // ["WARN", "INFO", "DEBUG"]
-verbosity = log_verbosity_choice(log_verbosity_choice); 
+    log_verbosity_choice = "DEBUG"; // ["WARN", "INFO", "DEBUG"]
+    verbosity = log_verbosity_choice(log_verbosity_choice); 
+
+
+/* [Dimensions] */
+    pin_diameter_ = 5;
+    range_of_travel_ = 6; // [0: 20]
+    radial_allowance_ = 0.4;
+    axial_allowance_ = 0.4;
+    wall_thickness_ = 3; // [2, 3, 4];
+    wall_height_ = 10; 
+    bearing_width_ = 4;
+    support_axle_ = [false, true];
 
 
 
-/* [Test Dimensions] */
-pin_diameter_ = 5;
-range_of_travel_ = 6; // [0: 20]
-radial_allowance_ = 0.4;
-axial_allowance_ = 0.4;
-wall_thickness_ = 3; // [2, 3, 4];
-wall_height_ = 10; 
-bearing_width_ = 4;
-support_axle_ = [false, true];
+/* [Mounting Configure] */
+    show_stationary_parts_ = true;
+    screw_name_ = "M3"; 
+    frame_to_base_right_ = 26; // [0:100]
+    frame_to_base_left_ = 26; // [0:100]
+    frame_to_base_ = [frame_to_base_right_, frame_to_base_left_];
 
-
-
-/* [Mounting Test] */
-show_stationary_parts_ = true;
-screw_name_ = "M3"; 
-frame_to_base_right_ = 26; // [0:100]
-frame_to_base_left_ = 26; // [0:100]
-frame_to_base_ = [frame_to_base_right_, frame_to_base_left_];
-
-nuts_right_ = false;
-nuts_left_ = true;
+    nuts_right_ = true;
+    nuts_left_ = true;
 
 
 
 /* [Rotation Test] */
-show_moving_parts_ = true;
-angle_ = 0; // [0 : 15: 360]
-extra_push_rod_right = 0; // [0:0.5:10]
-extra_push_rod_left = 0; // [0:0.5:10]
-extra_push_rod_=[extra_push_rod_right, extra_push_rod_left];
-use_dove_tails_ = [true, false];
-use_dove_tails_option_ = ["use_dove_tails", use_dove_tails_];
+    show_moving_parts_ = true;
+    angle_ = 0; // [0 : 15: 360]
+    extra_push_rod_right_ = 0; // [0:0.5:10]
+    extra_push_rod_left_ = 0; // [0:0.5:10]
+    extra_push_rod_=[extra_push_rod_right_, extra_push_rod_left_];
+    dove_tail_right_ = true;
+    dove_tail_left = false;
+    use_dove_tails_option_ = ["use_dove_tails", [dove_tail_right_, dove_tail_left]];
 
 
 
@@ -848,7 +846,7 @@ function scotch_yoke_mounting(
         use_nuts = is_undef(nuts) ? [false, false] : nuts,
         //Enough for the nut catchs (should depend on screw name!)
         plate_thickness = 
-            [ for (i = [0, 1])  use_nuts[i] ? 7 : wall_thickness ],
+            [ for (i = [0, 1])  use_nuts[i] ? 5.5 : wall_thickness ],
         y_servo = 24,
         y_servo_offset = 6,
         y_servo_pillar = 4,
@@ -901,7 +899,7 @@ function scotch_yoke_mounting(
 
 module scotch_yoke_frame(self, log_verbosity=INFO) {
                         
-    function plate_thickness_for_screw(screw_name) = screw_name=="M3" ? 7 : assert(false); 
+    //function plate_thickness_for_screw(screw_name) = screw_name=="M3" ? 5 : assert(false); 
     function member(name) = find_in_dct(self, name);
          
     frame = member("frame");
@@ -929,71 +927,76 @@ module scotch_yoke_frame(self, log_verbosity=INFO) {
     screw_offset = pin_diameter/2 + shaft_clearance;
     x_plate_minus = screw_offset  + shaft_clearance + wall_thickness;
 
-    for (i = [0, 1]) {
-        if (frame_to_base[i] > 0) {
-            base(i);
-            bearing_wall(i); 
-            servo_wall(i);
+    for (side = [0, 1]) {
+        if (frame_to_base[side] > 0) {
+            base(side);
+            bearing_wall(side); 
+            servo_wall(side);
         }
     }
    
-    module base(i) {
-        side_sign = [1, -1][i];
-        hand = [LEFT, RIGHT][i];
+    module base(side) {
+        side_sign = [1, -1][side];
+        hand = [LEFT, RIGHT][side];
         x_b = x_plate_minus;
         x_f = x_servo_mount;
-        y = plate_thickness[i];
+        y = plate_thickness[side];
         z = wall_height;
         
-        translate([0, side_sign*frame_to_base[i], 0]) {
-            bore_for_nuts_and_push_rod(use_nuts[i]) {
+        translate([0, side_sign*frame_to_base[side], 0]) {
+            bore_for_nuts_and_push_rod(use_nuts[side], side=side) {
                 color("lime") block([x_b, y, z], center=ABOVE+hand+BEHIND, rank=8);
                 color("yellow") block([x_f, y, z], center=ABOVE+hand+FRONT, rank=8);
             }
         }
     }
     
-    module bearing_wall(i) {
-        side_sign = [1, -1][i];
-        hand = [RIGHT, LEFT][i];
+    module bearing_wall(side) {
+        side_sign = [1, -1][side];
+        hand = [RIGHT, LEFT][side];
         dx = dx_bearing_outside;
-        dy = y_bearing/2;
+        dy = side_sign * y_bearing/2;
         color("gray") { 
-            y_bearing_wall = frame_to_base[i] - plate_thickness[i] - y_bearing/2;
+            y_bearing_wall = frame_to_base[side] - plate_thickness[side] - y_bearing/2;
             size = [wall_thickness, y_bearing_wall, wall_height];
             center_reflect([1, 0, 0]) {
-                translate([dx, side_sign * dy, 0]) {
+                translate([dx, dy, 0]) {
                     block(size, center=ABOVE+hand+BEHIND, rank=3+10);
                 }
             }
         }
     }
     
-    module servo_wall(i) {
+    module servo_wall(side) {
         color("orange") { 
-            side_sign = [1, -1][i];
-            hand = [RIGHT, LEFT][i];
+            side_sign = [1, -1][side];
+            hand = [RIGHT, LEFT][side];
             dx = x_servo_mount;
-            dy = side_sign * y_servo_cl_to_pillar_outside[i];
+            dy = side_sign * y_servo_cl_to_pillar_outside[side];
             translate([dx, dy, 0]) {
-                block(servo_wall[i], center=ABOVE+hand+BEHIND, rank=3);
+                block(servo_wall[side], center=ABOVE+hand+BEHIND, rank=3);
             }
         }
     }
 
-    module nutcatch_clearance() {
-        nut_thickness = 2.18; // TODO extract for family
-        
-        y = plate_thickness_for_screw(screw_name);
+    module nutcatch_clearance(side) {
+        assert(is_num(side));
+        side_sign = [1, -1][side];
+        y = plate_thickness[side]; // plate_thickness_for_screw(screw_name);
         dz_hole = y; // different coordinate systems
         log_verbosity = INFO;
-        dx = screw_offset;
-        dy = y/2 - nut_thickness/2;
+        //dx = screw_offset;
+        // 2 millimeters is strong enough, and we want to keep 
+        // the screw length of screw an even number for metric screws. 
+        dy = - side_sign * 2; 
+                
         dz = wall_height/2;
-        center_reflect([1, 0, 0]) {
+        rotation = [[-90, -90, 0], [90, -90, 0]][side];
+        for (i = [-1: 2: 3]) let(dx = i*screw_offset) {
             translate([dx, dy, dz]) {
-                rotate([90, -90, 0]) {
+                rotate(rotation) {
                     nutcatch_sidecut(name=screw_name);
+                    $fn=12;
                     translate([0, 0, dz_hole]) hole_through(name=screw_name);
                 }
             }
@@ -1002,15 +1005,16 @@ module scotch_yoke_frame(self, log_verbosity=INFO) {
     
     module push_rod_clearance() {
         translate([0, 0, push_rod_height]) {
-            rod(d=push_rod_bore, l=50, center=SIDEWISE);
+            rod(d=push_rod_bore, l=50, center=SIDEWISE, fa=fa_shape);
         }
     }
     
-    module bore_for_nuts_and_push_rod(screw_name, nuts=true) {
+    module bore_for_nuts_and_push_rod(screw_name, nuts=true, side=undef) {
+        assert(is_num(side));
         difference() {
             children();
             if (nuts) {
-                nutcatch_clearance();
+                nutcatch_clearance(side);
             }
             push_rod_clearance();
         }
