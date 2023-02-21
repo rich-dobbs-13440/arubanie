@@ -59,6 +59,10 @@ function find_in_set(set, key) =
     )
     assert(len(finds)<=1) 
     (len(finds) == 1);
+
+function join(v_of_str, i=0) = 
+    (i == len( v_of_str) - 1) ? v_of_str[i] :
+    str(v_of_str[i], join(v_of_str, i+1));
         
 module construct_plane(vector, orientation, extent=100) {
     axis_offset = v_o_dot(vector, orientation);
@@ -82,5 +86,52 @@ module display_displacement(displacement, barb_color="black", shaft_color="black
         translate(displacement) sphere(eps);
         translate(displacement_minus_barb) sphere(barb_diameter);
     }
-
 }
+
+
+    module customizer_items_to_checkboxes(items, suffix="_", list_name=undef, tab_name=undef, log_verbosity=INFO) {
+        
+        signature = "customizer_items_to_checkboxes(items, suffix=\"_\", list_name=undef, tab_name=undef)";
+        assert_msg = str("Missing or bad argument.  The usage should be:          ", signature);
+        assert(is_list(items), assert_msg);
+        assert(is_string(list_name), assert_msg);
+        
+        /* Want something like this:
+        show_screw_pilot_holes_shl = false;
+        show_screw_access_clearance_shl = false;
+               
+        new_debug_items_shl = [ 
+            show_screw_pilot_holes_shl ? "screw_pilot_holes" : "",
+            show_screw_access_clearance_shl ? "screw_pilot_holes" : "",
+        ]; 
+        */
+        function indent(level) = join([ for (i = [0:level-1]) "    "]);
+            
+        function tab_line() = is_undef(tab_name) ? "" : ["<p>/* [ ", tab_name, " ] */</p>"];
+        function show_var(option) = str(indent(1), "show_", option, suffix);
+        function check_box_lines()  = [
+           for (item = items) str("<p>", show_var(item), " = false;</p>")
+        ];
+        function start_variable_assignment() = concat([indent(1)], [list_name, suffix, " = ["]);
+        function list_value_line(item) = str("<p>", indent(2), show_var(item), " ? \"", item, "\" : \"\",</p>");
+        function check_box_values_to_list_value() = [
+           for (item = items) list_value_line(item)
+        ];
+        function close_variable_assignment() = ["<p>", indent(1), "];</p>"];
+        
+                   
+        all_lines = concat(
+           ["<p>...</p><pre>"],
+           tab_line(),
+           check_box_lines(),
+           start_variable_assignment(),
+           check_box_values_to_list_value(),
+           close_variable_assignment(),
+           ["</pre>"],
+           ["<p>...</p>"]
+        );
+           
+        text_block = join(all_lines);  
+          
+        log_s("Add this to your customizer section", text_block, log_verbosity, DEBUG); 
+    }

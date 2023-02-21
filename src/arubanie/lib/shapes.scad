@@ -139,6 +139,8 @@ module can(d,h, center=0, hollow=false, taper=false, rank=1, fa=undef) {
 }
 
 module crank(size, hole=false, center=0, rotation=0, rank=1, fa=undef) {
+    signature = "crank(size, hole=false, center=0, rotation=0, rank=1, fa=undef)";
+    assert(is_list(size), str("Missing argument. Signature is ", signature));
     function swell(w=0) = w + 2*rank*eps;
     function swell_inward(w=0) = w - 2*rank*eps; 
     $fa = is_undef(fa) ? $fa : fa;
@@ -224,6 +226,8 @@ module _visual_test_for_crank() {
     translate([0, 80, 0]) crank([10, 4, 4], hole=2, rotation=RIGHT);
 
     translate([0, 100, 0]) crank([10, 4, 4], hole=2, rotation=ABOVE+RIGHT);
+    
+    
     
 }
 

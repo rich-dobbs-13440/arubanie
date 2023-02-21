@@ -28,6 +28,9 @@ Notes:
     at the front of the mounting.surface.
 
 */
+
+//   Line Ruler   20        30        40        50        60        70        80        90       100
+
 include <logging.scad>
 include <centerable.scad>
 use <not_included_batteries.scad>
@@ -38,71 +41,102 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 use <small_pivot_vertical_rotation.scad>
 
 /* [Boiler Plate] */
-fa_shape = 10;
-fa_bearing = 2;
-infinity = 300;
-
+    fa_shape = 10;
+    fa_bearing = 2;
+    infinity = 300;
 
 /* [Logging] */
-log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
-verbosity = log_verbosity_choice(log_verbosity_choice); 
-
+    log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+    verbosity = log_verbosity_choice(log_verbosity_choice); 
 
 /* [Show] */
-show__sub_micro_servo__mounting = true;
-show__sub_micro_servo__mount_to_axle = true;
-show__sub_micro_servo__single_horn_long = true;
-show__sub_micro_servo__radial_stall_limiter = true;
+    show__sub_micro_servo__mounting = true;
+    show__sub_micro_servo__mount_to_axle = true;
+    show__sub_micro_servo__single_horn_long = true;
+    show__sub_micro_servo__radial_stall_limiter = true;
 
-dy_spacing = 50; // [40:5:99.9]
+    dy_spacing = 50; // [40:5:99.9]
 
-dy_mounting = 0 + 0;
-dy_mount_to_axle = 
-    dy_mounting 
-    + (show__sub_micro_servo__mounting ? dy_spacing : 0);
-dy_single_horn_long = 
-    dy_mount_to_axle
-    + (show__sub_micro_servo__mount_to_axle ? dy_spacing : 0); 
-dy_radial_stall_limiter = 
-    dy_single_horn_long
-    + (show__sub_micro_servo__single_horn_long ? dy_spacing : 0); 
-
-    
+    dy_mounting = 0 + 0;
+    dy_mount_to_axle = 
+        dy_mounting 
+        + (show__sub_micro_servo__mounting ? dy_spacing : 0);
+    dy_single_horn_long = 
+        dy_mount_to_axle
+        + (show__sub_micro_servo__mount_to_axle ? dy_spacing : 0); 
+    dy_radial_stall_limiter = 
+        dy_single_horn_long
+        + (show__sub_micro_servo__single_horn_long ? dy_spacing : 0); 
+ 
 /* [Options for sub_micro_servo__mounting  Module] */
-show_with_servo_mtg = false;
-show_with_back_mtg = false; 
-show_offset_relative_to_servo_mtg = false;
-
+    show_with_servo_mtg = false;
+    show_with_back_mtg = false; 
+    show_offset_relative_to_servo_mtg = false;
 
 /* [Options for sub_micro_servo__mount_to_axle  Module] */
-angle_mta = 0; // [-180: 5: +180]
-axle_height_mta  = 18.5; // [6: 0.5: 20]
-axle_diameter_mta  = 4; // [2: 1: 20]
-wall_height_mta  = 6; // [2: 1: 20]
-radial_allowance_mta  = 0.4; // [0 : 0.2 : 10]
-axial_allowance_mta  = 0.4; // [0 : 0.2 : 10]
-wall_thickness_mta  = 2; // [2: 0.5: 10]
-
+    angle_mta = 0; // [-180: 5: +180]
+    axle_height_mta  = 18.5; // [6: 0.5: 20]
+    axle_diameter_mta  = 4; // [2: 1: 20]
+    wall_height_mta  = 6; // [2: 1: 20]
+    radial_allowance_mta  = 0.4; // [0 : 0.2 : 10]
+    axial_allowance_mta  = 0.4; // [0 : 0.2 : 10]
+    wall_thickness_mta  = 2; // [2: 0.5: 10]
 
 /* [Options for show__sub_micro_servo__single_horn_long  Module] */
-show_default_shl = true;
-show_nutcatch_extension_shl = true;
-allowance_shl = 0.4;
-// Debugging items
-debug_1_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
-debug_2_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
-debug_3_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
-debug_4_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
-debug_5_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
-debug_6_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
-debug_7_shl = ""; //  ["", "screw_pilot_holes", "screw_access_clearance", "nutcatch_clearance", "servo_hub_clearance", "slot_clearance", "catch_clearance", "arm_blank", "nutcatch_extension_blank"]
-debug_items_shl = [debug_1_shl, debug_2_shl, debug_3_shl, debug_4_shl, debug_5_shl, debug_6_shl, debug_7_shl]; 
+    show_default_shl = true;
+    show_nutcatch_extension_shl = true;
+    allowance_shl = 0.4;
+    
+    // Debugging items
+
+
+    
+//    new_debug_items_shl = [ 
+//        show_screw_pilot_holes_shl ? "screw_pilot_holes" : "",
+//        show_screw_access_clearance_shl ? "screw_pilot_holes" : "",
+//    ];
+    
+/* [ Debug Options for sub_micro_servo__single_horn_long Module ] */
+    show_screw_pilot_holes_shl = false;
+    show_screw_access_clearance_shl = false;
+    show_nutcatch_clearance_shl = false;
+    show_servo_hub_clearance_shl = false;
+    show_slot_clearance_shl = false;
+    show_catch_clearance_shl = false;
+    show_arm_blank_shl = false;
+    show_nutcatch_extension_blank_shl = false;
+    debug_items_shl = [
+            show_screw_pilot_holes_shl ? "screw_pilot_holes" : "",
+            show_screw_access_clearance_shl ? "screw_access_clearance" : "",
+            show_nutcatch_clearance_shl ? "nutcatch_clearance" : "",
+            show_servo_hub_clearance_shl ? "servo_hub_clearance" : "",
+            show_slot_clearance_shl ? "slot_clearance" : "",
+            show_catch_clearance_shl ? "catch_clearance" : "",
+            show_arm_blank_shl ? "arm_blank" : "",
+            show_nutcatch_extension_blank_shl ? "nutcatch_extension_blank" : "",
+    ];
+
+/* [Dimensions for Crank Extension] */
+    show_crank_extension_shl = true;
+    
+    crank_angle_shl_ce = -44;
+    crank_length_shl_ce = 15;
+    crank_width_shl_ce = 3.81;
+    crank_height_shl_ce = 8;
+    hole_shl_ce = 2.81; // "M3";
+    options_shl_ce = [
+        crank_angle_shl_ce,
+        crank_length_shl_ce,
+        crank_width_shl_ce,
+        crank_height_shl_ce,
+        hole_shl_ce,
+    ];
 
 
 /* [Options for sub_micro_servo__radial_stall_limiter  Module] */
-//spring_offset_angle_rsl = 15; // [-45 : 0.5: 45]
-//x_right_gudgeon_clearance_rsl = 7.5; // [-1 : 0.5: 10]
-//spring_coverage_angle_rsl = 330; // [270 : 0.5: 360]
+    //spring_offset_angle_rsl = 15; // [-45 : 0.5: 45]
+    //x_right_gudgeon_clearance_rsl = 7.5; // [-1 : 0.5: 10]
+    //spring_coverage_angle_rsl = 330; // [270 : 0.5: 360]
 
 
 end_of_customization() {}
@@ -173,9 +207,11 @@ if (show__sub_micro_servo__single_horn_long) {
             sub_micro_servo__single_horn_long(allowance=al, log_verbosity=verbosity);
         }
         if (show_nutcatch_extension_shl) {
-            sub_micro_servo__single_horn_long(items=["nutcatch_extension"], allowance=al, log_verbosity=verbosity);
+            sub_micro_servo__single_horn_long(
+                items=["nutcatch_extension"], allowance=al, log_verbosity=verbosity);
         }
-        sub_micro_servo__single_horn_long(items=debug_items_shl, allowance=al, log_verbosity=verbosity);
+        sub_micro_servo__single_horn_long(
+            items=debug_items_shl, allowance=al, log_verbosity=verbosity);
     }
 }
 
@@ -198,10 +234,24 @@ module sub_micro_servo__pilot_hole() {
 }
 
 
-module sub_micro_servo__single_horn_long(allowance=0.4, items=["default"], log_verbosity=INFO) {
-    
+module sub_micro_servo__single_horn_long(
+        allowance=0.4, 
+        items=["default"],
+        options=[],
+        log_verbosity=INFO) {
+            
     log_s("allowance", allowance, log_verbosity, DEBUG);
     log_s("items", items, log_verbosity, DEBUG);
+            
+    function option(name, required=false) = 
+        let(
+            result = find_in_dct(options, name),
+            dummy = required ? 
+                assert(!is_undef(result), str("Require option not found: ", name)) : 
+                undef,
+            last = undef
+        )
+        result;
     
     d_out_hub = 5.72;
     d_inner_hub = 3.81;
@@ -209,8 +259,11 @@ module sub_micro_servo__single_horn_long(allowance=0.4, items=["default"], log_v
     d_arm_end = 3.83;
     h_arm = 1.96;
     r_arm = 25.1;
+    screw_driver_diameter = 5; // For accessing servo
+    servo_screw_head = 3.7;
     screw_diameter = 1.5;
     slot_width = 1.54;
+    
     wall_thickness = 2;
     base_thickness = 1;
     catch_thickness = 1.5;
@@ -225,6 +278,10 @@ module sub_micro_servo__single_horn_long(allowance=0.4, items=["default"], log_v
     if (want("nutcatch_extension")) {
         color("DarkTurquoise") nutcatch_extension(); 
     }
+    if (want("crank_extension")) {
+        color("PaleTurquoise")  crank_extension();
+    }
+    
     // These items are for debugging - Order them from inside to outside
     if (want("screw_pilot_holes")) {
         color("brown") screw_pilot_holes();
@@ -238,25 +295,25 @@ module sub_micro_servo__single_horn_long(allowance=0.4, items=["default"], log_v
     if (want("nutcatch_clearance")) {
         color("yellow", alpha=0.25) nutcatch_clearance(side_cuts=true);
     }
-    if (want("servo_hub_clearance")) {
-        color("pink", alpha=0.25)  servo_hub_clearance();
-    }
+
     if (want("slot_clearance")) {
-        color("pink", alpha=0.25)  slot_clearance();
+        color("gray", alpha=0.25)  slot_clearance();
     }
     if (want("catch_clearance")) {
-        color("pink", alpha=0.25)  catch_clearance();
+        color("Indigo", alpha=0.25)  catch_clearance();
+    }
+    if (want("servo_hub_clearance")) {
+        color("pink", alpha=0.25)  servo_hub_clearance();
     }
     if (want("arm_blank")) {
         color("purple", alpha=0.25) arm_blank();
     } 
     if (want("nutcatch_extension_blank")) {
-        color("purple", alpha=0.25) arm_blank();
+        color("Aqua", alpha=0.25) nutcatch_extension_blank();
     } 
 
     // TODO verify that items are possible
     debug_options = [
-        "", 
         "screw_pilot_holes",
         "screw_access_clearance",
         "nutcatch_clearance", 
@@ -266,6 +323,14 @@ module sub_micro_servo__single_horn_long(allowance=0.4, items=["default"], log_v
         "arm_blank", 
         "nutcatch_extension_blank",  
     ];
+    
+    customizer_items_to_checkboxes(
+        items=debug_options, 
+        suffix = "_shl",
+        list_name="debug_items",
+        tab_name="Debug Options for sub_micro_servo__single_horn_long Module",
+        log_verbosity=log_verbosity);
+    
     echo("log_verbosity", log_verbosity);
     log_s("Debugging options", debug_options, log_verbosity, DEBUG);
 
@@ -277,6 +342,26 @@ module sub_micro_servo__single_horn_long(allowance=0.4, items=["default"], log_v
             slot_clearance();
             catch_clearance();
             servo_hub_clearance();
+        }
+    }
+
+    module crank_extension() {
+        module crank_body() {
+            crank_length = option("crank_length", required=true);
+            crank_width = option("crank_width", required=true);
+            crank_height = option("crank_height", required=true);
+            crank_angle = option("crank_angle", required=true);
+            hole = option("hole");
+            size = [crank_length, crank_width, crank_height];
+            rotate([0, 0, crank_angle]) 
+                translate([crank_length, 0, crank_width/2]) 
+                    rotate([90, 0, 180]) 
+                        crank(size, hole=hole, rank=-3);
+        }
+        render() difference() {
+            crank_body();
+            arm_blank();
+            
         }
     }
     
@@ -311,8 +396,7 @@ module sub_micro_servo__single_horn_long(allowance=0.4, items=["default"], log_v
  
     module servo_screw_access_clearance(with_screw_driver=false) {
        // Access to center screw
-        screw_head = 2.5;
-        d = with_screw_driver ? 5: screw_head;
+        d = with_screw_driver ? screw_driver_diameter: servo_screw_head;
         can(d=d, h=50, fa=fa_shape);
     }
   
@@ -521,7 +605,7 @@ module sub_micro_servo__mount_to_axle(
     log_s("wall_thickness", wall_thickness, log_verbosity, DEBUG);        
     log_s("angle", axle_diameter, log_verbosity, DEBUG);
     log_s("log_verbosity", log_verbosity, log_verbosity, DEBUG);
-            
+                  
     fa_shape = 10;
     fa_bearing = 1;
             
