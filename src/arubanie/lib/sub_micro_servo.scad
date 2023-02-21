@@ -120,8 +120,8 @@ use <small_pivot_vertical_rotation.scad>
     ];
 
 /* [Dimensions for Crank Extension] */
-    crank_offset_to_right = true; 
-    crank_length_shl_ce = 15; // [0: 1: 99.9] 
+    crank_offset_to_right = false; 
+    crank_length_shl_ce = 15; // [10: 1: 99.9] 
     crank_width_shl_ce = 3.81;
     crank_height_shl_ce = 8;
     hole_shl_ce = 2.81; // "M3";
@@ -376,6 +376,7 @@ module sub_micro_servo__single_horn_long(
                 signed_angle = offset_to_right ? angle : -angle,
                 last=undef
             )
+            assert(is_num(angle), str("Minimum possible crank length is ", dy_crank))
             signed_angle;
         
         module crank_body() {
