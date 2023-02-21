@@ -85,6 +85,7 @@ use <small_pivot_vertical_rotation.scad>
 /* [Options for show__sub_micro_servo__single_horn_long  Module] */
     show_default_shl = true;
     show_nutcatch_extension_shl = true;
+    show_crank_extension_shl = true;
     allowance_shl = 0.4;
     
     // Debugging items
@@ -105,6 +106,7 @@ use <small_pivot_vertical_rotation.scad>
     show_catch_clearance_shl = false;
     show_arm_blank_shl = false;
     show_nutcatch_extension_blank_shl = false;
+    show_generate_updated_debug_options_shl = false;
     debug_items_shl = [
             show_screw_pilot_holes_shl ? "screw_pilot_holes" : "",
             show_screw_access_clearance_shl ? "screw_access_clearance" : "",
@@ -114,22 +116,21 @@ use <small_pivot_vertical_rotation.scad>
             show_catch_clearance_shl ? "catch_clearance" : "",
             show_arm_blank_shl ? "arm_blank" : "",
             show_nutcatch_extension_blank_shl ? "nutcatch_extension_blank" : "",
+            show_generate_updated_debug_options_shl ? "generate_updated_debug_options" : "",
     ];
 
 /* [Dimensions for Crank Extension] */
-    show_crank_extension_shl = true;
-    
-    crank_angle_shl_ce = -44;
-    crank_length_shl_ce = 15;
+    crank_offset_to_right = true; 
+    crank_length_shl_ce = 15; // [0: 1: 99.9] 
     crank_width_shl_ce = 3.81;
     crank_height_shl_ce = 8;
     hole_shl_ce = 2.81; // "M3";
     options_shl_ce = [
-        crank_angle_shl_ce,
-        crank_length_shl_ce,
-        crank_width_shl_ce,
-        crank_height_shl_ce,
-        hole_shl_ce,
+        ["crank_offset_to_right", crank_offset_to_right],
+        ["crank_length", crank_length_shl_ce],
+        ["crank_width", crank_width_shl_ce],
+        ["crank_height", crank_height_shl_ce],
+        ["crank_hole", hole_shl_ce],
     ];
 
 
@@ -210,6 +211,13 @@ if (show__sub_micro_servo__single_horn_long) {
             sub_micro_servo__single_horn_long(
                 items=["nutcatch_extension"], allowance=al, log_verbosity=verbosity);
         }
+        if (show_crank_extension_shl) {
+            sub_micro_servo__single_horn_long(
+                items=["crank_extension"], 
+                allowance=al, 
+                options=options_shl_ce, 
+                log_verbosity=verbosity);
+        }
         sub_micro_servo__single_horn_long(
             items=debug_items_shl, allowance=al, log_verbosity=verbosity);
     }
@@ -269,6 +277,10 @@ module sub_micro_servo__single_horn_long(
     catch_thickness = 1.5;
     blank_h_allowance = base_thickness + catch_thickness;
     blank_d_allowance = wall_thickness;
+    arm_max_width = d_out_hub + 2*blank_d_allowance;
+    arm_length = r_arm + d_arm_end/2 + blank_d_allowance;
+    
+    crank_clearance = 1;
  
     function want(name) = in_list(items, name);
     
@@ -311,6 +323,9 @@ module sub_micro_servo__single_horn_long(
     if (want("nutcatch_extension_blank")) {
         color("Aqua", alpha=0.25) nutcatch_extension_blank();
     } 
+    if (want("generate_updated_debug_options")) {
+        generate_updated_debug_options();
+    } 
 
     // TODO verify that items are possible
     debug_options = [
@@ -321,18 +336,19 @@ module sub_micro_servo__single_horn_long(
         "slot_clearance", 
         "catch_clearance", 
         "arm_blank", 
-        "nutcatch_extension_blank",  
+        "nutcatch_extension_blank",
+        "generate_updated_debug_options",
     ];
-    
-    customizer_items_to_checkboxes(
-        items=debug_options, 
-        suffix = "_shl",
-        list_name="debug_items",
-        tab_name="Debug Options for sub_micro_servo__single_horn_long Module",
-        log_verbosity=log_verbosity);
-    
-    echo("log_verbosity", log_verbosity);
     log_s("Debugging options", debug_options, log_verbosity, DEBUG);
+    
+    module generate_updated_debug_options() {
+        customizer_items_to_checkboxes(
+            items=debug_options, 
+            suffix = "_shl",
+            list_name="debug_items",
+            tab_name="Debug Options for sub_micro_servo__single_horn_long Module",
+            log_verbosity=DEBUG);
+    }
 
     module arm_holder(allowance) {
         difference() {
@@ -346,14 +362,25 @@ module sub_micro_servo__single_horn_long(
     }
 
     module crank_extension() {
+        crank_length = option("crank_length", required=true);
+        crank_width = option("crank_width", required=true);
+        crank_height = option("crank_height", required=true);
+        hole = option("crank_hole");
+        offset_to_right = option("crank_offset_to_right", required=true);
+        function crank_angle() = 
+            let (
+                arm_clearance_length = arm_length + crank_clearance + crank_width/2,
+                must_offset = crank_length < arm_clearance_length,
+                dy_crank = crank_height/2 + arm_max_width/2 + crank_clearance,
+                angle = must_offset ? asin(dy_crank/crank_length) : 0,
+                signed_angle = offset_to_right ? angle : -angle,
+                last=undef
+            )
+            signed_angle;
+        
         module crank_body() {
-            crank_length = option("crank_length", required=true);
-            crank_width = option("crank_width", required=true);
-            crank_height = option("crank_height", required=true);
-            crank_angle = option("crank_angle", required=true);
-            hole = option("hole");
             size = [crank_length, crank_width, crank_height];
-            rotate([0, 0, crank_angle]) 
+            rotate([0, 0, crank_angle()]) 
                 translate([crank_length, 0, crank_width/2]) 
                     rotate([90, 0, 180]) 
                         crank(size, hole=hole, rank=-3);
@@ -706,7 +733,9 @@ module sub_micro_servo__mount_to_axle(
         screw_offset = 2;
         difference() {
             block(size_pillar, center=BEHIND+ABOVE+RIGHT);
-            translate([1, screw_offset, axle_height]) rotate([0, 180, 0]) sub_micro_servo__pilot_hole();
+            translate([1, screw_offset, axle_height]) 
+                rotate([0, 180, 0]) 
+                    sub_micro_servo__pilot_hole();
         }
     }
 
