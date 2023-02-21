@@ -1,28 +1,54 @@
 /* 
 
-9g micro servo mounting.
+9g sub micro servo mounting.
 
 Usage:
 
 use <lib/sub_micro_servo.scad>
-use <lib/9g_servo.scad>
 
-sub_micro_servo_mounting(include_children=if_designing) {
-    9g_motor_centered_for_mounting();
-}
 
-sub_micro_servo_mount_to_axle(
-        axle_diameter=4, 
-        axle_height= 10,
-        wall_height=6,
-        radial_allowance=0.4, 
-        axial_allowance=0.4, 
-        wall_thickness=2, 
-        angle = 0);
+sub_micro_servo__mounting(
+    screw_offset=1.5, 
+    clearance = [0.5, 1, 1],
+    omit_top=true, 
+    omit_base=false,
+    mount=FRONT, //LEFT, FRONT, BACK
+    locate_relative_to="SERVO", // "SERVO", "MOUNTING SURFACE
+    show_servo=false,
+    flip_servo=false,
+    log_verbosity=verbosity);
+
+sub_micro_servo__mount_to_axle(
+    axle_diameter=4, 
+    axle_height= 10,
+    wall_height=6,
+    radial_allowance=0.4, 
+    axial_allowance=0.4, 
+    wall_thickness=2, 
+    angle = 0,
+    log_verbosity=verbosity);
+        
+        
+sub_micro_servo__mounting(
+    mount=RIGHT, 
+    locate_relative_to="SERVO",  
+    show_servo=true,
+    flip_servo=false,
+    log_verbosity=verbosity);
+        
+sub_micro_servo__single_horn_long(
+    allowance=al, 
+    log_verbosity=verbosity);
+    
+sub_micro_servo__single_horn_long(
+    items=["nutcatch_extension"], 
+    allowance=al, 
+    log_verbosity=verbosity);
 
 
 Notes:  
-
+    This note may be obsolete!  Must confirm:
+    
     For sub_micro_servo__mounting, the default origin is at the 
     half way between the two mounting screws,
     at the front of the mounting.surface.
@@ -243,7 +269,7 @@ module sub_micro_servo__pilot_hole() {
 
 
 module sub_micro_servo__single_horn_long(
-        allowance=0.4, 
+        allowance=0.2, 
         items=["default"],
         options=[],
         log_verbosity=INFO) {
@@ -491,6 +517,7 @@ module sub_micro_servo__mounting(
         screw_offset=1.5, 
         clearance = [0.5, 1, 1],
         omit_top=true, 
+        omit_base=false,
         mount=FRONT, //LEFT, FRONT, BACK
         locate_relative_to="SERVO", // "SERVO", "MOUNTING SURFACE
         show_servo=false,
@@ -532,7 +559,7 @@ module sub_micro_servo__mounting(
                 translate([extent.x/2, 0, 0]) {
                     back_wall(extent, servo_clearance, remainder);
                     screw_blocks(screw_offset, extent, servo_clearance, remainder);
-                    base_and_top(extent, servo_clearance, remainder, omit_top);
+                    base_and_top(extent, servo_clearance, remainder, omit_top, omit_base);
                 }
             }   
         if (show_servo) {
@@ -542,7 +569,7 @@ module sub_micro_servo__mounting(
         }
     }
 
-    module base_and_top(extent, servo_clearance, remainder, omit_top) {
+    module base_and_top(extent, servo_clearance, remainder, omit_top, omit_base) {
         base = [
             extent.x, 
             extent.y,
@@ -550,8 +577,10 @@ module sub_micro_servo__mounting(
         ];
         dz_base = -servo_clearance.z/2- base.z/2;
         
-        translate([0, 0, dz_base]) 
-        cube(base, center=true);
+        if (!omit_base) {
+            translate([0, 0, dz_base]) 
+                cube(base, center=true);
+        }
 
         if (!omit_top) {
             translate([0, 0, -dz_base]) 

@@ -448,7 +448,7 @@ module scotch_yoke_servo_mounting(self, angle, options, log_verbosity) {
 
     display(coloring("servo_mount")) {
         translate([dx_bearing_outside, 0, axle_height]) {
-            sub_micro_servo_mount_to_axle(
+            sub_micro_servo__mount_to_axle(
                 axle_diameter=pin_diameter, 
                 axle_height=axle_height,
                 wall_height=wall_height,
