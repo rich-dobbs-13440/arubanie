@@ -28,8 +28,22 @@ infinity = 100;
 show_half_slide = false;
 show_trigger_catch = true;
 
+/* [Catch Design] */
+catch_grip_ = 50; // [0:5:99.9]
+
 
 module end_of_customization() {}
+
+if (show_trigger_catch) {
+    color("Salmon") master_air_brush_trigger_catch(catch_grip_);
+}
+
+if (show_half_slide) {
+    lip_dr_scale = 0.25; // lose (0.375 is tight)
+    pad_diameter = master_air_brush("trigger pad diameter");
+    pad_height = master_air_brush("trigger pad thickness");
+    half_slide(pad_diameter, pad_height, length=10, lip_dr_scale=lip_dr_scale);
+}
 
 module catch_profile(pad_diameter, pad_height, lip_dr_scale) {
     r_pd = pad_diameter/2;
@@ -58,13 +72,6 @@ module half_slide(pad_diameter, pad_height, length, lip_dr_scale) {
     }
 }
 
-if (show_half_slide) {
-    lip_dr_scale = 0.25; // lose (0.375 is tight)
-    pad_diameter = master_air_brush("trigger pad diameter");
-    pad_height = master_air_brush("trigger pad thickness");
-    half_slide(pad_diameter, pad_height, length=10, lip_dr_scale=lip_dr_scale);
-}
-
 module pin() {
     dz = pin_offset;
     translate([0, 0, dz]) rotate([0, 90, 0]) cylinder(h=40, d=pin_hole_diameter, center=true);
@@ -86,31 +93,35 @@ module half_air_slider() {
     }  
 }
 
-module trigger_catch(pad_diameter, pad_height, lip_dr_scale) {
-    // Cap
-    rotate_extrude(angle = 180, convexity = 2) 
-        catch_profile(pad_diameter, pad_height, lip_dr_scale);
+module trigger_catch(pad_diameter, pad_height, lip_dr_scale, catch_grip) {
+    assert(is_num(catch_grip));
+    angle = 180 + catch_grip;
+    rotate([0, 0, -catch_grip/2]) {
+        rotate_extrude(angle=angle, convexity = 2) {
+            catch_profile(pad_diameter, pad_height, lip_dr_scale);
+        }
+    }
     length = 0.5 * pad_diameter+eps;
-    translate([-eps, eps, 0])  
+    center_reflect([1, 0, 0]) { 
         rotate([90,0,0]) 
-            half_slide(pad_diameter, pad_height, length, lip_dr_scale);   
-    mirror([eps,0,0]) 
-        translate([-eps, eps, 0]) 
-            rotate([90,0,0]) 
-                half_slide(pad_diameter, pad_height, length, lip_dr_scale);
+            half_slide(pad_diameter, pad_height, length, lip_dr_scale); 
+    }  
+//    mirror([eps,0,0]) 
+//        translate([-eps, eps, 0]) 
+//            rotate([90,0,0]) 
+//                #half_slide(pad_diameter, pad_height, length, lip_dr_scale);
 }
 
-module master_air_brush_trigger_catch() {
+module master_air_brush_trigger_catch(catch_grip=0) {
+    assert(is_num(catch_grip));
     lip_dr_scale = 0.25; // lose (0.375 is tight)
     pad_diameter = master_air_brush("trigger pad diameter");
     pad_height = master_air_brush("trigger pad thickness");
-    trigger_catch(pad_diameter, pad_height, lip_dr_scale);
+    trigger_catch(pad_diameter, pad_height, lip_dr_scale, catch_grip);
 }    
 
 
-if (show_trigger_catch) {
-    master_air_brush_trigger_catch();
-}
+
 
 
 
