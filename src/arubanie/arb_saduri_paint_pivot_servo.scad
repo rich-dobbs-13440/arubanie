@@ -51,13 +51,13 @@ infinity = 300;
 
 
 /* [Paint Pull Rod Design] */
-    paint_pull_rod_length = 50;
+    paint_pull_rod_length = 50; // [0: 2: 99.9]
 
     
 /* [Paint Pull Gudgeon Design] */
 
-    paint_pull_gudgeon_length = 10;  // [0:99.9]
-    paint_pull_gudgeon_angle = 90; // [0:99.9]
+    paint_pull_gudgeon_length = 14;  // [0:99.9]
+    paint_pull_gudgeon_angle = 16; // [0:99.9]
     //paint_pull_nutcatch_depth = 9;
     paint_pull_range_of_motion = [135,135];
 //    dx_paint_pull_gudgeon_offset = -20; // [-20:0.5:20]
@@ -183,7 +183,7 @@ module mounting_screw_plate() {
         }
         mounting_screw_clearance();
         simple_barrel_clearance() ;
-        build_plane_clearance();
+        plane_clearance(BELOW);
     }
 } 
 
@@ -303,7 +303,7 @@ module paint_pull_gudgeon() {
         difference() {
             color("orange") oriented_gudgeon();
             plane_clearance(BELOW);
-            plane_clearance_push_rod();
+            plane_clearance_screw_plate();
         }
         color("Salmon") joiner();     
     }
@@ -311,12 +311,14 @@ module paint_pull_gudgeon() {
 
     
     // Make origin at cl of screw holes, bottom of screw plate.
+    
     x_sp = paint_pivot_h;
+    y_sp = 22;  
     z_sp = wall_thickness;
+    
     z_hole_through = 50;
     screw_offset = 6;
     d_clear_push_rod = 5.75;
-    gudgeon_to_face_gap = 2;
     module hole_clearance() {
         center_reflect([0, 1, 0]) {
             $fn = 12;
@@ -329,7 +331,7 @@ module paint_pull_gudgeon() {
     }
     module screw_plate() {
          // TODO pull from common parameters
-        block([x_sp, 22, z_sp], center=ABOVE);
+        block([x_sp, y_sp, z_sp], center=ABOVE);
 
     }
     module oriented_gudgeon() {
@@ -349,22 +351,28 @@ module paint_pull_gudgeon() {
         }
     }
     
-    module plane_clearance_push_rod() {
-        translate([d_clear_push_rod/2, 0, 0]) 
+    module plane_clearance_screw_plate() {
+        translate([x_sp/2, 0, 0]) 
             plane_clearance(BEHIND);
     }
     
     module joiner() {
-        eps = .1;
-        base_width = 12;
-        base = [eps, base_width, wall_thickness]; 
+        eps = .01;
+        base = [eps, y_sp, wall_thickness]; 
         dx_b = x_sp/2;
-        target_z = 4;
-        gudgeon_target = [paint_pivot_h, paint_pivot_w/2, target_z];
-        dx_gt = dx_b + gudgeon_to_face_gap; //dx_b + gudgeon_to_face_gap;
+        z_support = 
+            paint_pull_gudgeon_length * sin(paint_pull_gudgeon_angle)
+            - paint_pivot_h/2;
+        x_support = 
+            paint_pull_gudgeon_length * cos(paint_pull_gudgeon_angle)
+            - x_sp/2;
+        support = [x_support, paint_pivot_w/2, z_support];
+        dx_support = x_sp/2;
+        gudgeon_base = [x_support/2, paint_pivot_w/2, wall_thickness]; 
+        translate([dx_support, 0, 0]) block(support, center=ABOVE+FRONT);
         hull() {
             translate([dx_b, 0, 0]) block(base, center=ABOVE+FRONT);
-            translate([dx_gt, 0, 0]) block(gudgeon_target, center=ABOVE+FRONT);
+            translate([dx_support, 0, 0]) block(gudgeon_base, center=ABOVE+FRONT);
         } 
     }
     

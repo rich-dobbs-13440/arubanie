@@ -266,8 +266,8 @@ module sub_micro_servo__pilot_hole() {
 
 
 module sub_micro_servo__single_horn_long(
-        radial_allowance=0.0, 
-        axial_allowance=0.0, 
+        radial_allowance=0.2, 
+        axial_allowance=0.2, 
         items=["default"],
         options=[],
         log_verbosity=INFO) {

@@ -16,8 +16,8 @@ int angle_air_flow = 90;
 // 170: All the way forward (off): 
 
 int paint_flow_angle(float flow_fraction) {
-  int angle_min_flow = 170  ; // Based on current geometry
-  int angle_max_flow = 45; // Based on current geometry
+  int angle_min_flow = 175; // Based on current geometry
+  int angle_max_flow = 60; // Based on current geometry
   int range = angle_min_flow - angle_max_flow;
   int angle = angle_min_flow - int(flow_fraction*range);
   return max(min(angle, angle_min_flow), angle_max_flow); 
@@ -36,6 +36,9 @@ void setup() {
   servo_air_flow.write(angle_air_flow);
 
   servo_paint_flow.attach(7);
+  //servo_paint_flow.write(180); // Forward position to attach servo arm
+  //servo_paint_flow.write(90); //Midpoint to make sure direction of rotation correct
+  //servo_paint_flow.write(60); // Trial and error to find end of range
   servo_paint_flow.write(paint_flow_angle(paint_flow_fraction));
 }
 
@@ -49,7 +52,7 @@ void loop_for_paint_flow_testing() {
   for (paint_flow_fraction=0; paint_flow_fraction< 1; paint_flow_fraction+=0.005) 
   {
       servo_paint_flow.write(paint_flow_angle(paint_flow_fraction));
-      delay(1);
+      delay(2);
   }
   delay(5000);
   servo_paint_flow.write(paint_flow_angle(0));
