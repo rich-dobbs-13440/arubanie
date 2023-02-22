@@ -41,10 +41,8 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 
 /* [Boiler Plate] */
 
-$fa = 1;
-$fs = 0.4;
-eps = 0.001;
-
+fa_bearing = 1;
+fa_shape = 20;
 infinity = 1000;
 
 
@@ -206,16 +204,15 @@ module build_pintle(
         l, 
         al, 
         range_of_motion, 
-        pin,
-        fa) {
+        pin) {
             
     module blank(size, hole=-1) {
         if (l >=0) {
             if (hole > 0) {
-                crank(size, hole=hole);
+                crank(size, hole=hole, fa=fa_shape);
             }
             else {
-                crank(size);
+                crank(size, fa=fa_shape);
             }
         } else {
             if (hole > 0) {
@@ -232,10 +229,10 @@ module build_pintle(
             
     // The pin
     if (pin == "permanent pin") {
-        rod(pin_od, l=w, center=SIDEWISE, fa=fa);
+        rod(pin_od, l=w, center=SIDEWISE, fa=fa_bearing);
     }
     // The leafs
-    size = [l, leaf_width+2*eps, h];
+    size = [l, leaf_width, h];
     for (disp_sign = [-1, 1]) {
     translate([0, disp_sign*(leaf_disp + leaf_width/2) , 0]) {
             if (pin == "permanent pin") {
@@ -243,6 +240,9 @@ module build_pintle(
             } else if (pin == "M3 captured nut") {
                 difference() {
                     blank(size);
+                    // The pintle is thinner, so make it the bearing surface
+                    // that is round.
+                    $fn = 20;
                     translate([0, -w/2, 0]) rotate([90, 0, 0]) hole_through(name = "M3", l=w); 
                         // name of screw family (i.e. M4, M5, etc)
 //                        l    = 50.0,  // length of main bolt
@@ -291,17 +291,14 @@ module pintle(
         al=0.4, 
         range_of_motion=[135, 135], 
         pin="permanent pin",
-        just_pin_clearance=false,
-        fa=undef) {
+        just_pin_clearance=false) {
 
     dmy = check_assertions(h, w, l, al, range_of_motion);
-            
-    $fa = is_undef(fa) ? $fa : fa;
      
     if (just_pin_clearance) {
         build_pin_clearance(w, pin);
     } else {
-        build_pintle(h, w, l, al, range_of_motion, pin, fa);
+        build_pintle(h, w, l, al, range_of_motion, pin);
     }
 }
 
@@ -312,23 +309,25 @@ module gudgeon(
         l, 
         al=0.5, 
         range_of_motion=[135, 135],
-        pin="permanent pin", 
-        fa=undef) {
+        pin="permanent pin") {
 
     dmy = check_assertions(h, w, l, al, range_of_motion);
             
-    $fa = is_undef(fa) ? $fa : fa;
             
     bushing_id = _bushing_id(h, w, l, al); 
     bushing_width = _bushing_width(h, w, l, al);
-    size = [l, bushing_width+2*eps, h];
+    size = [l, bushing_width, h];
     // The main crank
     if (pin == "permanent pin") {
-        crank(size, hole=bushing_id, rotation=BEHIND, fa=fa);
+        crank(size, hole=bushing_id, rotation=BEHIND, fa=fa_shape, rank=3);
     } else if (pin == "M3 captured nut") {
         difference() {
-            crank(size, rotation=BEHIND, fa=fa);
-            translate([0, -w, 0]) rotate([90, 0, 0]) hole_through(name = "M3", l=2*w);
+            crank(size, rotation=BEHIND, fa=fa_shape);
+            // The gudgeon is thicker, so make the hole rough to catch the screw thread
+            translate([0, -w, 0]) rotate([90, 0, 0]) {
+                $fn = 6; 
+                hole_through(name = "M3", l=2*w);
+            };
         }
     }
     
@@ -337,7 +336,7 @@ module gudgeon(
     bottom_stop = range_of_motion[1];
     stops = [bottom_stop, top_stop];   
     difference() {
-        block([l+eps, w+eps, h+eps], center=BEHIND);
+        block([l, w, h], center=BEHIND, rank=2);
         cutout_for_rotation_stops(h, w, l, al, stops);
     }
 }

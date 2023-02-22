@@ -112,17 +112,12 @@ use <small_pivot_vertical_rotation.scad>
     show_default_shl = true;
     show_nutcatch_extension_shl = true;
     show_crank_extension_shl = true;
-    allowance_shl = 0.4;
-    
-    // Debugging items
+    radial_allowance_shl = 0.2;
+    axial_allowance_shl = 0.2;
 
+// This section is generate code.  Do not directly modify.  Instead run the 
+// generate_updated_debug_options option!
 
-    
-//    new_debug_items_shl = [ 
-//        show_screw_pilot_holes_shl ? "screw_pilot_holes" : "",
-//        show_screw_access_clearance_shl ? "screw_pilot_holes" : "",
-//    ];
-    
 /* [ Debug Options for sub_micro_servo__single_horn_long Module ] */
     show_screw_pilot_holes_shl = false;
     show_screw_access_clearance_shl = false;
@@ -148,7 +143,7 @@ use <small_pivot_vertical_rotation.scad>
 /* [Dimensions for Crank Extension] */
     crank_offset_to_right = false; 
     crank_length_shl_ce = 15; // [10: 1: 99.9] 
-    crank_width_shl_ce = 3.81;
+    crank_width_shl_ce = 4.5;
     crank_height_shl_ce = 8;
     hole_shl_ce = 2.81; // "M3";
     options_shl_ce = [
@@ -158,6 +153,8 @@ use <small_pivot_vertical_rotation.scad>
         ["crank_height", crank_height_shl_ce],
         ["crank_hole", hole_shl_ce],
     ];
+    
+// End of generated code
 
 
 /* [Options for sub_micro_servo__radial_stall_limiter  Module] */
@@ -229,23 +226,23 @@ if (show__sub_micro_servo__mount_to_axle) {
 
 if (show__sub_micro_servo__single_horn_long) {
     translate([0, dy_single_horn_long, 0]) {
-        al = allowance_shl;
         if (show_default_shl) {
-            sub_micro_servo__single_horn_long(allowance=al, log_verbosity=verbosity);
+            sub_micro_servo__single_horn_long(radial_allowance_shl, axial_allowance_shl, log_verbosity=verbosity);
         }
         if (show_nutcatch_extension_shl) {
             sub_micro_servo__single_horn_long(
-                items=["nutcatch_extension"], allowance=al, log_verbosity=verbosity);
+                items=["nutcatch_extension"], radial_allowance_shl, axial_allowance_shl, log_verbosity=verbosity);
         }
         if (show_crank_extension_shl) {
             sub_micro_servo__single_horn_long(
                 items=["crank_extension"], 
-                allowance=al, 
+                radial_allowance_shl, 
+                axial_allowance_shl,
                 options=options_shl_ce, 
                 log_verbosity=verbosity);
         }
         sub_micro_servo__single_horn_long(
-            items=debug_items_shl, allowance=al, log_verbosity=verbosity);
+            items=debug_items_shl, radial_allowance_shl, axial_allowance_shl, log_verbosity=verbosity);
     }
 }
 
@@ -269,13 +266,17 @@ module sub_micro_servo__pilot_hole() {
 
 
 module sub_micro_servo__single_horn_long(
-        allowance=0.2, 
+        radial_allowance=0.0, 
+        axial_allowance=0.0, 
         items=["default"],
         options=[],
         log_verbosity=INFO) {
             
-    log_s("allowance", allowance, log_verbosity, DEBUG);
+    log_s("radial_allowance", radial_allowance, log_verbosity, DEBUG);
+    log_s("axial_allowance", radial_allowance, log_verbosity, DEBUG);
     log_s("items", items, log_verbosity, DEBUG);
+    assert(is_num(radial_allowance)); 
+    assert(is_num(axial_allowance)); 
             
     function option(name, required=false) = 
         let(
@@ -286,7 +287,7 @@ module sub_micro_servo__single_horn_long(
             last = undef
         )
         result;
-    
+
     d_out_hub = 5.72;
     d_inner_hub = 3.81;
     h_hub = 3.30;
@@ -300,18 +301,23 @@ module sub_micro_servo__single_horn_long(
     
     wall_thickness = 2;
     base_thickness = 1;
+    catch_overlap = 0.5;
     catch_thickness = 1.5;
-    blank_h_allowance = base_thickness + catch_thickness;
+    
+    blank_h_allowance = base_thickness/2 + catch_thickness/2;
     blank_d_allowance = wall_thickness;
     arm_max_width = d_out_hub + 2*blank_d_allowance;
     arm_length = r_arm + d_arm_end/2 + blank_d_allowance;
+    
+
+    dz_catch_clearance = base_thickness + h_arm/2;
     
     crank_clearance = 1;
  
     function want(name) = in_list(items, name);
     
     if (want("default") || want("arm holder")) {
-        color("Turquoise") arm_holder(allowance);
+        color("Turquoise") arm_holder();
     }
     if (want("nutcatch_extension")) {
         color("DarkTurquoise") nutcatch_extension(); 
@@ -376,7 +382,7 @@ module sub_micro_servo__single_horn_long(
             log_verbosity=DEBUG);
     }
 
-    module arm_holder(allowance) {
+    module arm_holder() {
         difference() {
             arm_blank();
             screw_pilot_holes();
@@ -412,9 +418,10 @@ module sub_micro_servo__single_horn_long(
                     rotate([90, 0, 180]) 
                         crank(size, hole=hole, rank=-3);
         }
+        eps = 0.001;
         render() difference() {
             crank_body();
-            arm_blank();
+            scale([1-eps, 1-eps, 2]) arm_blank();
             
         }
     }
@@ -439,7 +446,7 @@ module sub_micro_servo__single_horn_long(
     
     module arm_catch_clearance() {
         translate([0, 0, 2.6]) center_reflect([1, 0, 0]) 
-            arm_clearance(-0.7*allowance, 1);
+            arm_clearance(-catch_overlap, 2*catch_thickness);
     }
     
     module screw_pilot_holes() {
@@ -457,28 +464,27 @@ module sub_micro_servo__single_horn_long(
     module slot_clearance() {
         translate([0, 0, base_thickness]) {
             center_reflect([1, 0, 0]) {
-                arm_clearance(allowance, allowance);
+                arm_clearance(radial_allowance, axial_allowance);
             }
         } 
     } 
 
     module catch_clearance() {
-        translate([0, 0, 2.6]) 
+        translate([0, 0, dz_catch_clearance]) 
             center_reflect([1, 0, 0]) 
-                arm_clearance(-0.7*allowance, 1);
+                arm_clearance(-catch_overlap, 3);
     }      
                 
-    module arm_clearance(d_allowance, h_allowance) {
-        assert(is_num(d_allowance));
+    module arm_clearance(r_allowance, h_allowance) {
+        assert(is_num(r_allowance));
         assert(is_num(h_allowance));
-        function swell(d) = d + 2*d_allowance; 
-        function swell_h(d) = d + h_allowance;     
+        function swell(d) = d + 2*r_allowance; 
+        function swell_h(h) = h + 2*h_allowance;     
         hull() {
             can(d=swell(d_out_hub), h=swell_h(h_arm), center=ABOVE, fa=fa_shape);
             translate([r_arm, 0, 0]) 
                 can(d=swell(d_arm_end), h=swell_h(h_arm), center=ABOVE, fa=fa_shape);  
         }
-
     }
 
     module nutcatch_clearance(side_cuts) {

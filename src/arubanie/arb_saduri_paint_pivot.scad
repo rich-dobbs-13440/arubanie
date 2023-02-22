@@ -39,21 +39,20 @@ module paint_pivot_pintle(length) {
             length, 
             paint_pivot_allowance, 
             range_of_motion=paint_pivot_ranges,
-            pin=paint_pivot_pin,  
-            fa=fa_as_arg);
+            pin=paint_pivot_pin);
     }
 }
 
-module paint_pivot_gudgeon(length) {
+module paint_pivot_gudgeon(length, range_stops=true) {
+    range_of_motion = range_stops ? paint_pivot_ranges : [180, 180];
     rotate([0, 0, 180]) { // Flip to desired orientation
         gudgeon(
             paint_pivot_h, 
             paint_pivot_w, 
             length, 
             paint_pivot_allowance, 
-            range_of_motion=paint_pivot_ranges,
-            pin=paint_pivot_pin,
-            fa=fa_as_arg);
+            range_of_motion=range_of_motion,
+            pin=paint_pivot_pin);
     }
 }  
 

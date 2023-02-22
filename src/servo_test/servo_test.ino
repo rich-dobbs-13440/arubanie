@@ -16,17 +16,18 @@ int angle_air_flow = 90;
 // 170: All the way forward (off): 
 
 int paint_flow_angle(float flow_fraction) {
-  int angle_min_flow = 118  ; // Based on current geometry
-  int angle_max_flow = 71; // Based on current geometry
+  int angle_min_flow = 170  ; // Based on current geometry
+  int angle_max_flow = 45; // Based on current geometry
   int range = angle_min_flow - angle_max_flow;
   int angle = angle_min_flow - int(flow_fraction*range);
   return max(min(angle, angle_min_flow), angle_max_flow); 
 }
 
-float air_flow_fraction = 0.0;
+float paint_flow_fraction = 0.0;
 //int angle_paint_flow = paint_flow_angle(air_flow_fraction);
 
 void loop_for_servo_testing();
+void loop_for_paint_flow_testing();
 
 void setup() {
   servo_test.attach(9);  // attach the signal pin of servo to pin9 of arduino
@@ -35,7 +36,7 @@ void setup() {
   servo_air_flow.write(angle_air_flow);
 
   servo_paint_flow.attach(7);
-  servo_paint_flow.write(paint_flow_angle(air_flow_fraction));
+  servo_paint_flow.write(paint_flow_angle(paint_flow_fraction));
 }
 
 
@@ -45,9 +46,9 @@ void loop() {
 }
 
 void loop_for_paint_flow_testing() {
-  for (air_flow_fraction=0; air_flow_fraction< 1; air_flow_fraction+=0.005) 
+  for (paint_flow_fraction=0; paint_flow_fraction< 1; paint_flow_fraction+=0.005) 
   {
-      servo_paint_flow.write(paint_flow_angle(air_flow_fraction));
+      servo_paint_flow.write(paint_flow_angle(paint_flow_fraction));
       delay(1);
   }
   delay(5000);

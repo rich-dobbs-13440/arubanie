@@ -16,9 +16,11 @@ use <not_included_batteries.scad>
 
 /* [Boiler Plate] */
 
-$fa = 1;
+//$fa = 1;
 $fs = 0.4;
 eps = 0.005;
+fa_bearing = 1;
+fa_shape = 20;
 infintesimal = 0.01;
 
 /* [Visual Tests] */
@@ -143,7 +145,8 @@ module crank(size, hole=false, center=0, rotation=0, rank=1, fa=undef) {
     assert(is_list(size), str("Missing argument. Signature is ", signature));
     function swell(w=0) = w + 2*rank*eps;
     function swell_inward(w=0) = w - 2*rank*eps; 
-    $fa = is_undef(fa) ? $fa : fa;
+    
+    fa_ = is_undef(fa) ? fa_shape : fa;
     hole_d = is_num(hole) ? hole : 0;
     pivot_size = [size.z, size.y, size.z];
     half_pivot = [swell(pivot_size.x/2),  swell(pivot_size.y), swell(pivot_size.z)];
@@ -153,10 +156,10 @@ module crank(size, hole=false, center=0, rotation=0, rank=1, fa=undef) {
         center_rotation(rotation) {
             render() difference() {
                 union() {
-                    block(half_pivot, center=FRONT);
-                    rod(d=swell(size.z), l=swell(size.y), center=SIDEWISE);
+                    block(half_pivot, center=FRONT, rank=rank+1);
+                    rod(d=swell(size.z), l=swell(size.y), center=SIDEWISE, fa=fa_shape);
                 }
-                rod(d=swell_inward(hole_d), l=2*size.y, center=SIDEWISE);
+                rod(d=swell_inward(hole_d), l=2*size.y, center=SIDEWISE, fa=fa_bearing);
             }
             // Rest of block
             translate([pivot_size.x/2, 0, 0]) block(remainder, center=FRONT);
@@ -197,7 +200,7 @@ module tearaway(
 
 module _visual_test_for_crank() {
 
-    translate([0, -80, 0]) crank([10, 4, 4], hole=2, center=BEHIND);
+    translate([0, -80, 0]) crank([10, 4, 4], hole=2, center=BEHIND, fa=fa_shape);
 
     translate([0, -70, 0]) crank([10, 4, 4], hole=2, center=FRONT);
 

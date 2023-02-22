@@ -12,12 +12,10 @@ can_to_plate_connection(plate_side, diameter, slide_allowance);
 include <centerable.scad>
 use <shapes.scad>
 
-
-$fa = 10;
-fa_as_arg = $fa;
-$fs = 0.4;
+/* [Boiler Plate] */
 eps = 0.001;
-
+fa_shape = 10;
+fa_bearing = 1;
 infinity = 50;
 
 pin_radius = 5;
@@ -74,7 +72,7 @@ module can_to_plate_connection(plate_side, diameter, slide_allowance) {
         
         d1 = 0.65 * diameter + 2*allowance;
         d2 = diameter + 2*allowance;
-        translate([0, 0, eps]) can(d=d1, taper=d2, h=plate_h, center=BELOW, fa=fa_as_arg); 
+        translate([0, 0, eps]) can(d=d1, taper=d2, h=plate_h, center=BELOW, fa=fa_shape); 
         
     }
     module dove_tail(allowance) {
@@ -85,18 +83,18 @@ module can_to_plate_connection(plate_side, diameter, slide_allowance) {
     }
     if (plate_side) {
         translate([0, 0, eps]) render() difference() {
-            can(d=2*diameter, h=plate_h-slide_allowance, center=BELOW, fa=fa_as_arg);
+            can(d=2*diameter, h=plate_h-slide_allowance, center=BELOW, fa=fa_shape);
             dove_tail(slide_allowance);
         } 
     } else {
         
         render() intersection() {
             dove_tail(0);
-            translate([0, 0, -slide_allowance]) can(d=diameter, h=plate_h, center=BELOW, fa=fa_as_arg); 
+            translate([0, 0, -slide_allowance]) can(d=diameter, h=plate_h, center=BELOW, fa=fa_shape); 
         } 
         render() difference() {
             children();
-            translate([0, 0, eps]) can(d=diameter+1, h=plate_h+eps, center=BELOW, fa=fa_as_arg);
+            translate([0, 0, eps]) can(d=diameter+1, h=plate_h+eps, center=BELOW, fa=fa_shape);
         }
     }
 }
@@ -115,7 +113,7 @@ module dove_tailed_rod(d, l, rotation, ends=[true, false]) {
     size = [l, d, d]; 
     center_rotation(rotation) {
         rod_to_block_dove_tail_connection(plate_side=false, diameter=d, slide_allowance=0.2) {
-            rod(d=d, l=l, center=FRONT);
+            rod(d=d, l=l, center=FRONT, fa=fa_shape);
         }
     }
 } 

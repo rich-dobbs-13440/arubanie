@@ -46,13 +46,14 @@ infinity = 300;
     show_paint_pivot_gudgeon_yoke = true;
     show_scotch_yoke = true;
     show_trigger_catch = true;
+    
 
 /* [ Paint Gudgeon Design] */
     // Set to clear the trigger, at depressed with clearance for trigger cap.
     // But also need to allow air barrel clip to clear!
     paint_pivot_inner_height = 25;
     wall_thickness = 2;
-    paint_pivot_bridge_thickness = 4;
+    paint_pivot_bridge_thickness = 2;
 
     paint_pivot_top_of_yoke =  
         paint_pivot_inner_height 
@@ -60,15 +61,6 @@ infinity = 300;
 
     paint_gudgeon_color = "LightSkyBlue"; // [DodgerBlue, LightSkyBlue, Coral]
     paint_gudgeon_alpha = 1; // [0:0.05:1]
-
-
-/* [Paint Pull Gudgeon Design] */
-    dx_paint_pull_gudgeon_offset = -20; // [-20:0.5:20]
-    dy_paint_pull_gudgeon_offset = 8;  // [-20:20]
-    paint_pull_gudgeon_length = 30;  // [0:40]
-    paint_pull_nutcatch_depth = 9;
-    paint_pull_range_of_motion = [145,45];
- 
 
 /* [Air Flow Actuator Design] */
     
@@ -140,9 +132,6 @@ infinity = 300;
 
 
 /* [Trigger Catch Design] */
-
-
-
     trigger_shaft_diameter = 5;
     trigger_shaft_bore = trigger_shaft_diameter + 2 * scotch_yoke_radial_allowance;
     trigger_shaft_min_x = 13;
@@ -340,14 +329,10 @@ module trigger_catch() {
 
 
 module paint_pivot_gudgeons() {
-    difference() {
+    center_reflect([0, 1, 0]) {
         translate([0, paint_pivot_cl_dy, 0]) {
-            paint_pivot_gudgeon(paint_pivot_top_of_yoke); 
+            paint_pivot_gudgeon(paint_pivot_top_of_yoke, range_stops=false); 
         }
-        paint_pull_clearance();
-    }
-    translate([0, -paint_pivot_cl_dy, 0]) {
-        paint_pivot_gudgeon(paint_pivot_top_of_yoke);
     }
 }
 
@@ -391,7 +376,7 @@ module bore_for_nuts_and_push_rod() {
 
 module paint_pivot_gudgeon_bridge() {
     x = paint_pivot_bridge_thickness; 
-    y = 2* paint_pivot_inside_dy;
+    y = 2* paint_pivot_cl_dy;
     z = paint_pivot_h;
     translate([paint_pivot_inner_height, 0, 0]) {
         bore_for_nuts_and_push_rod() {
@@ -410,54 +395,10 @@ module paint_pull_emplace() {
 }
 
 
-module paint_pull_clearance() {
-    // TODO: Move this into small_pivot_vertical_rotation.scad
-    a = 90 - paint_pull_range_of_motion[0];
-    dx = paint_pivot_h/2 + paint_pivot_allowance;
-    x = 50;
-    y = paint_pivot_w + 2 * paint_pivot_allowance;
-    z = 50;
-    
-    paint_pull_emplace() {
-        rotate([0, a, 0]) 
-            translate([-dx, 0, 0]) 
-                block([x, y, z], center=FRONT);
-        
-        translate([0, -paint_pull_nutcatch_depth, 0]) {
-            rotate([90,90,0]) {
-                nutcatch_sidecut(name="M3");
-                translate([0,0,1.5]) hole_through(name="M3");
-            }
-            
-        }
-    } 
-}
-
-
-module paint_pull_gudgeon() {   
-    paint_pull_emplace() {
-        rotate ([0, 0, 0]) {
-            gudgeon(
-                paint_pivot_h, 
-                paint_pivot_w, 
-                paint_pull_gudgeon_length, 
-                paint_pivot_allowance, 
-                paint_pull_range_of_motion,    
-                pin= "M3 captured nut",
-                fa=fa_as_arg);
-        }
-    }
-}
-
 module paint_pivot_gudgeon_yoke() {         
     paint_pivot_gudgeons();
     paint_pivot_gudgeon_bridge(); 
-    paint_pull_gudgeon();
+    
 
 }
-
-
-
-
-
 
