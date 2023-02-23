@@ -22,6 +22,7 @@ eps = 0.005;
 fa_bearing = 1;
 fa_shape = 20;
 infintesimal = 0.01;
+infinity = 1000; // Bigger than the build plate
 
 /* [Visual Tests] */
 
@@ -40,6 +41,12 @@ __x_stop = 40; // [-99.9 : 1 : 99.9]
 __support_end_start  = true;
 __support_end_stop  = true;
 __ends_supported = [__support_end_start, __support_end_stop];
+
+module plane_clearance(center) {
+    block([infinity, infinity, infinity], center=center);
+}
+
+
 /* 
     Block is a cube with a specific translation about the origin.
 

@@ -189,9 +189,7 @@ module show_gudgeon_assembly_design_orientation(orient_for_build) {
 
       
     if (show_paint_pivot_gudgeon_yoke) {
-        color(paint_gudgeon_color, alpha=paint_gudgeon_alpha) {
-            paint_pivot_gudgeon_yoke();
-        }
+        paint_pivot_gudgeon_yoke();
     }  
 
     if (show_scotch_yoke) {
@@ -376,7 +374,7 @@ module bore_for_nuts_and_push_rod() {
 
 module paint_pivot_gudgeon_bridge() {
     x = paint_pivot_bridge_thickness; 
-    y = 2* paint_pivot_cl_dy;
+    y = 2* paint_pivot_cl_dy + paint_pivot_w/4;
     z = paint_pivot_h;
     translate([paint_pivot_inner_height, 0, 0]) {
         bore_for_nuts_and_push_rod() {
@@ -395,10 +393,8 @@ module paint_pull_emplace() {
 }
 
 
-module paint_pivot_gudgeon_yoke() {         
-    paint_pivot_gudgeons();
-    paint_pivot_gudgeon_bridge(); 
-    
-
+module paint_pivot_gudgeon_yoke() { 
+    color(paint_gudgeon_color, alpha=paint_gudgeon_alpha) paint_pivot_gudgeon_bridge();     
+    color(paint_gudgeon_color, alpha=paint_gudgeon_alpha) paint_pivot_gudgeons();
 }
 
