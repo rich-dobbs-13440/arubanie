@@ -33,6 +33,30 @@ infinity = 100;
 
 module end_of_customization() {}
 
+std_color_pallete = [
+    "red",
+    "orange",
+    "yellow",
+    "green",
+    "blue",
+    "indigo",
+    "violet",
+    "Crimson",
+    "Coral",
+    "Moccasin",
+    "Medium SeaGreen",
+    "SteelBlue",
+    "BlueViolet",
+    "Thistle",
+    "IndianRed",
+    "LightSalmon",
+    "PeachPuff",
+    "OliveDrab",
+    "MediumTurquoise",
+    "Plum",
+    "Fushia"
+];
+
 show_name = false;
 if (show_name) {
     linear_extrude(2) text("not_included_batteries.scad", halign="center");

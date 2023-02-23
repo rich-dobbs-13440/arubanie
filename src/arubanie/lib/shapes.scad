@@ -116,7 +116,7 @@ module rod(d, l, center=0, hollow=false, rank=1, fa=undef) {
     about the origin.
     
 */
-module can(d,h, center=0, hollow=false, taper=false, rank=1, fa=undef) {
+module can(d, h, center=0, hollow=false, taper=false, rank=1, fa=undef) {
     function swell(w=0) = w + 2*rank*eps;
     function swell_inward(w=0) = w - 2*rank*eps; 
     $fa = is_undef(fa) ? $fa : fa;

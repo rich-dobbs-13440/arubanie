@@ -2,8 +2,7 @@
 include <logging.scad>
 include <centerable.scad>
 use <shapes.scad>
-use <vector_operations.scad>
-use <layout_for_3d_printing.scad>
+include <not_included_batteries.scad>
 
 
 /* [Boiler Plate] */
@@ -24,194 +23,259 @@ show_pintle_external_nut_catch = false;
 /* [Dimenstions] */
 
 allowance_ = 0.4;
-diameter_ = 4;
-height_ = 7;
+pin_diameter_ = 1.5;
+height_ = 7.60; // [0:0.4:30]
+width_ = 3;
+length_ = 16;
+
+
+
+//        dx = 2;
+//        dz = 2;
+
+
+//x1 = 2; // [-20:20]
+//z1 = 0; // [-20:20]
+//x2 = 2; // [-20:20]
+//z2 = 2; // [-20:20]
+//x3 = -2; // [-20:20]
+//z3 = 2; // [-20:20]
+//x4 = -2; // [-20:20]
+//z4 = 4; // [-20:20]
+//x5 = 2; // [-20:20]
+//z5 = 4; // [-20:20]        
 
 /* [Colors] */
-color_behind = "red";
-color_front = "orange";
-color_bottom = "yellow";
-color_front_inner = "green";
-color_behind_inner = "blue";
-color_top = "indigo";
-color_pedistal = "violet";
-color_middle = "pink";
-color_neck = "tomato";
-color_bottom_bearing = "teal";
+color_behind = std_color_pallete[0];
+color_front = std_color_pallete[1];
+color_core = std_color_pallete[2];
+color_attach_middle = std_color_pallete[3];
+color_bearing = std_color_pallete[4];
+color_bottom = std_color_pallete[5];
+color_attach_bottom = std_color_pallete[6];
+color_top = std_color_pallete[7];;
+color_attach_top = std_color_pallete[8];
+//color_bottom_bearing = std_color_pallete[9];
 
 
 
-z_hinge(diameter_, height_, allowance_) {
-    block([16, 4, height_], center=ABOVE);
+z_hinge(pin_diameter_, height_, allowance_) {
+    block([length_, width_, height_], center=RIGHT);
 }
 
 
-module z_hinge(d, h, al) {
+
+
+
+module z_hinge(pin_d, h, al, min_leaf_width=2) {
     
-    h_floor = 2*al;
-    dz_middle = h_floor + d/2 - al/2;
-    h_middle = 1; // h - 2 * dz_middle;
-    dz_neck = dz_middle + h_middle;
-    dz_top_bearing = dz_neck + sqrt(al);
+    function round_down_odd(x) = 2*floor(x/2) - 1;
     
-    color(color_behind) {
-        render() difference() {
+    wall_thickness = 1;
+    id = pin_d+al;
+    od = id + 2*al + 2*wall_thickness;
+    x_leaf = od/2 + al/2;
+    
+    n_leaf = max(round_down_odd(h/min_leaf_width), 3);
+    echo("n_leaf", n_leaf);
+    dz = (h + al)/n_leaf; // 2.4;
+    echo("dz", dz);
+    
+    pin(); 
+    render() difference() {
+        union() {
             children();
-            can(d=d+2* al, h=2*h, rank=25);
-            plane_clearance(FRONT);
+            can(d=od, h=h, center=RIGHT);
         }
+        clearance();
     }
     
-    color(color_front) {
-        render() difference() {
-            children();
-            can(d=d+2*al, h=2*h, rank=25);
-            plane_clearance(BEHIND);
-        }
-    } 
-    
-    bottom() children();
-    middle() children();
-    top() children();
-    
-    pedistal();
-    neck();
-    bottom_bearing() children();
-//    top_bearing() children();
-    
-//    module top_bearing() {
-//        h = dz_middle - h_floor - sqrt(2)*al;
-//        translate([0, 0, 30]) bearing(h) children();
-//    }
-    
-    module bearing(h) {
-        render() difference() {
-            union() {
-                can(d=d, h=h, center=ABOVE);
-                attach(FRONT, 0, h) inner(FRONT) children();   
-            }                 
-            can(d=3*al, taper=d, h=h, center=ABOVE);   
-        }
+    module pin() {
+        translate([0, od/2, 0]) can(d=id-al, h=h);
     }
     
-    module bottom_bearing() {
-        dz = h_floor;
-        h = dz_middle - h_floor - sqrt(2)*al;
-        
-        color(color_bottom_bearing) {
-            translate([0, 0, dz]) {
-                bearing(h) children();
-            }
-        }
+    
+    module junction(x, z) {
+        translate([x, 0, z]) rod(d = 0.4, l=10, center= SIDEWISE);
+    }
+    
+    module segment(x1, z1, x2, z2) {
+        hull() {
+            junction(x1, z1);
+            junction(x2, z2);
+        }  
         
     }
     
-    
-    module front_inner() {
-        color(color_front_inner) {
-            render() intersection() {
-                children();
-                can(d=d+2* al, h=2*h, rank=50);
-                plane_clearance(FRONT);
+    module clearance() {
+        module pair_of_leafs() {
+            z1 = 0;
+            z2 = z1 + dz/2;
+            z3 = z2;
+            z4 = z3 + dz;
+            z5 = z4;
+            z6 = z5 + dz/2;
+            
+            segment(x_leaf, z1, x_leaf, z2);
+            segment(x_leaf, z2, -x_leaf, z3);
+            segment(-x_leaf, z3, -x_leaf, z4);
+            segment(-x_leaf, z4, x_leaf, z5);
+            segment(x_leaf, z5, x_leaf, z6);
+            
+            translate([0, od/2, 0]) can(d=id+al, h=dz/2, center=ABOVE);
+            
+        }
+
+        center_reflect([0, 0, 1]) {
+            for (t_z = [0: 2*dz : h/2]) {
+                translate([0, 0, t_z]) pair_of_leafs();
             }
         } 
     }
     
-    module behind_inner() {
-        color(color_behind_inner) {
-            render() intersection() {
-                children();
-                can(d=d+2* al, h=2*h, rank=50);
-                plane_clearance(BEHIND);
-            }
-        }
-    }
     
-    module inner(side) {
-        assert(is_num(side));
-        render() intersection() {   
-            children();
-            can(d=d+2* al, h=2*h, rank=50);
-            plane_clearance(side);
-        }     
-    }
+    
     
 
     
-    module attach(side, dz, z) {
-        render() difference() {
-            inner(side) children();
-            translate([0, 0, dz]) plane_clearance(BELOW);
-            translate([0, 0, dz+z]) plane_clearance(ABOVE);
-        }
-    }
-    
-    module bottom() {
-        color(color_bottom) {
-            can(d, h_floor, center=ABOVE);
-            attach(FRONT, 0, h_floor) inner(FRONT) children();
-        }
-    }
-    
-    module middle() {
-      color(color_middle) {
-            translate([0, 0, dz_middle]) {
-                can(d, h_middle, center=ABOVE);
-                attach(BEHIND, 0, h_middle) inner(BEHIND) children();
-            }
-        }
-    }
-    
-    module pedistal() {
-        color(color_pedistal)translate([0, 0, h_floor-al/2]) can(d=0, taper=d, h=d/2, center=ABOVE); 
-    }
-    module neck() {
-        color(color_neck) translate([0, 0, dz_neck]) can(d=d, taper=0, h=d/2, center=ABOVE); 
-    }
-    
-    
-    
-    module top() {
-        color(color_top) {
-            h_ceiling = 2*al;
-            dz = h - h_ceiling;
-            translate([0, 0, dz]) 
-                can(d, h_ceiling, center=ABOVE);
-            attach(FRONT, dz, h_ceiling) inner(FRONT) children();
-        }
-    }
-    
-    
-    * attach(FRONT, h/2, h/4) children(); 
-    * attach(BEHIND, h/4, h) children();
-    
-    //    
-    
-//    color(color_floor) floor() children();
-//    
-//    module floor() {
-
-//        attach(FRONT, 0, h_floor) children();
-//    }
-//    
-
-////       render() difference() {
-////           children()
-////           can(d=d, h=2*h);
-////           
-////            
-//////            translate([0, 0, dz+ z]) plane_clearance(ABOVE); 
-////        }
-//    }
-
-        //can(d, z, center=ABOVE+side);
-        
-//        difference() {
-//
-//            plane_clearance(side_clearance_center);
-//            translate([0, 0, dz]) plane_clearance(BELOW);
-//            translate([0, 0, dz+ z]) plane_clearance(ABOVE);
-//        }
-//        translate([0, 0, dz+ z]) plane_clearance(ABOVE);
-//    }
 }
+//    
+//    h_middle = 1; 
+//    
+//    dz_bearing = h_middle + sqrt(2)* al;
+//    h_bearing = d/2-sqrt(2)*al;
+//    dz_top_bearing = dz_bearing + h_bearing;
+//    h_bottom = h/2 - dz_top_bearing;
+//    h_top = h_bottom;
+//    
+//    color("lime") union() {
+//    
+//        color(color_behind) {
+//            render() difference() {
+//                children();
+//                outer();
+//                plane_clearance(FRONT);
+//            }
+//        }
+//        
+//        color(color_attach_bottom) {
+//            attach_hard(BEHIND, -h/2, h_bottom) children();
+//        }
+//        color(color_bottom) bottom();
+//        color(color_top) top(); 
+//        color(color_bearing) bearing();
+//        color(color_attach_top) {
+//            attach_hard(BEHIND, h/2-h_top, h_top) children();
+//        }
+//        attach(BEHIND, -dz_bearing-h_bearing, h_bearing) children();
+//        attach(BEHIND, dz_bearing, h_bearing) children();
+//    }
+//    
+//    
+//    
+//    //color(color_front) {
+//        
+//        
+//        render() difference() {
+//            children();
+//            outer();
+//            plane_clearance(BEHIND);
+//        }
+//        
+//        color(color_attach_middle) {
+//            attach_hard(FRONT, -h_middle, 2*h_middle) children();
+//        }
+//        color(color_core, alpha=0.25) core();
+//        
+//        
+//    //}
+//    
+//    
+//    
+//
+//    
+//
+//
+//
+//    
+//
+//    
+//    module top() {// h_top
+//        dz = h/2;
+//        translate([0, 0, dz]) can(d = d, h=h_top, center=BELOW);  
+//    }
+//    
+//    module bottom() {
+//        dz = -h/2;
+//        translate([0, 0, dz]) can(d = d, h=h_bottom, center=ABOVE);   
+//    }
+//    
+//    module core() {
+//        center_reflect([0, 0, 1]) {
+//            middle();
+//            translate([0, 0, h_middle]) cone();
+//        }
+//    }
+//    
+//    module outer() {
+//        can(d=d+2*al, h=2*h);
+//    }
+//    
+//    module overlap() {
+//        can(d=d+4*al, h=4*h);
+//    }
+//    
+//    module inner(side) {
+//        assert(is_num(side));
+//        render() intersection() {   
+//            children();
+//            overlap();
+//            plane_clearance(side);
+//        }     
+//    }  
+//  
+//    module attach_hard(side, dz, z) {
+//        render() difference() {
+//            //inner(side) 
+//            children();
+//            translate([0, 0, dz]) plane_clearance(BELOW);
+//            translate([0, 0, dz+z]) plane_clearance(ABOVE);
+//            translate([0, 0, dz+z]) plane_clearance(side);
+//            //can(d=d, h=infinity);
+//        }
+//    }  
+//    
+//    module attach(side, dz, z) {
+//        render() difference() {
+//            inner(side) children();
+//            translate([0, 0, dz]) plane_clearance(BELOW);
+//            translate([0, 0, dz+z]) plane_clearance(ABOVE);
+//            can(d=d, h=infinity);
+//        }
+//    }
+//
+//    module core_clearance() {
+//        center_reflect([0, 0, 1]) {
+//            translate([0, 0, sqrt(2)*al]) core();
+//        }
+//    }
+//    
+//    module middle() {
+//        can(d=d, h=h_middle, center=ABOVE);
+//    }
+//    module cone() {
+//        can(d=d, taper=0, h=d/2, center=ABOVE);
+//    } 
+//
+//    module bearing() {
+//        color(color_bearing) {
+//
+//            center_reflect([0, 0, 1]) {
+//                render() difference() {
+//                    translate([0, 0, dz_bearing]) can(d=d, h=h_bearing, center=ABOVE);
+//                    core_clearance();
+//                }
+//            }
+//        }
+//    }
+//}
