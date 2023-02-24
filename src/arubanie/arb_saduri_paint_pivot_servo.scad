@@ -149,9 +149,7 @@ module mount_plate_joiner() {
     }
 }
 
-module plane_clearance(center) {
-    block([infinity, infinity, infinity], center=center);
-}
+
 
 
 
