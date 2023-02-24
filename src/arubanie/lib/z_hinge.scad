@@ -28,7 +28,7 @@ height_ = 10; // [0:0.4:30]
 width_ = 3;
 length_ = 16; 
 ball_d_ = 2; // [0:0.5:4]
-overlap_ = 0.1; // [0:0.05:2]
+overlap_ = 0.05; // [0:0.05:2]
 
 /* [Colors] */
 //color_behind = std_color_pallete[0];
