@@ -41,11 +41,27 @@ length_ = 16;
 //color_bottom_bearing = std_color_pallete[9];
 
 
-render() difference() {
+* render() difference() {
     z_hinge(pin_diameter_, height_, allowance_) {
         block([length_, width_, height_], center=RIGHT);
     }
     plane_clearance(BEHIND);
+}
+
+render() difference() {
+    z_clasp(height_, allowance_) {
+        block([length_, width_, height_], center=RIGHT);
+    }
+    plane_clearance(BEHIND);
+}
+
+module z_clasp(h, al) {
+    n_leaf = 6;
+    id = 2;
+    od = 5;
+    z_body(h, al, id, od, n_leaf) {
+        children();
+    }   
 }
 
 module z_hinge(pin_d, h, al, min_leaf_width=2) {
@@ -110,11 +126,8 @@ module z_body(h, al, id, od, n_leaf) {
             translate([0, od/2, 0]) can(d=id+al, h=dz/2, center=ABOVE);
             translate([0, od/2, 3*dz/2]) can(d=id+al, h=dz/2, center=ABOVE);
         }
-
-        //center_reflect([0, 0, 1]) {
-            for (t_z = [-h/2 : 2*dz : h/2]) {
-                translate([0, 0, t_z-dz/2-al/2]) pair_of_leafs();
-            }
-        //} 
+        for (t_z = [-h/2 : 2*dz : h/2]) {
+            translate([0, 0, t_z-dz/2-al/2]) pair_of_leafs();
+        }
     }  
 }
