@@ -24,9 +24,11 @@ show_pintle_external_nut_catch = false;
 
 allowance_ = 0.4;
 pin_diameter_ = 1.5;
-height_ = 7.60; // [0:0.4:30]
+height_ = 10; // [0:0.4:30]
 width_ = 3;
-length_ = 16;      
+length_ = 16; 
+ball_d_ = 2; // [0:0.5:4]
+overlap_ = 0.1; // [0:0.05:2]
 
 /* [Colors] */
 //color_behind = std_color_pallete[0];
@@ -41,27 +43,39 @@ length_ = 16;
 //color_bottom_bearing = std_color_pallete[9];
 
 
-* render() difference() {
+*render() difference() {
     z_hinge(pin_diameter_, height_, allowance_) {
         block([length_, width_, height_], center=RIGHT);
     }
     plane_clearance(BEHIND);
 }
 
-render() difference() {
-    z_clasp(height_, allowance_) {
+//render() difference() {
+    z_clasp(height_, allowance_, ball_d_, overlap_) {
         block([length_, width_, height_], center=RIGHT);
     }
-    plane_clearance(BEHIND);
-}
+//    plane_clearance(BEHIND);
+//}
 
-module z_clasp(h, al) {
-    n_leaf = 6;
-    id = 2;
-    od = 5;
-    z_body(h, al, id, od, n_leaf) {
+module z_clasp(h, al, ball_d, overlap) {
+    n_leaf = 4;
+    id = 0.6* ball_d;
+    wall_thickness = 1;
+    od = id + 2*wall_thickness;
+    z_body(h, al, id, od, n_leaf,free_pin=true) {
         children();
-    }   
+    }
+    dz = (h + al)/n_leaf;
+    for (z =[-h/2 : dz : h/2 - dz]) {
+        z_offset = dz-ball_d/2 + overlap;
+        translate([0, 0, z+z_offset]) half_sphere();
+    }
+    module half_sphere() {
+        render() difference() {
+            translate([0, od/2, 0]) sphere(d=ball_d);
+            plane_clearance(BELOW);
+        }
+    }
 }
 
 module z_hinge(pin_d, h, al, min_leaf_width=2) {
@@ -74,7 +88,7 @@ module z_hinge(pin_d, h, al, min_leaf_width=2) {
     n_leaf = max(round_down_odd(h/min_leaf_width), 3);
     echo("n_leaf", n_leaf);
     pin();
-    z_body(h, al, id, od, n_leaf) {
+    z_body(h, al, id, od, n_leaf, free_pin=false) {
         children();
     } 
     
@@ -83,7 +97,7 @@ module z_hinge(pin_d, h, al, min_leaf_width=2) {
     }
 }
     
-module z_body(h, al, id, od, n_leaf) {
+module z_body(h, al, id, od, n_leaf, free_pin=false) {
     x_leaf = od/2 + al/2;
     dz = (h + al)/n_leaf; 
     echo("dz", dz);
@@ -122,12 +136,17 @@ module z_body(h, al, id, od, n_leaf) {
             segment(-x_leaf, z3, -x_leaf, z4);
             segment(-x_leaf, z4, x_leaf, z5);
             segment(x_leaf, z5, x_leaf, z6);
-            
-            translate([0, od/2, 0]) can(d=id+al, h=dz/2, center=ABOVE);
-            translate([0, od/2, 3*dz/2]) can(d=id+al, h=dz/2, center=ABOVE);
+            if (!free_pin) {
+                translate([0, od/2, 0]) can(d=id+al, h=dz/2, center=ABOVE);
+                translate([0, od/2, 3*dz/2]) can(d=id+al, h=dz/2, center=ABOVE);
+            }
         }
-        for (t_z = [-h/2 : 2*dz : h/2]) {
+        for (t_z = [-h/2 : 2*dz : h/2+dz]) {
             translate([0, 0, t_z-dz/2-al/2]) pair_of_leafs();
+        }
+        if (free_pin) {
+            h_pin = h - dz;
+            translate([0, od/2, 0]) can(d=id+al, h=h_pin);
         }
     }  
 }
