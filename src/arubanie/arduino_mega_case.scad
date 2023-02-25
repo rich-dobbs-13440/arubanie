@@ -44,11 +44,82 @@ servo_socket_dimensions = [
 mega2560Dimensions = boardDimensions( MEGA2560 );
 x_board = mega2560Dimensions[0];
 
+*servo_pin_retainer(assembly="slide", count=4);
+servo_pin_retainer(assembly="clip", count=4);
+
+module servo_pin_retainer(assembly, allowance=0.4, count=1) {
+    if (assembly=="clip") {
+        clipping_retainer();
+    } else if (assembly=="slide") {
+        sliding_retainer();
+    } else {
+        assert(false);
+    }
+
+    adjustment = [2*allowance, 2*allowance, 2*allowance];
+    walls = [1, 1, 1];
+    pin_spacing = 2.54;
+    pin_length = servo_socket_dimensions[MALE_BODY].y + servo_socket_dimensions[MALE_BACK].y;
+    pins = [3*pin_spacing, 2*pin_length, pin_spacing];
+    wire_clearance = [6.3, 40, 1.37];   
+    blank = pins+walls+adjustment;
+    module sliding_retainer() {
+        replicate(blank.z) { // Because of rotation to being on edge!
+            single_retainer();
+        }
+
+        module single_retainer() {
+            rotate([0, -90, 0]) {
+                difference() {
+                    block(blank);
+                    clearance();
+                }
+            }
+        }
+        
+        module clearance() {
+            block(pins+adjustment);
+            block(wire_clearance+adjustment);
+            translate([wire_clearance.x/2, 0, 0]) plane_clearance(FRONT);
+        }        
+    }
+
+    module clipping_retainer() {
+        replicate(blank.x)
+        single_retainer();
+        
+        module single_retainer() {
+            difference() {
+                block(blank);
+                clearance();
+            }
+        }
+        module clearance() {
+            wire_clip_clearance = [5, 30, 10];
+            assembly_clearance = [30, 10, 30];
+            dy_clip = 2;
+            clip_overlap=[0.1, 0.1, 0.1];            
+            
+            block(pins+adjustment);
+            center_reflect([0, 1, 0]) translate([0, dy_clip, 1]) {
+                block(assembly_clearance, center=ABOVE+RIGHT);
+            }
+            block(wire_clearance);
+            block(wire_clip_clearance, center=ABOVE);
+            translate([0, 0, 1]) block(pins-clip_overlap);            
+        }
+    }
+    
+    module replicate(dx) {
+        offset = count/2-0.5;
+        for (i = [0: count-1]) {
+            translate([(i-offset)*dx, 0, 0]) children(); 
+        }
+    }
+}
 
 
-
-
-servo_socket_holders();
+* servo_socket_holders();
 
 module servo_socket_holders() {
     holder_dimensions = servo_female_socket_holder_dimensions(allowance=allowance_);
