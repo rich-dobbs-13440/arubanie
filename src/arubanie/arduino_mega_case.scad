@@ -45,9 +45,9 @@ mega2560Dimensions = boardDimensions( MEGA2560 );
 x_board = mega2560Dimensions[0];
 
 *servo_pin_retainer(assembly="slide", count=4);
-servo_pin_retainer(assembly="clip", count=4);
+color("green") servo_pin_retainer(assembly="clip", count=4);
 
-module servo_pin_retainer(assembly, allowance=0.4, count=1) {
+module servo_pin_retainer(assembly, count=1, allowance=0.4, wall_thickness=undef) {
     if (assembly=="clip") {
         clipping_retainer();
     } else if (assembly=="slide") {
@@ -55,16 +55,24 @@ module servo_pin_retainer(assembly, allowance=0.4, count=1) {
     } else {
         assert(false);
     }
+    wall_thickness_ = 
+        !is_undef(wall_thickness) ?  wall_thickness :
+        (assembly=="clip") ? 0.5 :
+        (assembly=="slide") ? 1 :
+        assert(false);
 
     adjustment = [2*allowance, 2*allowance, 2*allowance];
-    walls = [1, 1, 1];
+    walls = [2*wall_thickness_, 2*wall_thickness_, 2*wall_thickness_];
     pin_spacing = 2.54;
     pin_length = servo_socket_dimensions[MALE_BODY].y + servo_socket_dimensions[MALE_BACK].y;
     pins = [3*pin_spacing, 2*pin_length, pin_spacing];
     wire_clearance = [6.3, 40, 1.37];   
     blank = pins+walls+adjustment;
     module sliding_retainer() {
-        replicate(blank.z) { // Because of rotation to being on edge!
+        dx = 
+            blank.z // Because of rotation to being on edge!
+            -wall_thickness_;  // To make interior walls the same thickness as exterior;
+        replicate(dx) { 
             single_retainer();
         }
 
@@ -85,8 +93,10 @@ module servo_pin_retainer(assembly, allowance=0.4, count=1) {
     }
 
     module clipping_retainer() {
-        replicate(blank.x)
-        single_retainer();
+        dx = blank.x - wall_thickness_;
+        replicate(dx) {
+            single_retainer();
+        }
         
         module single_retainer() {
             difference() {
@@ -106,7 +116,7 @@ module servo_pin_retainer(assembly, allowance=0.4, count=1) {
             }
             block(wire_clearance);
             block(wire_clip_clearance, center=ABOVE);
-            translate([0, 0, 1]) block(pins-clip_overlap);            
+            translate([0, 0, pin_spacing/2]) block(pins-clip_overlap, center=ABOVE);            
         }
     }
     
