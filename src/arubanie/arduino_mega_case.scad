@@ -45,6 +45,23 @@ mega2560Dimensions = boardDimensions( MEGA2560 );
 x_board = mega2560Dimensions[0];
 
 
+
+
+
+servo_socket_holders();
+
+module servo_socket_holders() {
+    holder_dimensions = servo_female_socket_holder_dimensions(allowance=allowance_);
+    dx = holder_dimensions[SFSH_HOLDER].x;
+    rotate([0, 0, 180]) {
+        for (i = [0:3]) {
+            translate([(i-2)*dx, 0, 0]) 
+                servo_female_socket_holder(allowance=allowance_, center=ABOVE+FRONT+LEFT);    
+        }
+    }
+}
+
+
 * color("green") servo_female_socket_holder(allowance_, center=RIGHT);
 * color("blue") servo_female_socket_holder(allowance_, center=LEFT);
 * color("yellow") servo_female_socket_holder(allowance_, center=FRONT);
@@ -52,39 +69,67 @@ x_board = mega2560Dimensions[0];
 * color("indigo") servo_female_socket_holder(allowance_, center=ABOVE);
 * color("lime") servo_female_socket_holder(allowance_, center=BELOW);
 
-//eps = 0.01;
-module servo_female_socket_holder(allowance, center=0) {
-    echo("allowance", allowance);
-    wt = 1;
-    wall = [2*wt, 2*wt, 2*wt];
-    adjustment = [2*allowance, 2*allowance, 2*allowance];
+SFSH_HOLDER = 0;
+SFSH_FACE = 1;
+SFSH_OPENING = 2;
+SFSH_SIGNAL_WIRE_MARKER_DIAMETER_ = 3;
+SFSH_SIGNAL_WIRE_MARKER_TRANSLATION = 4;
+SFSH_CLIP_DIAMETER = 5;
+SFSH_CLIP_LENGTH = 6;
+SFSH_CLIP_TRANSLATION = 7;
+
+function servo_female_socket_holder_dimensions(wt=1, allowance=0.2) = 
+    let(
+        wall = [2*wt, 2*wt, 2*wt],
+        adjustment = [2*allowance, 2*allowance, 2*allowance],
+        body = servo_socket_dimensions[FEMALE_BODY],
+        holder = body + wall + adjustment,
+        face = [holder.x, 3*wt, holder.z],
+        opening = servo_socket_dimensions[MALE_BACK],
+        d_signal_wire_marker = 1.4,
+        t_signal_wire_marker = [
+            -(opening.x/2 + allowance),
+            holder.y/2, 
+            -opening.z/2 + allowance
+        ],
+        d_clip = 2,
+        l_clip = wt,
+        t_clip = [
+            opening.x/2 + allowance + d_clip/4,
+            -holder.y/2, 
+            opening.z/2 + allowance
+        ],
+        last = undef
+    )
+    [
+        holder,
+        face,
+        opening,
+        d_signal_wire_marker,
+        t_signal_wire_marker, 
+        d_clip,
+        l_clip,
+        t_clip,
+    ];
     
-    body = servo_socket_dimensions[FEMALE_BODY];
-    holder = body + wall + adjustment;
-    face = [holder.x, 3*wt, holder.z];
+
+
+module servo_female_socket_holder(wt=1, allowance=0.2, center=0) {
+    dimensions = servo_female_socket_holder_dimensions(wt, allowance);
+    holder = dimensions[SFSH_HOLDER];
+    face = dimensions[SFSH_FACE];
+    opening = dimensions[SFSH_OPENING];
+    d_signal_wire_marker = dimensions[SFSH_SIGNAL_WIRE_MARKER_DIAMETER_];
+    t_signal_wire_marker = dimensions[SFSH_SIGNAL_WIRE_MARKER_TRANSLATION];
+    d_clip = dimensions[SFSH_CLIP_DIAMETER];
+    l_clip = dimensions[SFSH_CLIP_LENGTH];
+    t_clip = dimensions[SFSH_CLIP_TRANSLATION];
     
-    opening = servo_socket_dimensions[MALE_BACK];
     lower_holder_body = [holder.x, holder.y, holder.z/2];
     upper_holder_body = [holder.x, holder.y, opening.z/2];
-    
-    d_signal_wire_marker = 1.4;
-    t_signal_wire_marker = [
-        opening.x/2 + allowance,
-        holder.y/2, 
-        opening.z/2 + allowance
-    ];
-    
-    d_clip = 2;
-    l_clip = wt;
-    t_clip = [
-        opening.x/2 + allowance+d_clip/4,
-        -holder.y/2, 
-        opening.z/2 + allowance
-    ];
     extent = holder;
-    
     center_translation(extent, center) {
-        difference() {
+        render() difference() {
             union() {
                 block(lower_holder_body, center=BELOW);
                 block(upper_holder_body,  center=ABOVE);
@@ -96,9 +141,9 @@ module servo_female_socket_holder(allowance, center=0) {
             servo_male_plug(allowance=allowance);
             servo_female_socket(allowance=allowance);
             translate(t_signal_wire_marker) {
-                rod(d=d_signal_wire_marker, l=2*wt, center=SIDEWISE+BELOW);
+                rod(d=d_signal_wire_marker, l=2*wt, center=SIDEWISE+ABOVE);
             }
-            can(d=0.8*holder.x, h=10);
+            can(d=0.8*holder.x, h=10);  // Just remove some unnecessary material
         }
     }
 }
