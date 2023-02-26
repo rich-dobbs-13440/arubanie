@@ -1,3 +1,11 @@
+/* 
+
+use <lib/servo_extension_wires.scad>
+
+*/
+
+
+
 include <centerable.scad>
 use <shapes.scad>
 
@@ -59,13 +67,13 @@ servo_socket_dimensions = [
     [7.92, 4.86, 2.70], // male back
 ];
 
-module servo_socket_holders() {
+module servo_socket_holders(wall_thickness) {
     holder_dimensions = servo_female_socket_holder_dimensions(allowance=allowance_);
-    dx = holder_dimensions[SFSH_HOLDER].x;
+    dx = holder_dimensions[SFSH_HOLDER].x - wall_thickness;
     rotate([0, 0, 180]) {
         for (i = [0:3]) {
             translate([(i-2)*dx, 0, 0]) 
-                servo_female_socket_holder(allowance=allowance_, center=ABOVE+FRONT+LEFT);    
+                servo_female_socket_holder(wt=wall_thickness, allowance=allowance_, center=ABOVE+FRONT+LEFT);    
         }
     }
 }

@@ -1,6 +1,7 @@
 include <arduino.scad>
 include <lib/centerable.scad>
 use <lib/shapes.scad>
+use <lib/servo_extension_wires.scad>
 
 /* [Show] */
 show_enclosure = true;
@@ -26,8 +27,12 @@ layout = 0; // [0:Expanded, 1:"Assembled", 2:"For printing"]
 /* [Adjust] */
 
 allowance_=0.2; // [0 : 0.05: 0.4]
-x_ = -5; // [-5: 1: 99.9]
-y_ = 0; // [0: 1: 99.9]
+x_ = 27; // [-99.9: 1: 99.9]
+y_ = 0; // [-99.9: 1: 99.9]
+z_ = 5; // [-5 : 0.05: 5]
+//x_ = 27; // [-99,9: 1: 99.9]
+//y_ = -5; // [-10: 0.5: -5]
+
 module end_customization() {}
 
 
@@ -98,7 +103,7 @@ if (show_lid) {
         dz_expansion = [75, 22, 0][layout];
         translate([0, 0, dz_expansion]) {
             if (layout == FOR_PRINT) {
-                mirror([0, 0, 1])  enclosureLid(MEGA2560);
+                mirror([0, 0, 1])  perforated_lid();
             } else {
                 color("red", alpha=0.10) enclosureLid(MEGA2560);
             }
@@ -106,13 +111,78 @@ if (show_lid) {
     }  
 }
 
+module perforated_lid() {
+    difference() {
+        dx = 12;
+        dy = 12;
+        d = 11;
+        enclosureLid(MEGA2560, wall=1);
+        for (i = [1:4]) {
+            for (j = [1:8]) {
+                translate([(i-0.3)*dx, (j-.4)*dy, 0]) can(d=d, h=10);
+            }
+        }
+    }  
+}
 
-*enclosureLid(MEGA2560,wall=1);
 
-// enclosureLid(MEGA2560,wall=1);
-kludge_extension_box(10, wall=1);
+//* enclosureLid(MEGA2560,wall=1);
+//translate([10, 10, 10]) mirror([0, 0, 1])  clip(clipHeight = 10);
+//
+//// enclosureLid(MEGA2560,wall=1);
+//kludge_extension_box(10, wall=1);
+wall = 1;
+* color("blue") clip(clipHeight = 10);
 
+*color("green") clipHole(clipHeight = 10, holeDepth = wall + 0.2);
+
+*servo_socket_holders(wall=1);
+
+servo_socket_extension_box();
+
+module servo_socket_extension_box() {
+    translate([27, -6.5, 0]) {
+        servo_socket_holders(wall_thickness=1);
+    }
+    
+    less_kludgy_extension_box(wall=1, height=4) {
+        translate([27, -6.5, 0]) hull() servo_socket_holders(wall_thickness=1);
+    }
+
+    color("orange") { 
+        translate([29, 65, 5.2]) { 
+            rotate([0, 0, 45]) servo_pin_retainer(assembly="slide", count=4);
+        }
+    }
+
+    for (dy = [13, 29, 35, 50, 65, 80]) {
+        translate([27, dy, 0]) block([52, 2, 1], center=ABOVE);
+    }
+    
+    translate([15, 32, 0]) {
+        can(d=10, hollow=8, h=6, center=ABOVE);
+        translate([0, 0, 5]) can(d=14, hollow=8, h=1, center=ABOVE);
+    }
+}
 // End of demonstration ------------------------
+
+
+
+module less_kludgy_extension_box(height, wall) {
+    difference() {
+        union() {
+            boundingBox(MEGA2560, offset = 0, height = height, cornerRadius = wall, include = BOARD);
+        }
+        translate([0, 0, -height]) {
+            boundingBox(MEGA2560, height = 4*height, offset = -wall, include=BOARD, cornerRadius = wall);
+        }
+        rotate([0, 0, -90]) clipHole(clipHeight = 3, holeDepth = wall + 0.2);
+        children();
+    }
+    
+}
+
+
 
 module kludge_extension_box(z, wall) {
     rim();
@@ -249,160 +319,8 @@ module prototyping_insert() {
     }
     
     front_platform = [platform.x, 10, 1];
-    translate([dx, 0, dz]) block(front_platform, center=BELOW+FRONT+LEFT);
-    
-    
+    translate([dx, 0, dz]) block(front_platform, center=BELOW+FRONT+LEFT);  
 }
-
-
-
-module servo_pin_retainer(assembly, count=1, allowance=0.4, wall_thickness=undef) {
-    if (assembly=="clip") {
-        clipping_retainer();
-    } else if (assembly=="slide") {
-        sliding_retainer();
-    } else {
-        assert(false);
-    }
-    wall_thickness_ = 
-        !is_undef(wall_thickness) ?  wall_thickness :
-        (assembly=="clip") ? 0.5 :
-        (assembly=="slide") ? 1 :
-        assert(false);
-
-    adjustment = [2*allowance, 2*allowance, 2*allowance];
-    walls = [2*wall_thickness_, 2*wall_thickness_, 2*wall_thickness_];
-    pin_spacing = 2.54;
-    pin_length = servo_socket_dimensions[MALE_BODY].y + servo_socket_dimensions[MALE_BACK].y;
-    pins = [3*pin_spacing, 2*pin_length, pin_spacing];
-    wire_clearance = [6.3, 40, 1.37];   
-    blank = pins+walls+adjustment;
-    module sliding_retainer() {
-        dx = 
-            blank.z // Because of rotation to being on edge!
-            -wall_thickness_;  // To make interior walls the same thickness as exterior;
-        replicate(dx) { 
-            single_retainer();
-        }
-
-        module single_retainer() {
-            rotate([0, -90, 0]) {
-                difference() {
-                    block(blank);
-                    clearance();
-                }
-            }
-        }
-        
-        module clearance() {
-            block(pins+adjustment);
-            block(wire_clearance+adjustment);
-            translate([wire_clearance.x/2, 0, 0]) plane_clearance(FRONT);
-        }        
-    }
-
-    module clipping_retainer() {
-        dx = blank.x - wall_thickness_;
-        replicate(dx) {
-            single_retainer();
-        }
-        
-        module single_retainer() {
-            difference() {
-                block(blank);
-                clearance();
-            }
-        }
-        module clearance() {
-            wire_clip_clearance = [5, 30, 10];
-            assembly_clearance = [30, 10, 30];
-            dy_clip = 2;
-            clip_overlap=[0.1, 0.1, 0.1];            
-            
-            block(pins+adjustment);
-            center_reflect([0, 1, 0]) translate([0, dy_clip, 1]) {
-                block(assembly_clearance, center=ABOVE+RIGHT);
-            }
-            block(wire_clearance);
-            block(wire_clip_clearance, center=ABOVE);
-            translate([0, 0, pin_spacing/2]) block(pins-clip_overlap, center=ABOVE);            
-        }
-    }
-    
-    module replicate(dx) {
-        offset = count/2-0.5;
-        for (i = [0: count-1]) {
-            translate([(i-offset)*dx, 0, 0]) children(); 
-        }
-    }
-}
-
-
-
-
-module servo_socket_holders() {
-    holder_dimensions = servo_female_socket_holder_dimensions(allowance=allowance_);
-    dx = holder_dimensions[SFSH_HOLDER].x;
-    rotate([0, 0, 180]) {
-        for (i = [0:3]) {
-            translate([(i-2)*dx, 0, 0]) 
-                servo_female_socket_holder(allowance=allowance_, center=ABOVE+FRONT+LEFT);    
-        }
-    }
-}
-
-
-* color("green") servo_female_socket_holder(allowance_, center=RIGHT);
-* color("blue") servo_female_socket_holder(allowance_, center=LEFT);
-* color("yellow") servo_female_socket_holder(allowance_, center=FRONT);
-* color("orange") servo_female_socket_holder(allowance_, center=BEHIND);
-* color("indigo") servo_female_socket_holder(allowance_, center=ABOVE);
-* color("lime") servo_female_socket_holder(allowance_, center=BELOW);
-
-SFSH_HOLDER = 0;
-SFSH_FACE = 1;
-SFSH_OPENING = 2;
-SFSH_SIGNAL_WIRE_MARKER_DIAMETER_ = 3;
-SFSH_SIGNAL_WIRE_MARKER_TRANSLATION = 4;
-SFSH_CLIP_DIAMETER = 5;
-SFSH_CLIP_LENGTH = 6;
-SFSH_CLIP_TRANSLATION = 7;
-
-function servo_female_socket_holder_dimensions(wt=1, allowance=0.2) = 
-    let(
-        wall = [2*wt, 2*wt, 2*wt],
-        adjustment = [2*allowance, 2*allowance, 2*allowance],
-        body = servo_socket_dimensions[FEMALE_BODY],
-        holder = body + wall + adjustment,
-        face = [holder.x, 3*wt, holder.z],
-        opening = servo_socket_dimensions[MALE_BACK],
-        d_signal_wire_marker = 1.4,
-        t_signal_wire_marker = [
-            -(opening.x/2 + allowance),
-            holder.y/2, 
-            -opening.z/2 + allowance
-        ],
-        d_clip = 2,
-        l_clip = wt,
-        t_clip = [
-            opening.x/2 + allowance + d_clip/4,
-            -holder.y/2, 
-            opening.z/2 + allowance
-        ],
-        last = undef
-    )
-    [
-        holder,
-        face,
-        opening,
-        d_signal_wire_marker,
-        t_signal_wire_marker, 
-        d_clip,
-        l_clip,
-        t_clip,
-    ];
-    
-
 
 
 
