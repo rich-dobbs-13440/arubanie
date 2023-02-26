@@ -28,10 +28,14 @@ layout = 0; // [0:Expanded, 1:"Assembled", 2:"For printing"]
 
 allowance_=0.2; // [0 : 0.05: 0.4]
 x_ = 27; // [-99.9: 1: 99.9]
-y_ = 0; // [-99.9: 1: 99.9]
-z_ = 5; // [-5 : 0.05: 5]
+//y_ = 0; // [-99.9: 1: 99.9]
+
 //x_ = 27; // [-99,9: 1: 99.9]
-//y_ = -5; // [-10: 0.5: -5]
+
+
+y_ = -10; // [-15: 0.5: -5]
+
+z_ = 5; // [-10 : 0.05: 5]
 
 module end_customization() {}
 
@@ -140,43 +144,63 @@ wall = 1;
 
 servo_socket_extension_box();
 
-module servo_socket_extension_box() {
-    translate([27, -6.5, 0]) {
-        servo_socket_holders(wall_thickness=1);
-    }
+module servo_socket_extension_box(wall_thickness = 1) {
     
-    less_kludgy_extension_box(wall=1, height=4) {
-        translate([27, -6.5, 0]) hull() servo_socket_holders(wall_thickness=1);
+    placed_socket_holders();
+    extension_box(wall=1, height=4) {
+        hull() placed_socket_holders(); 
     }
+    spool();
+    placed_pin_retainer();
 
-    color("orange") { 
-        translate([29, 65, 5.2]) { 
-            rotate([0, 0, 45]) servo_pin_retainer(assembly="slide", count=4);
+    module placed_socket_holders() {
+        dy = -10.5;
+        translate([27, dy, 0]) {
+            servo_socket_holders(wall_thickness=wall_thickness);
         }
-    }
-
-    for (dy = [13, 29, 35, 50, 65, 80]) {
-        translate([27, dy, 0]) block([52, 2, 1], center=ABOVE);
+        translate([27, dy+19, 0]) block([60, 2, 1], center=ABOVE);
     }
     
-    translate([15, 32, 0]) {
-        can(d=10, hollow=8, h=6, center=ABOVE);
-        translate([0, 0, 5]) can(d=14, hollow=8, h=1, center=ABOVE);
+    module spool() {
+        dy = 28;
+        d_spool = 12;
+        translate([16, dy, 0]) {
+            can(d=d_spool, hollow=d_spool-2, h=6, center=ABOVE);
+            translate([0, 0, 6]) can(d=d_spool+4, hollow=d_spool-2, h=1, center=ABOVE);
+        }
+        translate([27, dy-d_spool/2+1, 0]) block([60, 2, 1], center=ABOVE);
+        translate([27, dy+d_spool/2-1, 0]) block([60, 2, 1], center=ABOVE);
     }
+     module placed_pin_retainer() { 
+        dy = 55;
+        translate([33, dy, 0]) { 
+            rotate([0, 0, 45]) {
+                translate([0, 0, 5.2]) servo_pin_retainer(assembly="slide", count=4);
+                translate([0, -14, 0]) block([38, 2, 1], center=ABOVE);
+            }
+        }
+        translate([27, dy - 22, 0]) block([60, 2, 1], center=ABOVE);
+        translate([27, dy + 4, 0]) block([60, 2, 1], center=ABOVE);
+        translate([27, dy + 14, 0]) block([60, 2, 1], center=ABOVE);
+    }    
+    
+
 }
 // End of demonstration ------------------------
 
 
 
-module less_kludgy_extension_box(height, wall) {
+module extension_box(height, wall) {
+    //pcbDim = pcbDimensions(boardType);
+	//enclosureWidth = pcbDim[0] + (wall + offset) * 2;
     difference() {
         union() {
-            boundingBox(MEGA2560, offset = 0, height = height, cornerRadius = wall, include = BOARD);
+            boundingBox(MEGA2560, offset = 3+wall, height = height, cornerRadius = wall, include = BOARD);
         }
         translate([0, 0, -height]) {
-            boundingBox(MEGA2560, height = 4*height, offset = -wall, include=BOARD, cornerRadius = wall);
+            boundingBox(MEGA2560, height = 4*height, offset = 3, include=BOARD, cornerRadius = wall);
         }
-        rotate([0, 0, -90]) clipHole(clipHeight = 3, holeDepth = wall + 0.2);
+        *rotate([0, 0, -90]) clipHole(clipHeight = 3, holeDepth = wall + 0.2);
         children();
     }
     
