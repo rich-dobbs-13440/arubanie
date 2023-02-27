@@ -120,8 +120,6 @@ module enclosure(
         includeFloor=true,
         clipHeight=10) {
             
-    
-    
 	standOffHeight = 5;
 
 	dimensions = boardDimensions(boardType);
@@ -196,7 +194,68 @@ module enclosure(
 	}
 }
 
+PRONGS = 0;
+INSERTABLE_PRONG_SOCKETS = 1;
+    
+module enclosureClips(
+        boardType, 
+        wall = 3, 
+        offset = 3, 
+        clipWidth = 5, 
+        clipDepth = 5, 
+        clipHeight=clipHeight, 
+        clipType=PRONGS) {
+            
+    assert(!is_undef(boardType));
+    NEAR = 0;
+    FAR = 1;        
+    
+    dimensions = boardDimensions(boardType);
+	pcbDim = pcbDimensions(boardType);
+    enclosureDepth = pcbDim[1] + (wall + offset) * 2;
+            
+    module clip_socket() {
+        allowance = 0.2; // Tight fit!
+        wall = 1;
+        exposed_pedistal = [pedistal.x, pedistal.y, 5];
+        clearance = [allowance, allowance, allowance];
+        walls = [2*wall, 2*wall, 0];
 
+        render() difference() {
+            translate([0, wall, 0]) block(exposed_pedistal+clearance+walls, center=BELOW+LEFT);
+            block(exposed_pedistal + clearance, center=BELOW+LEFT, rank=10); 
+            retaining_hole_through();       
+        }
+    }             
+            
+    module selectedClip(side) {
+        if (clipType == PRONGS) {
+            if (side == NEAR)
+                rotate([0, 180, 90]) clip(clipHeight = clipHeight, clipWidth = clipWidth, clipDepth = clipDepth);
+            else if (side == FAR) {
+                rotate([0, 180, 270]) clip(clipHeight = clipHeight, clipWidth = clipWidth, clipDepth = clipDepth);
+            }
+        } else if (clipType == INSERTABLE_PRONG_SOCKETS) {
+            if (side == NEAR) {
+                rotate([0, 180, 90]) clip_socket();
+            } else if (side == FAR) {
+                rotate([0, 180, 270]) clip_socket();
+            }
+        } else {
+            assert(false, str("Not handled clipType ", clipType));
+        }
+    }
+
+    translate([0, enclosureDepth * 0.75 - (offset + wall), 0]) {
+        translate([-offset, 0, 0]) selectedClip(NEAR);  
+        translate([offset + dimensions[0], 0, 0]) selectedClip(FAR);    
+    }
+
+    translate([0, enclosureDepth * 0.25 - (offset + wall), 0]) {
+        translate([-offset, 0, 0]) selectedClip(NEAR); 
+        translate([offset + dimensions[0], 0, 0]) selectedClip(FAR);
+    }
+}
 
 
 //Create a snap on lid for enclosure
@@ -249,23 +308,7 @@ module enclosureLid(
             }
         }
     }
-    
-    module lidClips(clipWidth = 5, clipDepth = 5) {
-        //Lid clips
-        translate([0, enclosureDepth * 0.75 - (offset + wall), 0]) {
-            translate([-offset, 0, 0])
-                rotate([0, 180, 90]) clip(clipHeight = clipHeight, clipWidth = clipWidth, clipDepth = clipDepth);
-            translate([offset + boardDim[0], 0, 0])
-                rotate([0, 180, 270]) clip(clipHeight = clipHeight, clipWidth = clipWidth, clipDepth = clipDepth);
-        }
-    
-        translate([0, enclosureDepth * 0.25 - (offset + wall), 0]) {
-            translate([-offset, 0, 0])
-                rotate([0, 180, 90]) clip(clipHeight = clipHeight, clipWidth = clipWidth, clipDepth = clipDepth);
-            translate([offset + dimensions[0], 0, 0])
-                rotate([0, 180, 270]) clip(clipHeight = clipHeight, clipWidth = clipWidth, clipDepth = clipDepth);
-        }
-    }
+
     module lidFloor() {
         boundingBox(boardType = boardType, height = wall, offset = wall + offset, include=PCB, cornerRadius = wall);
     }
@@ -278,7 +321,7 @@ module enclosureLid(
             translate([0, 0, -2*rimHeight]) {
                 boundingBox(boardType = boardType, height = 4*rimHeight, offset = offset - 0.5 - wall, include = PCB, cornerRadius = wall);
             }
-            lidClips(clipWidth = 6, clipDepth = 6);
+            enclosureClips(boardType=boardType, wall=wall, offset = 3, clipWidth = 6, clipDepth = 6, clipHeight=clipHeight);
         }
     }   
 
@@ -286,7 +329,7 @@ module enclosureLid(
 		union() {
 			lidFloor();
             lidRim();
-            lidClips();
+            enclosureClips(boardType=boardType, wall=wall, offset = 3, clipHeight=clipHeight);
 		}
         if (ventHoles) {
             ventHolesClearance();
