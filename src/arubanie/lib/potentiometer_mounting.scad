@@ -10,9 +10,10 @@ use <shapes.scad>
 
 /* [Customization] */
 
-allowance_ = 0.2; // [0:0.05:2]
+allowance_ = 0.3; // [0:0.05:2]
+clip_overlap_ = 0.5; // [0:0.05:1]
 count_ = 1; // [1: 10]
-spacing_ = 0; // [0 : 1 : 20]
+spacing_ = 2; // [0 : 1 : 20]
 show_mocks_= false;
 
 AS_DESIGNED = 0 + 0;
@@ -60,32 +61,37 @@ H_INDICATER = 4;
     [ pedistal, knob ];
  
  module breadboard_compatible_trim_potentiometer(alpha=1) {
-     // Center of origin at the centerline of the knob where the knob meets the base.  
-     // The default orientation is for the knob to rotate along the z-axis.
-     dims = breadboard_compatible_trim_potentiometer_dimensions();
-     color("SteelBlue", alpha=alpha) {
-         pedistal();
-         knob();
-     }
+    // Center of origin at the centerline of the knob where the knob meets the base.  
+    // The default orientation is for the knob to rotate along the z-axis.
+    dims = breadboard_compatible_trim_potentiometer_dimensions();
+    color("SteelBlue", alpha=alpha) {
+        pedistal();
+        knob();
+    }
      
-     module pedistal() {
+    module pedistal() {
          block(dims[PEDISTAL_IDX], center=BELOW); 
-     }
-     module knob() {
+    }
+    module knob() {
         dim = dims[KNOB_IDX];
         can(d=dim[D_BASE], h=dim[H_BASE], taper=dim[D_TAPER], center=ABOVE);
         translate([0, 0, dim[H_BASE]]) 
             can(d=dim[D_INDICATER], h=dim[H_INDICATER], center=ABOVE);
-     }
- }
+    }
+}
  
 BODY_IDX = 0;
 X_OFFSET_IDX = 1;
 DX_IDX = 2;
 FACE_PLATE_IDX = 3;
+PIN_RETENTION_BASE_IDX = 4;
+PIN_RETENTION_LOWER_WALL_IDX = 5;
+PIN_WIDTH = 6;
+PIN_LENGTH = 7;
+PIN_WIRE_FIN = 8;
  
 function  breadboard_compatible_trim_potentiometer_housing_dimensions(
-        wall=2, face=2, count=1, spacing=0, allowance=0.2) =
+        wall=2, face=0.5, count=1, spacing=2, allowance=0.3) =
     let(
         knob_dims = breadboard_compatible_trim_potentiometer_dimensions(),
         pedistal = knob_dims[PEDISTAL_IDX],
@@ -96,10 +102,26 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         x_offset = -body.x/2 + wall + allowance + pedistal.x/2,
         dx = pedistal.x + spacing,
         face_plate = [body.x, body.y, face],
+        pin_length = 14,
+        pin_width = 2.54,
+        pin_retention_base = [2*pin_width, wall, pin_length + wall],
+        pin_retention_lower_wall = [4*pin_width, body.y/2, wall],
+        wire_gap = 1.24,
+        wire_fin = [pin_width - wire_gap, pin_width, wall],
+        
         last = undef
     ) 
     [
-        body, x_offset, dx, face_plate,
+        body, 
+        x_offset, 
+        dx, 
+        face_plate, 
+        pin_retention_base, 
+        pin_retention_lower_wall,
+        pin_width, 
+        pin_length, 
+        wire_fin, 
+        
     ];
     
  
@@ -107,9 +129,9 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         wall=2, 
         face=0.5, 
         count=1, 
-        spacing=0, 
-        allowance=0.2, 
-        clip_overlap=1, 
+        spacing=2, 
+        allowance=0.3, 
+        clip_overlap=0.5, 
         center=0, 
         show_mocks=false) {
             
@@ -122,6 +144,10 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
     pedistal = knob_dims[PEDISTAL_IDX];
     body = dims[BODY_IDX];
     face_plate = dims[FACE_PLATE_IDX];
+    pin_retention_base = dims[PIN_RETENTION_BASE_IDX];
+    pin_retention_lower_wall = dims[PIN_RETENTION_LOWER_WALL_IDX];
+    wire_fin = dims[PIN_WIRE_FIN]; 
+    pin_width = dims[PIN_WIDTH];
             
     render() difference() {
         block(body, center=BELOW);
@@ -131,11 +157,22 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         block(face_plate, center=ABOVE);
         replicate() knob_clearance();
     }
-    //color("pink", alpha=0.1) 
-    replicate() retention_clip();
+
+    replicate() instrument_retention_clip();
+    replicate()  pin_retention_clip();
+    
+    module pin_retention_clip() {
+        
+        translate([0, -body.y/2, -body.z]) block(pin_retention_base, center=BELOW+RIGHT);
+        translate([0, -body.y/2, -body.z-pin_retention_base.z]) block(pin_retention_lower_wall, center=BELOW+RIGHT);
+        translate([pin_width/2, 0, -body.z-pin_retention_base.z]) block(wire_fin, center=BELOW+RIGHT+BEHIND);
+        translate([-pin_width/2, 0, -body.z-pin_retention_base.z]) block(wire_fin, center=BELOW+RIGHT+FRONT);
+        translate([3*pin_width/2, 0, -body.z-pin_retention_base.z]) block(wire_fin, center=BELOW+RIGHT+BEHIND);
+        translate([-3*pin_width/2, 0, -body.z-pin_retention_base.z]) block(wire_fin, center=BELOW+RIGHT+FRONT);        
+    }
      
-    module retention_clip() {
-        // truncated Cones
+    module instrument_retention_clip() {
+        // truncated cones at the corners
         d_outer = 1;
         d_inner = d_outer + clip_overlap; // Inner with respect z axis!
         h_clip = 1;
@@ -159,24 +196,22 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         }
     }
      
-
+    module replicate() {
+        dx = dims[DX_IDX];
+        x_offset = dims[X_OFFSET_IDX];
+        for (i = [0 : count-1] ) {
+            translate([i * dx + x_offset, 0, 0]) {
+                children();
+            }
+        }           
+    }
      
-     module replicate() {
-         dx = dims[DX_IDX];
-         x_offset = dims[X_OFFSET_IDX];
-         for (i = [0 : count-1] ) {
-             translate([i * dx + x_offset, 0, 0]) {
-                 children();
-             }
-         }           
-     }
+    module knob_clearance() {
+        can(d=pedistal.x, h=20);
+    }
      
-     module knob_clearance() {
-         can(d=pedistal.x, h=20);
-     }
-     
-     module pedistal_clearance() {
-         allowances = [2*allowance, 2*allowance, 20];
-         translate([0, 0, -pedistal.z/2]) block(pedistal + allowances);
-     }
+    module pedistal_clearance() {
+        allowances = [2*allowance, 2*allowance, 20];
+        translate([0, 0, -pedistal.z/2]) block(pedistal + allowances);
+    }
  }
