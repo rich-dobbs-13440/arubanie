@@ -8,7 +8,9 @@ include <logging.scad>
 include <centerable.scad>
 use <shapes.scad>
 
+/* [Customization] */
 
+allowance_ = 0.2; // [0:0.05:2]
 count_ = 1; // [1: 10]
 spacing_ = 0; // [0 : 1 : 20]
 show_mocks_= false;
@@ -25,7 +27,10 @@ orientation_ = 0; //[0:As designed, 1:On face, 2: On side]
  
 orient() { 
      breadboard_compatible_trim_potentiometer_housing(
-        count = count_, spacing = spacing_, show_mocks = show_mocks_);
+        count = count_, 
+        spacing = spacing_, 
+        allowance = allowance_,
+        show_mocks = show_mocks_);
 }
 
 module orient() {
@@ -84,9 +89,9 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
     let(
         knob_dims = breadboard_compatible_trim_potentiometer_dimensions(),
         pedistal = knob_dims[PEDISTAL_IDX],
-        x = pedistal.x * count + spacing * (count-1) + 2 * wall,
-        y = pedistal.y + 2 * wall,
-        z = pedistal.z,
+        x = pedistal.x * count + spacing * (count-1) + 2 * wall + 2 * allowance,
+        y = pedistal.y + 2 * allowance + 2 * wall,
+        z = pedistal.z + allowance,
         body = [x, y, z],
         x_offset = -body.x/2 + wall + allowance + pedistal.x/2,
         dx = pedistal.x + spacing,
@@ -99,41 +104,62 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
     
  
  module breadboard_compatible_trim_potentiometer_housing(
-        wall=2, face=0.75, count=1, spacing=0, allowance=0.2, center=0, show_mocks=false) {
+        wall=2, 
+        face=0.5, 
+        count=1, 
+        spacing=0, 
+        allowance=0.2, 
+        clip_overlap=1, 
+        center=0, 
+        show_mocks=false) {
             
-     dims = breadboard_compatible_trim_potentiometer_housing_dimensions(wall, face, count, spacing, allowance);
-     knob_dims =  breadboard_compatible_trim_potentiometer_dimensions();
-     pedistal = knob_dims[PEDISTAL_IDX];
-     body = dims[BODY_IDX];
-     face_plate = dims[FACE_PLATE_IDX];
+    if (show_mocks) {
+        replicate() breadboard_compatible_trim_potentiometer();
+    }            
             
-     render() difference() {
+    dims = breadboard_compatible_trim_potentiometer_housing_dimensions(wall, face, count, spacing, allowance);
+    knob_dims =  breadboard_compatible_trim_potentiometer_dimensions();
+    pedistal = knob_dims[PEDISTAL_IDX];
+    body = dims[BODY_IDX];
+    face_plate = dims[FACE_PLATE_IDX];
+            
+    render() difference() {
         block(body, center=BELOW);
         replicate() pedistal_clearance();
-     }
-     render() difference() {
-         block(face_plate, center=ABOVE);
-         replicate() knob_clearance();
-     }
-     replicate() retention_clip();
+    }
+    render() difference() {
+        block(face_plate, center=ABOVE);
+        replicate() knob_clearance();
+    }
+    //color("pink", alpha=0.1) 
+    replicate() retention_clip();
      
-     module retention_clip() {
-         // truncated Cones
-         d_outer = 1;
-         d_inner = 2;
-         h_clip = 1;
-         center_reflect([1, 0, 0]) {
-             center_reflect([0, 1, 0]) {
-                 translate([pedistal.x/2, pedistal.y/2, -pedistal.z]) {
-                    can(d=d_outer, taper=d_inner, h=h_clip, center=BELOW);
-                 }
-             }
-         }
-     }
+    module retention_clip() {
+        // truncated Cones
+        d_outer = 1;
+        d_inner = d_outer + clip_overlap; // Inner with respect z axis!
+        h_clip = 1;
+        t_clip = [
+            pedistal.x/2 + d_outer/2, 
+            pedistal.y/2 + d_outer/2, 
+            -body.z
+        ];
+        dt_bound = -d_outer/2 + wall + allowance;
+         
+        center_reflect([1, 0, 0]) {
+            center_reflect([0, 1, 0]) {
+                translate(t_clip) {
+                    render() difference() {
+                        can(d=d_outer, taper=d_inner, h=h_clip, center=BELOW);
+                        translate([dt_bound, 0, 0]) block([d_inner, d_inner, 4*h_clip], center=BELOW+FRONT);
+                        translate([0, dt_bound, 0]) block([d_inner, d_inner, 4*h_clip], center=BELOW+RIGHT);
+                    }
+                }
+            }
+        }
+    }
      
-     if (show_mocks) {
-         replicate() breadboard_compatible_trim_potentiometer();
-     }
+
      
      module replicate() {
          dx = dims[DX_IDX];
