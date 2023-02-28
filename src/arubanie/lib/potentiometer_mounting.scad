@@ -9,37 +9,52 @@ include <centerable.scad>
 use <shapes.scad>
 
 /* [Customization] */
-
-allowance_ = 0.3; // [0:0.05:2]
-clip_overlap_ = 0.5; // [0:0.05:1]
-clip_thickness_ = 1; // [0:0.25:2]
-count_ = 1; // [1: 10]
-spacing_ = 2; // [0 : 1 : 20]
-show_mocks_= false;
-
-
-wall = 2;
-overlap = 0.5; // [0: 0.05: 2]
-
-//    h1 = 1; // [0: 0.05: 4]
-//    h2 = 1; // [0: 0.05: 4]
-//    h3 = 1; // [0: 0.05: 4] 
-
-* corner_retention_block(wall, overlap);
-
-
+    show_housing = true;
+    allowance_ = 0.3; // [0:0.05:2]
+    clip_overlap_ = 0.5; // [0:0.05:1]
+    clip_thickness_ = 1; // [0:0.25:2]
+    count_ = 1; // [1: 10]
+    spacing_ = 2; // [0 : 1 : 20]
+    show_mocks_= false;
+    build_from_ = 0; //[0:Designed, 1:From face, 2:Side, 3:End]
+    
+    if (show_housing) {
+        breadboard_compatible_trim_potentiometer_housing(
+            count = count_, 
+            spacing = spacing_, 
+            allowance = allowance_,
+            build_from = build_from_,
+            show_mocks = show_mocks_);
+    }    
 
 
-build_from_ = 0; //[0:Designed, 1:From face, 2:Side, 3:End]
+/* [Side Clip ] */ 
+    show_side_clip = false;
+    wall = 2; // [0: 0.5: 4]
+    overlap_clip = 0.5; // [0: 0.05: 2]
+    h_clip = 4; // [0 : 0.5 : 4]
+    w_clip = 2; // [0 : 0.5 : 4]
+    if (show_side_clip) {
+        color("silver") block([wall, wall, 10], center=BEHIND+LEFT);
+        side_clip(wall, h_clip, w_clip, overlap_clip);
+    }
 
-breadboard_compatible_trim_potentiometer_housing(
-    count = count_, 
-    spacing = spacing_, 
-    allowance = allowance_,
-    build_from = build_from_,
-    show_mocks = show_mocks_);
 
 module end_of_customization() {}
+
+
+
+module side_clip(wall, h, w, overlap) {
+    assert(is_num(wall));
+    assert(is_num(h));
+    assert(is_num(w));
+    assert(is_num(overlap));
+    hull() {
+        block([w, wall, h], center=LEFT+FRONT); // body
+        block([0.01, overlap, h], center=RIGHT+FRONT); // clip
+        block([0.01, wall, h+2*w], center=LEFT+FRONT); // Vertical printing support.
+    }
+}
 
 
 module corner_retention_block(wall, overlap, h_clip = 0.5, h_slope = 0.5, h_alignment = 0.5, shelf=0.20, allowance=0.4) {
@@ -316,16 +331,22 @@ BUILD_FROM_END = 3;
      
     module instrument_retention_clips() {
         
-        t_clip = [
-            housing.x/2 - wall,   
-            housing.y/2 - wall,
-            -housing.z
-        ];
+        if (build_from != BUILD_FROM_SIDE) {
+            oriented_clip(); 
+        }
+        rotate([0, 0, 90]) oriented_clip();
+        rotate([0, 0, 180]) oriented_clip();  
+        if (build_from != BUILD_FROM_END) {
+            rotate([0, 0, 270]) oriented_clip(); 
+        }
         
-        center_reflect([1, 0, 0]) 
-            center_reflect([0, 1, 0])         
-                translate(t_clip) corner_retention_block(wall, overlap); 
-
+        module oriented_clip() {
+            h_clip = housing.x/4;
+            w_clip = 1;            
+            translate([0, housing.y/2-wall, -housing.z]) {
+                rotate([180, 90, 0]) side_clip(wall, h_clip, w_clip, clip_overlap);
+            }
+        }
     }
 
     module knob_clearance() {
