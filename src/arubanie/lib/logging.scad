@@ -67,6 +67,9 @@ Sample usage in code:
         "Pintle length should be at least 2.5 times the height.",
         "The length is not sufficient to correctly implement rotation stops."
     );
+
+
+
     
 */
 
@@ -84,14 +87,14 @@ if (show_name) {
 
 IMPORTANT = 25 + 0;
 
+big_fonts = false;
+font_size = big_fonts ? "<font size='+1'>" : "";
+
 
 function console_styling(level) =
-    level >= WARNING ?
-        "<b style='background-color:LightSalmon'><font size='+1'>" : 
-    level >= IMPORTANT ? 
-        "<b style='color:OrangeRed'><font size='+2\'>" :
-    // otherwise
-        "<font size=\"+2\">";
+    level >= WARNING ? str("<b style='background-color:LightSalmon'>", font_size) : 
+    level >= IMPORTANT ? str("<b style='color:OrangeRed'>", font_size) : 
+    font_size;
 
 function log_verbosity_choice(choice) = 
     choice == "WARN" ? WARN :
