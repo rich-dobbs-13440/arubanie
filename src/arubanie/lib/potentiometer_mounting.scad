@@ -224,7 +224,7 @@ BUILD_FROM_END = 3;
             housing_lower_xz_wall(narrow=false);
             
             if (retain_pins) {
-                pin_retention_clip();
+                pin_retention_clip(arrow_up);
             }
         } 
     
@@ -284,9 +284,10 @@ BUILD_FROM_END = 3;
         color("red") {
             translate([-pin_width, 0, -pedistal.z]) block([pin_width, pin_width, pin_length], center=BELOW);
         }  
-       color("yellow") {
+        color("yellow") {
+            angle = arrow_up ? 5 : 0;
             translate([0, -pin_width/2, -pedistal.z]) 
-                rotate([5, 0, 0]) 
+                rotate([angle, 0, 0]) 
                     block([pin_width, pin_width, pin_length], center=BELOW);
         }            
     }  
@@ -299,6 +300,7 @@ BUILD_FROM_END = 3;
     module spring_clip() {
         lower_spring_clip();
         upper_spring_clip();
+        spring_support();
     }
     
     module upper_spring_clip() {
@@ -367,7 +369,7 @@ BUILD_FROM_END = 3;
         translate([0, 0, -pedistal.z/2]) block(pedistal + allowances);
     }
     
-    module pin_retention_clip() {
+    module pin_retention_clip_up() {
         module wire_clip() {
             translate([0, 0, -body.z-pin_retention_base.z])
                 center_reflect([1, 0, 0]) 
@@ -379,7 +381,80 @@ BUILD_FROM_END = 3;
         translate([0, -body.y/2, -body.z]) block(pin_retention_base, center=BELOW+RIGHT);
         translate([0, -body.y/2, -body.z-pin_retention_base.z]) block(pin_retention_lower_wall, center=ABOVE+RIGHT);
         wire_clip();
-        center_reflect([1, 0, 0]) translate([pin_width, 0, 0]) wire_clip();     
+        center_reflect([1, 0, 0]) translate([pin_width, 0, 0]) wire_clip();        
+    }
+    
+    module pin_retention_clip_sidewise() {
+        pin_floor_thickness = 1.5;
+        t_bottom_cl = [
+            0, 
+            -housing.y/2,
+            -housing.z
+        ];
+        pin_floor = [
+            4 * pin_width, 
+            pin_floor_thickness,
+            pin_length + pin_width/2
+        ]; 
+        translate(t_bottom_cl) block(pin_floor, center=BELOW+RIGHT);
+        support_width = pin_width;
+        t_bottom_pin = t_bottom_cl + [0, pin_floor_thickness, - (pin_length - pin_width/2)];
+        lower_pin_support = [pin_width, 1.8, support_width];
+        mid_pin_support = [pin_width, lower_pin_support.y + pin_width, support_width];
+        side_pin_support = [pin_width/2, mid_pin_support.y + 2* pin_width, support_width];
+        
+        translate(t_bottom_pin) {
+            block(lower_pin_support, center=ABOVE+RIGHT);
+            translate([pin_width, 0, 0]) block(mid_pin_support, center=ABOVE+RIGHT);
+            translate([pin_width, 0, 0]) block(side_pin_support, center=ABOVE+RIGHT+FRONT);
+            translate([-pin_width, 0, 0]) block(side_pin_support, center=ABOVE+RIGHT+FRONT);
+            
+        }
+    }
+    
+    module spring_support() {
+        echo("Got here");
+        support_height = 6;
+        spring_support_upper = [
+            wall, 
+            support_height,
+            0.01
+        ];
+        spring_support_lower = [
+            wall,
+            0.01,
+            support_height,
+            
+        ];
+        t_corner = [
+            housing.x/2,
+            -housing.y/2,
+            -housing.z
+        ];
+        center_reflect([1, 0, 0]) {
+            translate(t_corner) {
+                hull() {
+                    #block(spring_support_upper, center=BELOW+RIGHT+BEHIND);
+                    block(spring_support_lower, center=BELOW+RIGHT+BEHIND);
+                }
+            }
+        }
+        spring_support_floor = [
+            housing.x,
+            wall, 
+            support_height
+        ];
+        translate(t_corner) block(spring_support_floor, center=BELOW+RIGHT+BEHIND);
+        
+    }
+    
+    module pin_retention_clip(arrow_up) {
+        
+        if (arrow_up) {
+            pin_retention_clip_up();
+        } else {
+            pin_retention_clip_sidewise();
+        }     
     }    
     
     module orient() {
