@@ -29,94 +29,15 @@ use <shapes.scad>
             show_mocks = show_mocks_);
     }    
 
-
-/* [Side Clip ] */ 
-    show_side_clip = false;
-    wall = 2; // [0: 0.5: 4]
-    overlap_clip = 0.5; // [0: 0.05: 2]
-    h_clip = 4; // [0 : 0.5 : 4]
-    w_clip = 2; // [0 : 0.5 : 4]
-    if (show_side_clip) {
-        color("silver") block([wall, wall, 10], center=BEHIND+LEFT);
-        side_clip(wall, h_clip, w_clip, overlap_clip);
-    }
-    
-    
-
-
-
 module end_of_customization() {}
 
-
-
-module side_clip(wall, h, w, overlap) {
-    assert(is_num(wall));
-    assert(is_num(h));
-    assert(is_num(w));
-    assert(is_num(overlap));
-    hull() {
-        translate([0, -w/4, 0]) block([w, w/4, h], center=LEFT+FRONT); // body
-        block([0.01, overlap, h], center=RIGHT+FRONT); // clip
-        block([0.01, wall, h+2*w], center=LEFT+FRONT); // Vertical printing support.
-    }
-}
-
+// Rotations:  Move to centrable???
 Z_TO_MINUS_Z = [180, 0, 0];
 Z_TO_MINUS_Y = [90, 0, 0];
 Z_TO_X = [0, 90, 0];
 X_TO_Y = [0, 0, 90];
 
-
-module corner_retention_block(wall, overlap, h_clip = 0.5, h_slope = 0.5, h_alignment = 0.5, shelf=0.20, allowance=0.4) {
-
-    h_total = h_clip + h_slope + h_alignment;
-    CORNER = ABOVE+FRONT+RIGHT;
-    
-    // Want the  center of origin at the corner of the wall
-    // For now, just rotate it for position as being used
-    rotate([180, 0, 270]) {
-            clip();
-            mirror([-1, 1, 0]) clip();
-    }
-    
-    module clip() {
-        translate([0, -wall, 0]) {
-            clip_shape();
-        }
-    }
-
-    module clip_shape() {
-
-        l_aligner = wall;
-        aligner = [
-            l_aligner, 
-            wall, 
-            h_clip + h_slope + h_alignment];
-        sloper =  [
-            aligner.x + h_alignment, 
-            wall, 
-            h_clip + h_slope];
-        clipper = [
-            sloper.x + h_slope, 
-            wall+overlap,
-            h_clip
-        ];
-        print_supporter = [clipper.x + h_clip, wall, 0.01];
-
-        hull() {
-            block(aligner, center=CORNER);
-            block(print_supporter, center=CORNER);
-        }
-        hull() {
-            block(clipper, center=CORNER);
-            translate([0, shelf, 0]) block(sloper, center=CORNER);
-            block(print_supporter, center=CORNER);
-            
-        } 
-    }
-}
-
-
+// Potentiometer Constants
 PEDISTAL_IDX = 0;
 KNOB_IDX = 1;
  
@@ -163,7 +84,9 @@ H_INDICATER = 4;
         }
     }
 }
- 
+
+
+// Housing Constants
 BODY_IDX = 0;
 X_OFFSET_IDX = 1;
 DX_IDX = 2;
@@ -235,14 +158,14 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         housing,
     ];
     
-// Build orientation
+// Build orientation Constants
 BUILD_UP_TO_FACE = 0; // As designed, with no rotation 
 BUILD_FROM_FACE = 1;    
 BUILD_FROM_SIDE = 2;
 BUILD_FROM_END = 3; 
  
  module breadboard_compatible_trim_potentiometer_housing(
-        wall = 1, 
+        wall = 2, 
         face = 0.5,
         back = 1, 
         count = 1, 
@@ -284,12 +207,10 @@ BUILD_FROM_END = 3;
                     dupont_pins();
                 }
             } 
-            housing_yz_walls(just_latch_spring=true);
+            spring_clip();
+
             housing_lower_xz_wall(narrow=false);
-            housing_upper_xz_wall(just_latches=true);
-            if (retain_pins) {
-                instrument_retention_clips();
-            }
+            
             if (retain_pins) {
                 pin_retention_clip();
             }
@@ -307,16 +228,11 @@ BUILD_FROM_END = 3;
         three_d_printing_aids();
     }
     
-
-    
-
     module three_d_printing_aids() {
         if (build_from == BUILD_FROM_END) {
             build_from_end_printing_aids();
         }
     }
-    
-
     
     module build_from_end_printing_aids() {
         bridging_pillar = [body.x, 2*allowance, 2*allowance];
@@ -326,10 +242,6 @@ BUILD_FROM_END = 3;
             translate([0, body.y/2, -housing.z]) block(top_wall_pillar, center=LEFT+ABOVE);
         }
 
-
-        // Bridging supports for lower wall
-
-
         module pin_supports() {
             // Bridging supports for pin wire fins
             bridging_pillar = [body.x, 2*allowance, 2*allowance];
@@ -338,9 +250,17 @@ BUILD_FROM_END = 3;
             t_fins_i = [0, pin_width/2, -body.z - pin_retention_base.z + pin_width];
             translate(t_fins_i) block(bridging_pillar);   
        
-            t_lw_o = [0, -body.y/2+pin_retention_lower_wall.y-allowance,  -body.z - pin_retention_base.z + allowance];
+            t_lw_o = [
+                0, 
+                -body.y/2+pin_retention_lower_wall.y-allowance,  
+                -body.z - pin_retention_base.z + allowance
+            ];
             #translate(t_lw_o) block(bridging_pillar);
-            t_lw_i = [0, -body.y/2+pin_retention_lower_wall.y-allowance, -body.z - pin_retention_base.z +  pin_retention_lower_wall.z - allowance];
+            t_lw_i = [
+                0, 
+                -body.y/2+pin_retention_lower_wall.y-allowance, 
+                -body.z - pin_retention_base.z +  pin_retention_lower_wall.z - allowance
+            ];
             translate(t_lw_i) block(bridging_pillar);             
         }        
     }
@@ -364,31 +284,32 @@ BUILD_FROM_END = 3;
         translate([0, -housing.y/2, -housing.z]) block(xz_wall, center=ABOVE+RIGHT); 
     }
     
-    module housing_upper_xz_wall(just_latches=false) {
-        t_housing_corner = [housing.x/2, housing.y/2, -housing.z];
-        if (just_latches) {
-            d_snap_ring_hole = 1.44 + 0.2; // measured plus allowance
-            t_snap_ring_hole = [0, 0, -clip_overlap];
-            center_reflect([1, 0, 0]) {
-                translate(t_housing_corner) {
-                    translate(t_snap_ring_hole) {
-                        rod(
-                            d=d_snap_ring_hole+2*wall, 
-                            l=wall, 
-                            hollow = d_snap_ring_hole, 
-                            center=SIDEWISE+ABOVE+BEHIND+LEFT);
-                    }
+    module spring_clip() {
+        lower_spring_clip();
+        upper_spring_clip();
+    }
+    
+    module upper_spring_clip() {
+    t_housing_corner = [housing.x/2, housing.y/2, -housing.z];
+        d_snap_ring_hole = 1.44 + 0.5; // measured plus allowance
+        snap_ring_wall = 1;
+        t_snap_ring_hole = [-wall+snap_ring_wall, 0, -clip_overlap];
+        center_reflect([1, 0, 0]) {
+            translate(t_housing_corner) {
+                translate(t_snap_ring_hole) {
+                    rod(
+                        d=d_snap_ring_hole+2, 
+                        l=wall, 
+                        hollow = d_snap_ring_hole, 
+                        center=SIDEWISE+ABOVE+BEHIND+LEFT);
                 }
             }
-        } else {
-            xz_wall_thin = [housing.x, wall, wall];
-            translate([0, housing.y/2, -housing.z]) block(xz_wall_thin, center=ABOVE+LEFT);
         }
     }
-    // *******************************************************************
-    module housing_yz_walls(just_latch_spring=false, narrow = true) {
-        module latch() {
-            echo("got here");
+
+    module lower_spring_clip() {
+        spring();
+        module clip() {
             ramp_length = 3;
             catch = [
                 wall + clip_overlap, 
@@ -405,61 +326,24 @@ BUILD_FROM_END = 3;
                 0.01, 
                 ramp.y + ramp_length, 
                 0.01
-            ];
-            color("blue") {            
-                hull() {
-                    block(catch, center=BELOW+BEHIND+LEFT);
-                    block(ramp, center=BELOW+BEHIND+LEFT);
-                    block(print_support, center=BELOW+BEHIND+LEFT);
-                }
+            ];           
+            hull() {
+                block(catch, center=BELOW+BEHIND+LEFT);
+                block(ramp, center=BELOW+BEHIND+LEFT);
+                block(print_support, center=BELOW+BEHIND+LEFT);
             }
-            
         }
         
-        if (just_latch_spring) {
+        module spring() {
             t_housing_corner = [housing.x/2, housing.y/2, -housing.z];
             spring = [wall, housing.y, spring_width];
             center_reflect([1, 0, 0]) {
                 translate(t_housing_corner) {
                     block(spring, center=ABOVE+LEFT+BEHIND);
-                    latch();
+                    clip();
                 }
             }
-            
-            
-        } else {
-            yz_wall = narrow ? [wall, housing.y, 2*wall] : [wall, housing.y, housing.z];
-            center_reflect([1, 0, 0]) 
-                translate([housing.x/2, 0, -housing.z]) block(yz_wall, center=BEHIND+ABOVE);
-            if (narrow) {
-                narrow_wall = [wall, 2* wall, housing.z];
-                center_reflect([1, 0, 0])
-                    center_reflect([0, 1, 0])
-                        translate(t_housing_corner) block(narrow_wall, center=BEHIND+ABOVE+LEFT);
-            }  
-        }
-    }
-    
-     
-    module instrument_retention_clips() {
-        
-        if (build_from == BUILD_FROM_END) {
-            center_reflect([0, 1, 0]) oriented_clip();
-            
-        } else if (build_from == BUILD_FROM_SIDE) {
-            center_reflect([1, 0, 0]) rotate([0, 0, 90]) oriented_clip();
-            
-        } else {
-            assert(false, "Not implemented");
-        }
-        
-        module oriented_clip() {
-            h_clip = housing.x/4;
-            w_clip = clip_thickness;            
-            translate([0, housing.y/2-wall, -housing.z]) {
-                rotate([180, 90, 0]) side_clip(wall, h_clip, w_clip, clip_overlap);
-            }
-        }
+        } 
     }
 
     module knob_clearance() {
@@ -487,8 +371,6 @@ BUILD_FROM_END = 3;
     }    
     
     module orient() {
-
-        
         assert(build_from <=4);
         rotation = [[0, 0, 0], Z_TO_MINUS_Z, Z_TO_MINUS_Y, Z_TO_X][build_from];
         rotate(rotation) { 

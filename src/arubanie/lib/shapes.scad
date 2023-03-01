@@ -16,31 +16,44 @@ use <not_included_batteries.scad>
 
 /* [Boiler Plate] */
 
-//$fa = 1;
-$fs = 0.4;
-eps = 0.005;
-fa_bearing = 1;
-fa_shape = 20;
-infintesimal = 0.01;
-infinity = 1000; // Bigger than the build plate
+    //$fa = 1;
+    $fs = 0.4;
+    eps = 0.005;
+    fa_bearing = 1;
+    fa_shape = 20;
+    infintesimal = 0.01;
+    infinity = 1000; // Bigger than the build plate
 
 /* [Visual Tests] */
 
-show_test_rod_all_octants = false;
-show_test_rod_rod_single_attribute = false;
-show_visual_test_for_crank = false;
-show_visual_test_for_rod_support = true;
+    show_test_rod_all_octants = false;
+    show_test_rod_rod_single_attribute = false;
+    show_visual_test_for_crank = false;
+    show_visual_test_for_rod_support = true;
  
 
-// h_by_one_hundred = 1; // [0 : 1 : 99.9]
-// echo("h_by_one_hundred", h_by_one_hundred);
-__l = 50; // [-99.9 : 1 : 99.9]
-//echo(__l);
-__x_start = 10; // [-99.9 : 1 : 99.9]
-__x_stop = 40; // [-99.9 : 1 : 99.9]
-__support_end_start  = true;
-__support_end_stop  = true;
-__ends_supported = [__support_end_start, __support_end_stop];
+    // h_by_one_hundred = 1; // [0 : 1 : 99.9]
+    // echo("h_by_one_hundred", h_by_one_hundred);
+    __l = 50; // [-99.9 : 1 : 99.9]
+    //echo(__l);
+    __x_start = 10; // [-99.9 : 1 : 99.9]
+    __x_stop = 40; // [-99.9 : 1 : 99.9]
+    __support_end_start  = true;
+    __support_end_stop  = true;
+    __ends_supported = [__support_end_start, __support_end_stop];
+
+/* [Side Clip Development] */ 
+    show_side_clip = false;
+    wall = 2; // [0: 0.5: 4]
+    overlap_clip = 0.5; // [0: 0.05: 2]
+    h_clip = 4; // [0 : 0.5 : 4]
+    w_clip = 2; // [0 : 0.5 : 4]
+    if (show_side_clip) {
+        color("silver") block([wall, wall, 10], center=BEHIND+LEFT);
+        side_clip(wall, h_clip, w_clip, overlap_clip);
+    }
+
+module end_of_customization() {}
 
 module plane_clearance(center) {
     block([infinity, infinity, infinity], center=center);
@@ -433,6 +446,71 @@ module support_rod(d, l, z, bridges, supports, center=0) {
             l,
             z,
             center);
+    }
+}
+
+
+
+
+module side_clip(wall, h, w, overlap) {
+    assert(is_num(wall));
+    assert(is_num(h));
+    assert(is_num(w));
+    assert(is_num(overlap));
+    hull() {
+        translate([0, -w/4, 0]) block([w, w/4, h], center=LEFT+FRONT); // body
+        block([0.01, overlap, h], center=RIGHT+FRONT); // clip
+        block([0.01, wall, h+2*w], center=LEFT+FRONT); // Vertical printing support.
+    }
+}
+
+
+module corner_retention_block(wall, overlap, h_clip = 0.5, h_slope = 0.5, h_alignment = 0.5, shelf=0.20, allowance=0.4) {
+
+    h_total = h_clip + h_slope + h_alignment;
+    CORNER = ABOVE+FRONT+RIGHT;
+    
+    // Want the  center of origin at the corner of the wall
+    // For now, just rotate it for position as being used
+    rotate([180, 0, 270]) {
+            clip();
+            mirror([-1, 1, 0]) clip();
+    }
+    
+    module clip() {
+        translate([0, -wall, 0]) {
+            clip_shape();
+        }
+    }
+
+    module clip_shape() {
+
+        l_aligner = wall;
+        aligner = [
+            l_aligner, 
+            wall, 
+            h_clip + h_slope + h_alignment];
+        sloper =  [
+            aligner.x + h_alignment, 
+            wall, 
+            h_clip + h_slope];
+        clipper = [
+            sloper.x + h_slope, 
+            wall+overlap,
+            h_clip
+        ];
+        print_supporter = [clipper.x + h_clip, wall, 0.01];
+
+        hull() {
+            block(aligner, center=CORNER);
+            block(print_supporter, center=CORNER);
+        }
+        hull() {
+            block(clipper, center=CORNER);
+            translate([0, shelf, 0]) block(sloper, center=CORNER);
+            block(print_supporter, center=CORNER);
+            
+        } 
     }
 }
 
