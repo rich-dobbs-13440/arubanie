@@ -9,38 +9,188 @@ use <lib/servo_extension_wires.scad>
 include <centerable.scad>
 use <shapes.scad>
 
+  /* [Test] */
+    show_dupont_pin_orientation_test = false;
+
 /* [Show] */
-show_socket_holder = true;
-show_socket_holders = true;
-show_slide_pin_retainer = true;
-show_clip_pin_retainer = true;
+    show_socket_holder = true;
+    show_socket_holders = true;
+    show_slide_pin_retainer = true;
+    show_clip_pin_retainer = true;
+    show_pin_junction = true;
+    
 
 /* [Adjust] */
 
-allowance_=0.2; // [0 : 0.05: 0.4]
-count = 4; // [1, 2, 3, 4, 5, 6, 7, 8]
+    allowance_=0.2; // [0 : 0.05: 0.4]
+    count_ = 4; // [1, 2, 3, 4, 5, 6, 7, 8]
+    
+/* [Pin Junction] */
+    high_count_ = 3; // [1, 2, 3, 4]
+    wide_count_ = 4; // [1, 2, 3, 4, 5, 6, 7]
+   
+  
+
+   
+    if (show_socket_holder ) {
+        x_placement(1){
+            color("green") servo_female_socket_holder(allowance_, center=ABOVE);    
+        }
+    }
+    if (show_socket_holders ) {
+        x_placement(2){
+            color("blue") servo_socket_holders();
+        }
+    }
+    if (show_slide_pin_retainer ) {
+        x_placement(3){
+            color("orange") servo_pin_retainer(assembly="slide", count=count_);
+        }
+    }
+    if (show_clip_pin_retainer ) {    
+        x_placement(4){
+            color("brown")  servo_pin_retainer(assembly="clip", count=count_);
+        }
+    } 
+    
+    
+ 
+    if (show_pin_junction) {
+        x_placement(0){
+            translate([0, 20, 0]) pin_junction(high_count_, wide_count_, part="Holder");
+            pin_junction(high_count_, wide_count_, part="Clip");
+        }
+    }  
+    
+    if (show_dupont_pin_orientation_test) {
+        x_placement(7) {
+            dupont_pin(color="orange", orient=LEFT); 
+            dupont_pin(color="green", orient=RIGHT);
+            dupont_pin(color="purple", orient=FRONT);
+            dupont_pin(color="yellow", orient=BEHIND);
+            dupont_pin(color="blue", orient=ABOVE);
+            dupont_pin(color="red", orient=BELOW);   
+        }
+        x_placement(8) {
+            dupont_pin();  
+        }
+    }
+    
 
 module end_customization() {}
 
-if (show_socket_holder ) {
-    x_placement(1){
-        color("green") servo_female_socket_holder(allowance_, center=ABOVE);    
+
+// TODO Move to logging???
+function assert_msg(c1, c2, c3, c4, c5) = 
+    let (
+        s1 = is_undef(c1) ? "" : c1,
+        s2 = is_undef(c2) ? "" : c2,
+        s3 = is_undef(c3) ? "" : c3,
+        s4 = is_undef(c4) ? "" : c4,
+        s5 = is_undef(c5) ? "" : c5,
+        last = undef
+    )
+    str("In module '", parent_module(0), "' ", s1, s2, s3, s4, s5);
+
+
+pin_width = 2.54; // Using standard dimensions, rather than measured
+pin_length = 14.0; // Using standard dimensions, rather than measured
+wire_diameter = 1.0 + 0.25; // measured plus allowance
+
+module dupont_pin(color="black", alpha=1, orient=FRONT) {
+    
+    rotation = 
+        orient == RIGHT ?  [90, 0, 0] :
+        orient == LEFT ?  [-90, 0, 0] :
+        orient == FRONT ?  [0, -90, 0] :
+        orient == BEHIND ?  [0, 90, 0] :
+        orient == BELOW ?  [0, 0, 0] :
+        orient == ABOVE ?  [180, 0, 0] :
+        
+        orient == RIGHT ? [0, -13, 0] :
+        assert(false, assert_msg("Not implement, orient=", orient, "  LEFT:", LEFT));
+    color(color, alpha=alpha) {
+            rotate(rotation) 
+                block([pin_width, pin_width, pin_length], center=BELOW);
+    }            
+} 
+
+module pin_junction(
+        high_count, 
+        wide_count, 
+        wall = 2, 
+        allowance = 0.2, 
+        depth_count = 2, 
+        part="Holder", 
+        clip_overlap=5,
+        orient_for_build=true) {
+            
+    assert(is_num(high_count), assert_msg(" high_count=", str(high_count))); 
+    echo("pin_width", pin_width);
+
+    pins = [depth_count * pin_length, wide_count*pin_width, high_count*pin_width];
+    echo("pins", pins);
+    allowances = [2*allowance, 2*allowance, 2*allowance];
+    walls = [2*wall, 2*wall, 2*wall];
+    body = pins + allowances + walls;
+    cavity = pins + allowances;
+    x_extension = [100, 0, 0];
+    wire_clearance = [0, pin_width - wire_diameter, pin_width - wire_diameter];
+    cable_clearance = pins - wire_clearance + x_extension;
+    module holder() {        
+        z_cut = body.z/2 - wall;
+        render() difference() {
+            color("blue") block(body);
+            color("red") block(cavity);
+            block(cable_clearance);
+            block(cable_clearance, center=ABOVE); 
+            translate([0, 0, z_cut]) plane_clearance(ABOVE);
+            
+        }
     }
-}
-if (show_socket_holders ) {
-    x_placement(2){
-        color("blue") servo_socket_holders();
+    
+    module lid() {
+        clip_body = body + allowances + walls;
+        clip_cavity = body + allowances;
+        z_cut = clip_body.z/2 - clip_overlap;            
+        translate([0, 0, -wall-allowance]) { // To make aligned as assembled, for additional cut outs
+            render() difference() {
+                color("blue") block(clip_body);
+                color("blue") block(clip_cavity);
+                translate([0, 0, z_cut]) plane_clearance(BELOW);
+            }
+        }
     }
-}
-if (show_slide_pin_retainer ) {
-    x_placement(3){
-        color("orange") servo_pin_retainer(assembly="slide", count=count);
+
+    module clip() {
+        render() difference() {
+            lid();
+            block(cable_clearance);
+        } 
+    }   
+    
+    if (part == "Holder") {
+        if ( orient_for_build ) {
+            translate([0, 0, body.z/2]) { 
+                holder(); 
+            }
+        } else {
+            holder();
+        }
+
+    } else if (part == "Clip") {
+        if ( orient_for_build ) {
+            translate([0, 0, body.z/2]) {  // Translate so it as z = zero.
+                mirror([0, 0, 1]) clip();  // Flip it so lid is down
+            }
+        } else {
+            clip();
+        }
+
+    } else {
+        assert(false, assert_msg("Not handle.  Part = ", str(part)));
     }
-}
-if (show_clip_pin_retainer ) {    
-    x_placement(4){
-        color("brown")  servo_pin_retainer(assembly="clip", count=count);
-    }
+    
 }
 
 
@@ -52,14 +202,6 @@ FEMALE_BACK = 1;
 MALE_BODY = 2;
 MALE_BACK = 3;
 
-module x_placement(index) {
-    dx_spacing = 50;
-    translate([index*dx_spacing, 0, 0]) {
-        children();
-    }
-}
-
-
 servo_socket_dimensions = [
     [10.71, 18.00, 3.74], // female body
     [7.87, 4.88, 2.65], //female back
@@ -67,8 +209,21 @@ servo_socket_dimensions = [
     [7.92, 4.86, 2.70], // male back
 ];
 
-module servo_socket_holders(wall_thickness) {
+
+
+
+
+
+
+module servo_socket_holders() {
+    wall_thickness = 1;  // Code is broken unless wall_thickness is one!
+    echo(parent_module(0));
+    assert(is_num(wall_thickness), assert_msg("wall_thickness: ", str(wall_thickness)));
     holder_dimensions = servo_female_socket_holder_dimensions(allowance=allowance_);
+    echo("holder_dimensions", holder_dimensions);
+    echo("SFSH_HOLDER", SFSH_HOLDER);
+    echo("holder_dimensions[SFSH_HOLDER]", holder_dimensions[SFSH_HOLDER]);
+    echo("wall_thickness", wall_thickness);
     dx = holder_dimensions[SFSH_HOLDER].x - wall_thickness;
     rotate([0, 0, 180]) {
         for (i = [0:3]) {
@@ -78,8 +233,12 @@ module servo_socket_holders(wall_thickness) {
     }
 }
 
-
-
+module x_placement(index) {
+    dx_spacing = 50;
+    translate([index*dx_spacing, 0, 0]) {
+        children();
+    }
+}
 
 SFSH_HOLDER = 0;
 SFSH_FACE = 1;
@@ -89,6 +248,7 @@ SFSH_SIGNAL_WIRE_MARKER_TRANSLATION = 4;
 SFSH_CLIP_DIAMETER = 5;
 SFSH_CLIP_LENGTH = 6;
 SFSH_CLIP_TRANSLATION = 7;
+
 
 function servo_female_socket_holder_dimensions(wt=1, allowance=0.2) = 
     let(
