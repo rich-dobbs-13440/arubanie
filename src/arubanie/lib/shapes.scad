@@ -62,6 +62,7 @@ module plane_clearance(center) {
     
 */
 module block(size, center=0, rank=1) { 
+    assert(is_list(size), str("In module '", parent_module(0), "' size should be [x, y, z].  Did you forget the []?"));
     function swell(w=0) = w + 2*rank*eps;
     true_size = size + [swell(0), swell(0), swell(0)];
     disp = _center_to_displacement(center, size);
