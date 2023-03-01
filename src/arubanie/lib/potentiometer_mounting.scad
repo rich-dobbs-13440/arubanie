@@ -10,13 +10,17 @@ use <shapes.scad>
 
 /* [Customization] */
     show_housing = true;
+    show_default = false;
     allowance_ = 0.3; // [0:0.05:2]
-    clip_overlap_ = 0.5; // [0:0.05:1]
-    clip_thickness_ = 0.5; // [0:0.25:4]
+    clip_overlap_ = 1; // [0:0.05:1]
+    clip_thickness_ = 1.; // [0:0.25:4]
     count_ = 1; // [1: 10]
     spacing_ = 2; // [0 : 1 : 20]
     show_mocks_= false;
     build_from_ = 0; //[0:Designed, 1:From face, 2:Side, 3:End]
+    retain_pins_ = true;
+    arrow_up_ = true;
+    spring_width_ = 4.;
     
     if (show_housing) {
         breadboard_compatible_trim_potentiometer_housing(
@@ -25,9 +29,16 @@ use <shapes.scad>
             allowance = allowance_,
             clip_overlap = clip_overlap_,
             clip_thickness = clip_thickness_,
+            spring_width = spring_width_,
             build_from = build_from_,
-            show_mocks = show_mocks_);
-    }    
+            arrow_up = arrow_up_,
+            show_mocks = show_mocks_,
+            retain_pins = retain_pins_);
+    }
+
+    if (show_default) {
+        breadboard_compatible_trim_potentiometer_housing();
+    }
 
 module end_of_customization() {}
 
@@ -103,14 +114,14 @@ HOUSING = 12;
 
  
 function  breadboard_compatible_trim_potentiometer_housing_dimensions(
-        wall = 1, 
+        wall = 2, 
         face = 0.5, 
         back = 1, 
         count = 1, 
         spacing = 2, 
-        allowance = 0.1, 
-        clip_overlap = 0.5, 
-        clip_thickness = 0.5) =
+        allowance = 0.3, 
+        clip_overlap = 1.0, 
+        clip_thickness = 1.0) =
     let(
         knob_dims = breadboard_compatible_trim_potentiometer_dimensions(),
         pedistal = knob_dims[PEDISTAL_IDX],
@@ -177,6 +188,7 @@ BUILD_FROM_END = 3;
         center = 0, 
         build_from = 0,
         retain_pins = false,
+        arrow_up = true,
         show_mocks = false) {
             
           
@@ -202,7 +214,7 @@ BUILD_FROM_END = 3;
         
         replicate() {
             if (show_mocks) {
-                orient_mocks_for_build() {
+                orient_mocks(arrow_up) {
                     breadboard_compatible_trim_potentiometer();
                     dupont_pins();
                 }
@@ -290,8 +302,8 @@ BUILD_FROM_END = 3;
     }
     
     module upper_spring_clip() {
-    t_housing_corner = [housing.x/2, housing.y/2, -housing.z];
-        d_snap_ring_hole = 1.44 + 0.5; // measured plus allowance
+        t_housing_corner = [housing.x/2, housing.y/2, -housing.z];
+        d_snap_ring_hole = 1.44 + 0.6; // measured plus allowance
         snap_ring_wall = 1;
         t_snap_ring_hole = [-wall+snap_ring_wall, 0, -clip_overlap];
         center_reflect([1, 0, 0]) {
@@ -313,7 +325,7 @@ BUILD_FROM_END = 3;
             ramp_length = 3;
             catch = [
                 wall + clip_overlap, 
-                housing.y/2, 
+                4, 
                 clip_thickness
             ];
             ramp = [
@@ -378,11 +390,8 @@ BUILD_FROM_END = 3;
         }
     } 
  
-    module orient_mocks_for_build() {
-        rotation = 
-            (build_from == BUILD_FROM_END) ? [0, 0, 90]:
-            [0, 0, 0];
-        
+    module orient_mocks(arrow_up) {
+        rotation = arrow_up ? [0, 0, 0] : [0, 0, 90];
         rotate(rotation) { 
             children();
         }
