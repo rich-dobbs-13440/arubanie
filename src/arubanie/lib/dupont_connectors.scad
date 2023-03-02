@@ -9,6 +9,7 @@ use <lib/servo_extension_wires.scad>
 include <centerable.scad>
 use <shapes.scad>
 use <MCAD/boxes.scad>
+use <MCAD/regular_shapes.scad>
 
 /* [Boiler Plate] */
    infinity = 1000; 
@@ -48,7 +49,10 @@ use <MCAD/boxes.scad>
  
     
 /* [Pin Holder Plug and Socket] */
+    
+    
     wall_plug_ = 1; // [1, 1.5, 2]
+    minimum_socket_opening_ = [0, 11, 11];
     
     spring_length_ = 13; // [0: 0.5 : 14]
     spring_width_ = 4; // [0: 0.5 : 10]
@@ -90,6 +94,7 @@ if (show_pin_holder_plug) {
         part="Plug",
         wall = wall_plug_,
         prong_dimensions = prong_dimensions_,
+        minimum_socket_opening = minimum_socket_opening_,
         orient_for_build=orient_for_build_);  
 }
 
@@ -100,6 +105,7 @@ if (show_pin_holder_socket) {
         part="Socket",
         wall = wall_plug_,
         prong_dimensions = prong_dimensions_,
+        minimum_socket_opening = minimum_socket_opening_,
         orient_for_build=orient_for_build_);     
 }
     
@@ -218,6 +224,7 @@ module pin_junction(
         pin_retention_lip = 0.5,
         socket_allowance = 0.1,
         socket_wall = 1,
+        minimum_socket_opening = [0, 0, 0],
         prong_dimensions, 
         orient_for_build=true) {
             
@@ -239,7 +246,7 @@ module pin_junction(
     assert(lip_radius > 0, assert_msg("The argument pin_retention_lip is too large large - no room for wires"));
     cable_clearance = pins - 2 * lip + x_extension;
             
-    default_prong_dimensions = [13, 4, 7, 2, 2, 0.4];
+    default_prong_dimensions = [12.5, 4, 7, 2, 2, 0.4];
     defaulted_prong_dimensions = is_list(prong_dimensions) ? prong_dimensions : default_prong_dimensions; 
     
     prong_height = socket_wall + 2 * socket_allowance;
@@ -251,6 +258,12 @@ module pin_junction(
     function spring_length() = defaulted_prong_dimensions[SPRING_LENGTH];
     
     function socket_depth() = prong_depth() + catch_depth() + catch_allowance();
+    
+    plug_body = [
+        body.x/2,
+        max(minimum_socket_opening.y, body.y), 
+        max(minimum_socket_opening.z, body.z)
+    ]; 
             
     if (part == "Holder") {
         if ( orient_for_build ) {
@@ -272,7 +285,7 @@ module pin_junction(
         }
     } else if (part == "Plug") {
         if ( orient_for_build ) {
-            rotate([0, 90, 0]) back();
+            rotate([0, 90, 0]) plug();
         } else{
             plug();
         }
@@ -285,24 +298,25 @@ module pin_junction(
     }  
     
     module socket() {
-        socket_body = body + socket_allowances + socket_walls;
-        cut_body = [2*socket_depth(), socket_body.y, socket_body.z];
-        socket_void = body + socket_allowances; 
+        raw_socket_body = plug_body + socket_allowances + socket_walls;
+        socket_body = [2*socket_depth(), raw_socket_body.y, raw_socket_body.z];
+        socket_void = plug_body + socket_allowances + x_extension; 
         render() difference() {
-            # roundedBox(cut_body,  radius=socket_wall/2, sidesonly=false, $fn=12);
+            # roundedBox(socket_body,  radius=socket_wall/2, sidesonly=false, $fn=12);
             roundedBox(socket_void,  radius=wall/2, sidesonly=false, $fn=12);
             plane_clearance(BEHIND);
             prong_holes();
-        }
+        } 
     }
 
     module plug() {
+        plug_void = plug_body - walls;
         render() difference() {
             union() {
                 prongs();
-                roundedBox(body,  radius=wall/2, sidesonly=false, $fn=12);
+                translate([plug_body.x/2, 0, 0]) roundedBox(plug_body,  radius=wall/2, sidesonly=false, $fn=12);
             }
-            plane_clearance(BEHIND);
+            block(plug_void,  center=FRONT, rank=10);
             cable_clearance();
             block(cavity);
             spring_cuts();
@@ -310,9 +324,9 @@ module pin_junction(
         }
         // For spring strength, we are going to print on side, so we need
         // a bit of printer support for the springs and upper part of socket
-        support = [0.5, 0.4*wall, body.z-wall];
+        support = [0.5, 0.4*wall, plug_body.z-wall];
         center_reflect([0, 1, 0]) {
-            translate([0, cavity.y/2, 0]) 
+            translate([0, plug_void.y/2, 0]) 
                 block(support, center=FRONT+RIGHT);
         }
     }
@@ -324,14 +338,28 @@ module pin_junction(
             spring_width() + 0.5];
         translate([prong_depth() + catch_allowance(), 0, 0]) block(holes, center=BEHIND); 
     }
+   
     
     module prongs() {
-        prong_back = [prong_flat(), body.y + 2*prong_height, spring_width()]; 
-        prong_front = [0.01, body.y-wall, spring_width()];
-        #hull() {
+        prong_back = [prong_flat(), plug_body.y + 2*prong_height, spring_width()]; 
+        prong_front = [0.01, plug_body.y-wall/2, spring_width()];
+        hull() {
             block(prong_front);
             translate([prong_depth(), 0, 0]) block(prong_back, center=BEHIND);
         }
+        // Bumps for depressing prongs for removal
+        r1 = spring_width()/2 - prong_height/2;
+        t_bump = [socket_depth()+spring_width()/2, plug_body.y/2, 0];
+        center_reflect([0, 1, 0]) {
+            translate(t_bump) {
+                rotate([90, 0, 0]) {
+                    hull() {
+                        torus2(r1, prong_height/2, $fn=12);
+                    }
+                }
+            }
+        }
+        
     }
     module prong_clearance() {
         prong_blank = [prong_depth(), body.y + 2*prong_height, spring_width()];
