@@ -23,14 +23,14 @@ use <MCAD/boxes.scad>
 
 /* [Adjust] */
 
-    allowance_=0.2; // [0 : 0.05: 0.4]
+    allowance_=0.4; // [0 : 0.05: 0.4]
     count_ = 4; // [1, 2, 3, 4, 5, 6, 7, 8]
     
 /* [Pin Junction] */
     high_count_ = 3; // [1, 2, 3, 4]
     wide_count_ = 4; // [1, 2, 3, 4, 5, 6, 7]
     orient_for_build_ = true;
-    clip_overlap_ = 5; // [0: 1 : 10]
+    clip_overlap_ = 5; // [0: 0.5 : 10]
     show_assembled_ = true;
     // Only works if show assmble is false.
     show_lid_ = true;
@@ -74,11 +74,11 @@ use <MCAD/boxes.scad>
     }
     
     if (show_pin_junction) {
-            
+        assert(!(show_assembled_ && orient_for_build_), "Thest options conflict!")
         x_placement(0){
             if (show_assembled_) {
                 pj_bottom (false);
-                pj_bottom (false);
+                pj_lid (false);
             } else {
                 if (show_lid_) {
                     pj_lid(orient_for_build_);
@@ -149,11 +149,12 @@ module pin_junction(
         high_count, 
         wide_count, 
         wall = 2, 
-        allowance = 0.5, 
+        pin_allowance = 0.5,
+        lid_allowance = 0.1,
         depth_count = 2, 
         part="Holder", 
         clip_overlap=5,
-        pin_retention_lip = 1,
+        pin_retention_lip = 0.5,
         orient_for_build=true) {
             
     assert(is_num(high_count), assert_msg(" high_count=", str(high_count))); 
@@ -161,13 +162,17 @@ module pin_junction(
 
     pins = [depth_count * pin_length, wide_count*pin_width, high_count*pin_width];
     echo("pins", pins);
-    allowances = [2*allowance, 2*allowance, 2*allowance];
-    walls = [2*wall, 2*wall, 2*wall];
-    body = pins + allowances + walls;
-    cavity = pins + allowances;
+    pin_allowances = 2*[pin_allowance, pin_allowance, pin_allowance];
+    lid_allowances = 2*[lid_allowance, lid_allowance, lid_allowance];        
+    walls = 2*[wall, wall, wall];
+    body = pins + pin_allowances + walls;
+    cavity = pins + pin_allowances;
     x_extension = [100, 0, 0];
-    lip = [0, pin_retention_lip, pin_retention_lip];
-    cable_clearance = pins - lip + x_extension;
+    z_extension = [0, 0, 100];
+    lip = [pin_retention_lip, pin_retention_lip, pin_retention_lip];
+    lip_radius = (pin_width - 2*pin_retention_lip)/2;
+    assert(lip_radius > 0, assert_msg("The argument pin_retention_lip is too large large - no room for wires"));
+    cable_clearance = pins - 2 * lip + x_extension;
             
     if (part == "Holder") {
         if ( orient_for_build ) {
@@ -179,9 +184,9 @@ module pin_junction(
         }
 
     } else if (part == "Clip") {
-        assert(clip_overlap < pins.z);
+        //assert(clip_overlap < pins.z);
         if ( orient_for_build ) {
-            translate([0, 0, body.z/2]) {  // Translate so it as z = zero.
+            translate([0, 0, body.z/2+lid_allowance]) {  // Translate so it as z = zero.
                 mirror([0, 0, 1]) clip();  // Flip it so lid is down
             }
         } else {
@@ -193,31 +198,33 @@ module pin_junction(
     }              
             
             
-    module holder() {        
-        cut_body = body - [0, 0, wall];
+    module holder() { 
+        cut = [0, 0, wall+2*pin_allowance]; // Want the pins to be slightly exposed, so that lid presses on the pins
+        cut_body = body - cut; 
         render() difference() {
-            translate([0, 0, -wall/2]) roundedBox(cut_body,  radius=1, sidesonly=false, $fn=12);
+            translate(-cut/2) roundedBox(cut_body,  radius=1, sidesonly=false, $fn=12);
             block(cavity);
-            roundedBox(cable_clearance, radius=1, sidesonly=false, $fn=12);
-            block(cable_clearance, center=ABOVE); 
+            roundedBox(cable_clearance, radius=lip_radius, sidesonly=false, $fn=12);
+            block(cable_clearance+z_extension, center=ABOVE); 
         }
     }
     
-    
     module clip() {
-        clip_body = body + allowances + walls;
+        clip_body = body + lid_allowances + walls;
         lid_body = [clip_body.x, clip_body.y, wall + clip_overlap];
-        clip_cavity = body + allowances;
+        clip_cavity = body + lid_allowances;
         zt_lid = (clip_body.z - (wall + clip_overlap))/2;
+        assert(clip_overlap < clip_cavity.z);
         
         render() difference() {
-            translate([0, 0, -(wall+allowance)]) {
+            translate([0, 0, -(wall)]) {
                 render() difference() {
-                    translate([0, 0, zt_lid]) roundedBox(lid_body, radius=1, sidesonly=false, $fn=12);
-                    roundedBox(clip_cavity, radius=0.5, sidesonly=false, $fn=12);
+                    translate([0, 0, zt_lid]) roundedBox(lid_body, radius=wall/2, sidesonly=false, $fn=12);
+                    roundedBox(clip_cavity, radius=lip_radius, sidesonly=false, $fn=12);
                 }
             }
-            roundedBox(cable_clearance, radius=1, sidesonly=false, $fn=12);
+            roundedBox(cable_clearance, radius=lip_radius, sidesonly=false, $fn=12);
+            block(cable_clearance+[0, 0, 10], center=BELOW);
         }
     }    
 }
