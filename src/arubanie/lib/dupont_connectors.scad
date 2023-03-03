@@ -229,10 +229,8 @@ module pin_junction(
         orient_for_build=true) {
             
     assert(is_num(high_count), assert_msg(" high_count=", str(high_count))); 
-    echo("pin_width", pin_width);
     depth_count = 2;
     pins = [depth_count * pin_length, wide_count*pin_width, high_count*pin_width];
-    echo("pins", pins);
     pin_allowances = 
         is_num(pin_allowance) ? 2 * [pin_allowance, pin_allowance, pin_allowance] :
         is_list(pin_allowance) ? 2 * pin_allowance :

@@ -4,11 +4,20 @@ use <potentiometer_mounting.scad>
 
 */
 
+//**************************************************************************************************
+//      10        20        30        40        50        60        70        80        90       100
+
 include <logging.scad>
 include <centerable.scad>
 use <shapes.scad>
 use <prong_and_spring.scad>
 use <dupont_connectors.scad>
+
+/* [Logging] */
+
+    log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+    verbosity = log_verbosity_choice(log_verbosity_choice);    
+ 
 
 /* [Customization] */
     show_housing = true;
@@ -36,7 +45,8 @@ use <dupont_connectors.scad>
             build_from = build_from_,
             arrow_up = arrow_up_,
             show_mocks = show_mocks_,
-            retain_pins = retain_pins_);
+            retain_pins = retain_pins_,
+            log_verbosity=verbosity);
     }
 
     if (show_default) {
@@ -101,23 +111,23 @@ H_INDICATER = 4;
 
 
 // Housing Constants
-BODY_IDX = 0;
-X_OFFSET_IDX = 1;
-DX_IDX = 2;
-FACE_PLATE_IDX = 3;
-PIN_RETENTION_BASE_IDX = 4;
-PIN_RETENTION_LOWER_WALL_IDX = 5;
-PIN_WIDTH = 6;
-PIN_LENGTH = 7;
-PIN_WIRE_FIN = 8;
-PIN_WIRE_GAP = 9;
-D_KNOB_CLEARANCE = 10;
-BACK_PLATE = 11;
-HOUSING = 12;
-SOCKET_RETENTION = 13;
-MINIMUM_SOCKET_OPENING = 14;
-PIN_ALLOWANCE = 15;
-PRONG = 16;
+HOUSING_COMPONENT_NAME = "breadboard_compatible_trim_potentiometer_housing_dimensions";
+COMPONENT_IDX = 0;
+BODY_IDX = 1;
+FACE_PLATE_IDX = 2;
+BACK_PLATE_IDX = 3;
+HOUSING_IDX = 4;
+D_KNOB_CLEARANCE_IDX = 5;
+X_OFFSET_IDX = 6;
+DX_IDX = 7;
+SOCKET_RETENTION_IDX = 8;
+MINIMUM_SOCKET_OPENING_IDX = 9;
+PIN_ALLOWANCE_IDX = 10;
+PRONG_IDX = 11;
+PIN_WIDTH_IDX = 12;
+PIN_LENGTH_IDX = 13;
+
+
 
  
 function  breadboard_compatible_trim_potentiometer_housing_dimensions(
@@ -130,37 +140,28 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         clip_overlap = 1.0, 
         clip_thickness = 1.0) =
     let(
-        socket_y = 17,
-        socket_x = 17, 
-        //socket_wall = 2,
+        socket_y = 17,  // Need to get from the dupont connectors
+        socket_x = 17,  // Need to get from the dupont connectors
         
-        dx = socket_x - socket_wall + spacing,
+        dx = socket_x + spacing,
         knob_dims = breadboard_compatible_trim_potentiometer_dimensions(),
         pedistal = knob_dims[PEDISTAL_IDX],
         allowances = [2*allowance, 2*allowance, 2*allowance],
         walls = [2*wall, 2*wall, 0],
         housing = pedistal+allowances+walls,
         x = socket_x * count + spacing * (count-1) + wall,
-        y = socket_y, //pedistal.y + 2 * allowance + 2 * wall,
+        y = socket_y, 
         z = pedistal.z + allowance,
         
         back_plate = [x, y, back],
         body = [x, y, z],
-        x_offset = -x/2 + socket_x/2 +1,
+        x_offset = -x/2 + socket_x/2 + 1, // What's with the magic 1??? may wall thickness
         
         face_plate = [body.x, body.y, face],
         pin_length = 14,
         pin_length_allowance = 0.2,
         pin_width = 2.54,
         clip_thickness = pin_width,
-        pin_retention_base = [housing.x, wall+clip_overlap, pin_length + pin_length_allowance + clip_thickness], 
-        pin_retention_lower_wall = [
-            4*pin_width, 
-            body.y/2 - pin_width/2, 
-            1.5*clip_thickness
-        ],
-        wire_gap = 1.24 * 1.1,
-        wire_fin = [pin_width - wire_gap, pin_width, clip_thickness],
         knob_allowance = 0.50,
         d_knob_clearance = knob_dims[KNOB_IDX][D_BASE] + 2*knob_allowance,
         pin_insert_thickness = 2, // Allow for a pin retention insert into plug
@@ -185,23 +186,20 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         last = undef
     ) 
     [
-        body, 
-        x_offset, 
-        dx, 
+        HOUSING_COMPONENT_NAME,
+        body, // Should be expanded to include the sockets!
         face_plate, 
-        pin_retention_base, 
-        pin_retention_lower_wall,
-        pin_width, 
-        pin_length, 
-        wire_fin,
-        wire_gap,
-        d_knob_clearance,
         back_plate, 
         housing,
+        d_knob_clearance,
+        x_offset, 
+        dx,  
         socket_retention,
         minimum_socket_opening,
         pin_allowance,
         prong,
+        pin_width, 
+        pin_length, 
     ];
     
 // Build orientation Constants
@@ -224,30 +222,56 @@ BUILD_FROM_END = 3;
         build_from = 0,
         retain_pins = false,
         arrow_up = true,
-        show_mocks = false) {
+        show_mocks = false,
+        log_verbosity) {
             
           
             
-    dims = breadboard_compatible_trim_potentiometer_housing_dimensions(wall, face, back, count, spacing, allowance, clip_overlap);
-    knob_dims =  breadboard_compatible_trim_potentiometer_dimensions();
-    pedistal = knob_dims[PEDISTAL_IDX];
+    dims = breadboard_compatible_trim_potentiometer_housing_dimensions(
+                wall, face, back, count, spacing, allowance, clip_overlap);
+    log_v1("Dimensions:", dims, log_verbosity, DEBUG);
+            
     body = dims[BODY_IDX];
+    log_v1("body:", body, log_verbosity, DEBUG);            
+            
     face_plate = dims[FACE_PLATE_IDX];
-    back_plate = dims[BACK_PLATE];
-    pin_retention_base = dims[PIN_RETENTION_BASE_IDX];
-    pin_retention_lower_wall = dims[PIN_RETENTION_LOWER_WALL_IDX];
-    wire_fin = dims[PIN_WIRE_FIN]; 
-    pin_width = dims[PIN_WIDTH];
-    pin_length = dims[PIN_LENGTH];
-    wire_gap = dims[PIN_WIRE_GAP];
-    d_knob_clearance = dims[D_KNOB_CLEARANCE];
-    housing = dims[HOUSING];
+    log_v1("face_plate:", face_plate, log_verbosity, DEBUG);
+            
+    back_plate = dims[BACK_PLATE_IDX];
+    log_v1("back_plate:", back_plate, log_verbosity, DEBUG);
+            
+    housing = dims[HOUSING_IDX]; 
+    log_v1("housing:", housing, log_verbosity, DEBUG);
+            
+    d_knob_clearance = dims[D_KNOB_CLEARANCE_IDX];
+    log_s("d_knob_clearance:", d_knob_clearance, log_verbosity, DEBUG);            
+
+    dx = dims[DX_IDX];
+    log_s("dx:", dx, log_verbosity, DEBUG);
     
-    socket_retention = dims[SOCKET_RETENTION];
-    minimum_socket_opening = dims[MINIMUM_SOCKET_OPENING];
-    pin_allowance = dims[PIN_ALLOWANCE];
-    prong = dims[PRONG];            
-                      
+    x_offset = dims[X_OFFSET_IDX]; 
+    log_s("x_offset:", x_offset, log_verbosity, DEBUG);   
+        
+    pin_width = dims[PIN_WIDTH_IDX];
+    log_s("pin_width:", pin_width, log_verbosity, DEBUG);  
+    
+    pin_length = dims[PIN_LENGTH_IDX];
+    log_s("pin_length:", pin_length, log_verbosity, DEBUG);
+
+    socket_retention = dims[SOCKET_RETENTION_IDX];
+    log_s("socket_retention:", socket_retention, log_verbosity, DEBUG);
+    
+    minimum_socket_opening = dims[MINIMUM_SOCKET_OPENING_IDX];
+    log_v1("minimum_socket_opening:", minimum_socket_opening, log_verbosity, DEBUG);
+    
+    pin_allowance = dims[PIN_ALLOWANCE_IDX];
+    log_v1("pin_allowance:", pin_allowance, log_verbosity, DEBUG);
+    
+    prong = dims[PRONG_IDX];
+    log_v1("prong:", prong, log_verbosity, DEBUG); 
+ 
+    knob_dims =  breadboard_compatible_trim_potentiometer_dimensions();
+    pedistal = knob_dims[PEDISTAL_IDX];             
     
     orient() assembly();
     
@@ -278,8 +302,6 @@ BUILD_FROM_END = 3;
         three_d_printing_aids();
     }
     
-
-    
     module pin_socket() {
         translate([0, 0, -housing.z]) {
             rotate([0, 90, 0]) {
@@ -309,37 +331,18 @@ BUILD_FROM_END = 3;
         top_wall_pillar = [body.x, wall, wall];
         center_reflect([0, 1, 0]) {
             translate([0, body.y/2, -housing.z]) block(top_wall_pillar, center=LEFT+ABOVE);
-        }
-
-        module pin_supports() {
-            // Bridging supports for pin wire fins
-            bridging_pillar = [body.x, 2*allowance, 2*allowance];
-            t_fins_o = [0, pin_width/2, -body.z - pin_retention_base.z];
-            translate(t_fins_o) block(bridging_pillar);
-            t_fins_i = [0, pin_width/2, -body.z - pin_retention_base.z + pin_width];
-            translate(t_fins_i) block(bridging_pillar);   
-       
-            t_lw_o = [
-                0, 
-                -body.y/2+pin_retention_lower_wall.y-allowance,  
-                -body.z - pin_retention_base.z + allowance
-            ];
-            #translate(t_lw_o) block(bridging_pillar);
-            t_lw_i = [
-                0, 
-                -body.y/2+pin_retention_lower_wall.y-allowance, 
-                -body.z - pin_retention_base.z +  pin_retention_lower_wall.z - allowance
-            ];
-            translate(t_lw_i) block(bridging_pillar);             
-        }        
+            translate([0, body.y/2, -15]) block(top_wall_pillar, center=LEFT+ABOVE);
+        }     
     }
 
     module dupont_pins() {
         color("black") {
-            translate([pin_width, 0, -pedistal.z]) block([pin_width, pin_width, pin_length], center=BELOW);
+            translate([pin_width, 0, -pedistal.z]) 
+                block([pin_width, pin_width, pin_length], center=BELOW);
         }
         color("red") {
-            translate([-pin_width, 0, -pedistal.z]) block([pin_width, pin_width, pin_length], center=BELOW);
+            translate([-pin_width, 0, -pedistal.z]) 
+                block([pin_width, pin_width, pin_length], center=BELOW);
         }  
         color("yellow") {
             angle = arrow_up ? 5 : 0;
@@ -357,72 +360,10 @@ BUILD_FROM_END = 3;
     module housing_yz_walls() {
         center_reflect([1, 0, 0]) {
             yz_wall  = [wall, housing.y, housing.z];
-            translate([housing.x/2, housing.y/2, -housing.z]) block(yz_wall, center=ABOVE+LEFT+BEHIND);
+            translate([housing.x/2, housing.y/2, -housing.z]) 
+                block(yz_wall, center=ABOVE+LEFT+BEHIND);
         }
     }
-    
-//    module spring_clip() {
-//        lower_spring_clip();
-//        upper_spring_clip();
-//        spring_support();
-//    }
-//    
-//    module upper_spring_clip() {
-//        t_housing_corner = [housing.x/2, housing.y/2, -housing.z];
-//        d_snap_ring_hole = 1.44 + 0.6; // measured plus allowance
-//        snap_ring_wall = 1;
-//        t_snap_ring_hole = [-wall+snap_ring_wall, 0, -clip_overlap];
-//        center_reflect([1, 0, 0]) {
-//            translate(t_housing_corner) {
-//                translate(t_snap_ring_hole) {
-//                    rod(
-//                        d=d_snap_ring_hole+2, 
-//                        l=wall, 
-//                        hollow = d_snap_ring_hole, 
-//                        center=SIDEWISE+ABOVE+BEHIND+LEFT);
-//                }
-//            }
-//        }
-//    }
-////
-//    module lower_spring_clip() {
-//        spring();
-//        module clip() {
-//            ramp_length = 3;
-//            catch = [
-//                wall + clip_overlap, 
-//                4, 
-//                clip_thickness
-//            ];
-//            ramp = [
-//                wall/2, 
-//                catch.y, 
-//                ramp_length
-//            ]; 
-//            
-//            print_support = [
-//                0.01, 
-//                ramp.y + ramp_length, 
-//                0.01
-//            ];           
-//            hull() {
-//                block(catch, center=BELOW+BEHIND+LEFT);
-//                block(ramp, center=BELOW+BEHIND+LEFT);
-//                block(print_support, center=BELOW+BEHIND+LEFT);
-//            }
-//        }
-        
-//        module spring() {
-//            t_housing_corner = [housing.x/2, housing.y/2, -housing.z];
-//            spring = [wall, housing.y, spring_width];
-//            center_reflect([1, 0, 0]) {
-//                translate(t_housing_corner) {
-//                    block(spring, center=ABOVE+LEFT+BEHIND);
-//                    clip();
-//                }
-//            }
-//        } 
-//    }
 
     module knob_clearance() {
         can(d=d_knob_clearance, h=20);
@@ -432,94 +373,6 @@ BUILD_FROM_END = 3;
         allowances = [2*allowance, 2*allowance, 20];
         translate([0, 0, -pedistal.z/2]) block(pedistal + allowances);
     }
-    
-    module pin_retention_clip_up() {
-        module wire_clip() {
-            translate([0, 0, -body.z-pin_retention_base.z])
-                center_reflect([1, 0, 0]) 
-                    translate([wire_gap/2, 0, 0]) 
-                        block(wire_fin, center=ABOVE+FRONT); 
-        }
-            
-        
-        translate([0, -body.y/2, -body.z]) block(pin_retention_base, center=BELOW+RIGHT);
-        translate([0, -body.y/2, -body.z-pin_retention_base.z]) block(pin_retention_lower_wall, center=ABOVE+RIGHT);
-        wire_clip();
-        center_reflect([1, 0, 0]) translate([pin_width, 0, 0]) wire_clip();        
-    }
-    
-    module pin_retention_clip_sidewise() {
-        pin_floor_thickness = 1.5;
-        t_bottom_cl = [
-            0, 
-            -housing.y/2,
-            -housing.z
-        ];
-        pin_floor = [
-            4 * pin_width, 
-            pin_floor_thickness,
-            pin_length + pin_width/2
-        ]; 
-        translate(t_bottom_cl) block(pin_floor, center=BELOW+RIGHT);
-        support_width = pin_width;
-        t_bottom_pin = t_bottom_cl + [0, pin_floor_thickness, - (pin_length - pin_width/2)];
-        lower_pin_support = [pin_width, 1.8, support_width];
-        mid_pin_support = [pin_width, lower_pin_support.y + pin_width, support_width];
-        side_pin_support = [pin_width/2, mid_pin_support.y + 2* pin_width, support_width];
-        
-        translate(t_bottom_pin) {
-            block(lower_pin_support, center=ABOVE+RIGHT);
-            translate([pin_width, 0, 0]) block(mid_pin_support, center=ABOVE+RIGHT);
-            translate([pin_width, 0, 0]) block(side_pin_support, center=ABOVE+RIGHT+FRONT);
-            translate([-pin_width, 0, 0]) block(side_pin_support, center=ABOVE+RIGHT+FRONT);
-            
-        }
-    }
-    
-    module spring_support() {
-        echo("Got here");
-        support_height = 6;
-        spring_support_upper = [
-            wall, 
-            support_height,
-            0.01
-        ];
-        spring_support_lower = [
-            wall,
-            0.01,
-            support_height,
-            
-        ];
-        t_corner = [
-            housing.x/2,
-            -housing.y/2,
-            -housing.z
-        ];
-        center_reflect([1, 0, 0]) {
-            translate(t_corner) {
-                hull() {
-                    #block(spring_support_upper, center=BELOW+RIGHT+BEHIND);
-                    block(spring_support_lower, center=BELOW+RIGHT+BEHIND);
-                }
-            }
-        }
-        spring_support_floor = [
-            housing.x,
-            wall, 
-            support_height
-        ];
-        translate(t_corner) block(spring_support_floor, center=BELOW+RIGHT+BEHIND);
-        
-    }
-    
-    module pin_retention_clip(arrow_up) {
-        
-        if (arrow_up) {
-            pin_retention_clip_up();
-        } else {
-            pin_retention_clip_sidewise();
-        }     
-    }    
     
     module orient() {
         assert(build_from <=4);
@@ -537,8 +390,6 @@ BUILD_FROM_END = 3;
     }
     
     module replicate() {
-        dx = dims[DX_IDX];
-        x_offset = dims[X_OFFSET_IDX];
         for (i = [0 : count-1] ) {
             translate([i * dx + x_offset, 0, 0]) {
                 children();

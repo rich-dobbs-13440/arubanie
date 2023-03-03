@@ -180,11 +180,9 @@ module spring_and_prong(prong_dimensions, part) {
     
     module prong_hole_through() {
         x = x_offset_catch - x_offset_window + 2*catch_allowance;
-        echo("x", x);
         z = catch.z + 2 * catch_allowance;
         hole = [x, infinity, z];
         dx = x_offset_catch + catch_allowance;
-        echo("dx", dx);
         translate([dx, 0, 0]) block(hole, center=BEHIND); 
     }    
 }    
