@@ -5,9 +5,10 @@ use <lib/dupont_connectors.scad>
 */
 
 
-
+include <logging.scad>
 include <centerable.scad>
 use <shapes.scad>
+use <not_included_batteries.scad>
 use <prong_and_spring.scad>
 use <MCAD/boxes.scad>
 use <MCAD/regular_shapes.scad>
@@ -15,12 +16,16 @@ use <MCAD/regular_shapes.scad>
 /* [Boiler Plate] */
    infinity = 1000; 
 
+/* [Logging] */
+    log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+    verbosity = log_verbosity_choice(log_verbosity_choice);    
+
 /* [Test] */
     show_dupont_pin_orientation_test = false;
 
 /* [Show] */
 
-    orient_for_build_ = true;
+    orient_for_build_ = false;
     
     show_socket_holder = true;
     show_socket_holders = true;
@@ -97,7 +102,8 @@ if (show_pin_holder_plug) {
         prong_dimensions = prong_dimensions_,
         pin_allowance = [0.5+pin_insert_thickness_, 0.5, 0.5],
         minimum_socket_opening = minimum_socket_opening_,
-        orient_for_build=orient_for_build_);  
+        orient_for_build=orient_for_build_,
+        log_verbosity=verbosity);  
 }
 
 if (show_pin_holder_socket) {
@@ -110,7 +116,8 @@ if (show_pin_holder_socket) {
         socket_wall = wall_socket_, 
         prong_dimensions = prong_dimensions_,
         minimum_socket_opening = minimum_socket_opening_,
-        orient_for_build=orient_for_build_);     
+        orient_for_build=orient_for_build_,
+        log_verbosity=verbosity);     
 }
     
 if (show_socket_holder ) {
@@ -155,7 +162,12 @@ if (show_pin_junction) {
   
    
 module pj_bottom (orient_for_build) {
-    pin_junction(high_count_, wide_count_, part="Holder", orient_for_build=orient_for_build);
+    pin_junction(
+        high_count_, 
+        wide_count_, 
+        part="Holder", 
+        orient_for_build=orient_for_build,
+        log_verbosity=verbosity);
 }
 
 module pj_lid(orient_for_build) {
@@ -164,7 +176,8 @@ module pj_lid(orient_for_build) {
         wide_count_, 
         part="Clip",
         clip_overlap = clip_overlap_,
-        orient_for_build=orient_for_build);        
+        orient_for_build=orient_for_build,
+        log_verbosity=verbosity);        
 }
     
 
@@ -186,9 +199,7 @@ if (show_dupont_pin_orientation_test) {
 
 
 
-pin_width = 2.54; // Using standard dimensions, rather than measured
-pin_length = 14.0; // Using standard dimensions, rather than measured
-wire_diameter = 1.0 + 0.25; // measured plus allowance
+
 
 module dupont_pin(color="black", alpha=1, orient=FRONT) {
     
@@ -209,13 +220,73 @@ module dupont_pin(color="black", alpha=1, orient=FRONT) {
 } 
 
 
-    
+function pin_junction_dimensions(
+        high_count=1, 
+        wide_count=1, 
+        wall = 2, 
+        pin_allowance = 0.5,
+        part="Holder", 
+        clip_overlap=5,
+        pin_retention_lip = 0.5,
+        socket_allowance = 0.1,
+        socket_wall = 1,
+        socket_retention = 4,
+        minimum_socket_opening = [0, 0, 0],
+        prong_dimensions) = 
+
+    let (
+        x_extension = [100, 0, 0],
+        z_extension = [0, 0, 100],
+        pin_width = 2.54, // Using standard dimensions, rather than measured
+        pin_length = 14.0, // Using standard dimensions, rather than measured
+        wire_diameter = 1.0 + 0.25, // measured plus allowance
+        socket_walls = 2 *  [socket_wall, socket_wall, socket_wall],
+        socket_allowances = 2 * [socket_allowance, socket_allowance, socket_allowance],
+        walls = 2 * [wall, wall, wall],
+        depth_count = 2,
+        pins = [depth_count * pin_length, wide_count*pin_width, high_count*pin_width],
+        //dmy3 = echo("pins", pins),
+        pin_allowances = 
+            is_num(pin_allowance) ? 2 * [pin_allowance, pin_allowance, pin_allowance] :
+            is_list(pin_allowance) ? 2 * pin_allowance :
+            assert(false, assert_msg("Not implemented: pin_allowance", str(pin_allowance))),
+        //dmy2 = echo("pin_allowances", pin_allowances),
+        body = pins + pin_allowances + walls,
+        //dmy1 = echo("body", body),
+        plug_body = [
+            body.x/2,
+            max(minimum_socket_opening.y, body.y), 
+            max(minimum_socket_opening.z, body.z)
+        ], 
+        raw_socket_body = plug_body + socket_allowances + socket_walls,
+        catch_offset = prong_dimension(prong_dimensions, "catch_offset"),
+        socket_depth =  catch_offset + socket_retention,
+        socket_body = [2*socket_depth, raw_socket_body.y, raw_socket_body.z],
+        socket_void = plug_body + socket_allowances + x_extension, 
+        last = undef
+    )
+    [
+        ["component", "pin_junction_dimensions"],
+        ["part", part],
+        ["high_count", high_count],
+        ["wide_count", wide_count],
+        ["wall", wall],
+        ["clip_overlap", clip_overlap],
+        
+        ["raw_socket_body", raw_socket_body],
+        ["socket_body", socket_body],
+        ["socket_void", socket_void],
+        ["pin_length", pin_length],
+        ["pin_width", pin_width],
+    ];
     
 
+function pin_junction_dimension(dimensions, item) = 
+    find_in_dct(dimensions, item);
 
 module pin_junction(
-        high_count, 
-        wide_count, 
+        high_count=1, 
+        wide_count=1, 
         wall = 2, 
         pin_allowance = 0.5,
         part="Holder", 
@@ -226,7 +297,32 @@ module pin_junction(
         socket_retention = 4,
         minimum_socket_opening = [0, 0, 0],
         prong_dimensions, 
-        orient_for_build=true) {
+        orient_for_build=true,
+        log_verbosity=INFO) {
+            
+    log_s("part:", part, log_verbosity, DEBUG);        
+    log_s("high_count:", high_count, log_verbosity, DEBUG);  
+    log_s("wide_count:", wide_count, log_verbosity, DEBUG); 
+    log_s("pin_allowance:", pin_allowance, log_verbosity, DEBUG);  
+         
+          
+    dims = pin_junction_dimensions(
+        high_count, 
+        wide_count, 
+        wall, 
+        pin_allowance,
+        part, 
+        clip_overlap,
+        pin_retention_lip,
+        socket_allowance,
+        socket_wall,
+        socket_retention,
+        minimum_socket_opening,
+        prong_dimensions           
+    );
+    log_v1("dims:", dims, log_verbosity, DEBUG); 
+    pin_length = pin_junction_dimension(dims, "pin_length");
+    pin_width = pin_junction_dimension(dims, "pin_width");   
             
     assert(is_num(high_count), assert_msg(" high_count=", str(high_count))); 
     depth_count = 2;
@@ -238,7 +334,10 @@ module pin_junction(
     socket_allowances = 2 * [socket_allowance, socket_allowance, socket_allowance];        
     walls = 2 * [wall, wall, wall];
     socket_walls = 2 *  [socket_wall, socket_wall, socket_wall];
+            
     body = pins + pin_allowances + walls;
+    log_s("body:", body, log_verbosity, DEBUG);         
+            
     cavity = pins + pin_allowances;
     x_extension = [100, 0, 0];
     z_extension = [0, 0, 100];
@@ -292,6 +391,7 @@ module pin_junction(
     module socket() {
         raw_socket_body = plug_body + socket_allowances + socket_walls;
         socket_body = [2*socket_depth, raw_socket_body.y, raw_socket_body.z];
+        log_s("socket_body:", socket_body, log_verbosity, DEBUG); 
         socket_void = plug_body + socket_allowances + x_extension; 
         render() difference() {
             # roundedBox(socket_body,  radius=socket_wall/2, sidesonly=false, $fn=12);
@@ -352,8 +452,11 @@ module pin_junction(
     }
                     
     module holder() { 
-        cut = [0, 0, wall+2*pin_allowance.z]; // Want the pins to be slightly exposed, so that lid presses on the pins
-        cut_body = body - cut; 
+        cut = [0, 0, wall+2*pin_allowances.z]; // Want the pins to be slightly exposed, so that lid presses on the pins
+        log_s("cut:", cut, log_verbosity, DEBUG); 
+         
+        cut_body = body - cut;
+        
         render() difference() {
             translate(-cut/2) roundedBox(cut_body,  radius=1, sidesonly=false, $fn=12);
             block(cavity);

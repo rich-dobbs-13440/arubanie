@@ -8,6 +8,7 @@ use <potentiometer_mounting.scad>
 //      10        20        30        40        50        60        70        80        90       100
 
 include <logging.scad>
+use <not_included_batteries.scad>
 include <centerable.scad>
 use <shapes.scad>
 use <prong_and_spring.scad>
@@ -107,26 +108,6 @@ H_INDICATER = 4;
     }
 }
 
-
-// Housing Constants
-HOUSING_COMPONENT_NAME = "breadboard_compatible_trim_potentiometer_housing_dimensions";
-COMPONENT_IDX = 0;
-BODY_IDX = 1;
-FACE_PLATE_IDX = 2;
-BACK_PLATE_IDX = 3;
-HOUSING_IDX = 4;
-D_KNOB_CLEARANCE_IDX = 5;
-X_OFFSET_IDX = 6;
-DX_IDX = 7;
-SOCKET_RETENTION_IDX = 8;
-MINIMUM_SOCKET_OPENING_IDX = 9;
-PIN_ALLOWANCE_IDX = 10;
-PRONG_IDX = 11;
-PIN_WIDTH_IDX = 12;
-PIN_LENGTH_IDX = 13;
-
-
-
  
 function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         wall = 2, 
@@ -137,33 +118,6 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         allowance = 0.3 
         ) =
     let(
-        knob_dims = breadboard_compatible_trim_potentiometer_dimensions(),
-        pedistal = knob_dims[PEDISTAL_IDX],
-        knob_allowance = 0.50,
-        d_knob_clearance = knob_dims[KNOB_IDX][D_BASE] + 2*knob_allowance, 
-        
-        allowances = [2*allowance, 2*allowance, 2*allowance],
-        walls = [2*wall, 2*wall, 0],
-        housing = pedistal+allowances+walls,
-        socket_y = 17,  // Need to get from the dupont connectors
-        socket_x = 17,  // Need to get from the dupont connectors 
-        socket_z = 10.8,       
-        
-        x = socket_x * count + spacing * (count-1) + wall,
-        y = socket_y, 
-        z = pedistal.z + allowance + socket_z, 
-        body = [x, y, z],
-        face_plate = [body.x, body.y, face],
-        back_plate = [body.x, body.y, back],
-        
-        dx = socket_x + spacing,
-        x_offset = -x/2 + socket_x/2 + 1, // What's with the magic 1??? may wall thickness
-        
-        // All stuff having do with the socket definition
-        pin_insert_thickness = 2, // Allow for a pin retention insert into plug
-        socket_retention = 4,
-        minimum_socket_opening = [0, 10, 10], // pedistal + allowances
-        pin_allowance = [0.5 + pin_insert_thickness, 0.5, 0.5],
         spring_length = 11,
         spring_thickness = wall,
         spring_width = 4,
@@ -177,27 +131,71 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
                     catch = [catch_length, catch_thickness, catch_width], 
                     catch_offset = catch_offset,
                     catch_allowance = catch_allowance),
+                    
+        pin_insert_thickness = 2, // Allow for a pin retention insert into plug
+        pin_allowance = [0.5 + pin_insert_thickness, 0.5, 0.5],            
+        socket_retention = 4,
+        minimum_socket_opening = [0, 10, 10],
+        socket_dims = pin_junction_dimensions(
+            high_count=3, 
+            wide_count=3, 
+            wall=wall, 
+            pin_allowance=pin_allowance,
+            part="Socket", 
+            socket_wall=wall,
+            socket_retention=socket_retention,
+            minimum_socket_opening=minimum_socket_opening,
+            prong_dimensions=prong          
+        ),
+        
+
+    
+        knob_dims = breadboard_compatible_trim_potentiometer_dimensions(),
+        pedistal = knob_dims[PEDISTAL_IDX],
+        knob_allowance = 0.50,
+        d_knob_clearance = knob_dims[KNOB_IDX][D_BASE] + 2*knob_allowance, 
+        
+        allowances = [2*allowance, 2*allowance, 2*allowance],
+        walls = [2*wall, 2*wall, 0],
+        housing = pedistal+allowances+walls,
+        socket_body = pin_junction_dimension(socket_dims, "socket_body"),
+        // [22, 16.82, 16.82],  // Extracted from log. Need to get from the dupont connectors 
+        socket_x = socket_body.z,   // Rotation to get coordinate systems to match up.
+        socket_y = socket_body.y,
+        socket_z = socket_body.x,     
+        
+        x = socket_x * count + spacing * (count-1) + wall,
+        y = socket_y, 
+        z = pedistal.z + allowance + socket_z, 
+        body = [x, y, z],
+        face_plate = [body.x, body.y, face],
+        back_plate = [body.x, body.y, back],
+        
+        dx = socket_x + spacing,
+        x_offset = -x/2 + socket_x/2 + 1, // What's with the magic 1??? may wall thickness
+
         // Used for mocking            
         pin_length = 14,
         pin_width = 2.54,
-         
+        HOUSING_COMPONENT_NAME = "breadboard_compatible_trim_potentiometer_housing_dimensions", 
         last = undef
-    ) 
+    )
+   assert(is_num(dx)) 
     [
-        HOUSING_COMPONENT_NAME,
-        body, // Should be expanded to include the sockets!
-        face_plate, 
-        back_plate, 
-        housing,
-        d_knob_clearance,
-        x_offset, 
-        dx,  
-        socket_retention,
-        minimum_socket_opening,
-        pin_allowance,
-        prong,
-        pin_width, 
-        pin_length, 
+        ["component", HOUSING_COMPONENT_NAME],
+        ["body", body],
+        ["face_plate", face_plate],
+        ["back_plate", back_plate],
+        ["housing", housing], 
+        ["d_knob_clearance", d_knob_clearance], 
+        ["x_offset", x_offset], 
+        ["dx", dx],
+        ["socket_retention", socket_retention],
+        ["minimum_socket_opening", minimum_socket_opening],
+        ["pin_allowance", pin_allowance],
+        ["prong", prong],
+        ["pin_width", pin_width], 
+        ["pin_length", pin_length], 
     ];
     
 // Build orientation Constants
@@ -222,53 +220,31 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
         arrow_up = true,        
         log_verbosity) {
             
-          
-            
+        
     dims = breadboard_compatible_trim_potentiometer_housing_dimensions(
                 wall, face, back, count, spacing, allowance);
-    log_v1("Dimensions:", dims, log_verbosity, DEBUG);
-            
-    body = dims[BODY_IDX];
-    log_v1("body:", body, log_verbosity, DEBUG);            
-            
-    face_plate = dims[FACE_PLATE_IDX];
-    log_v1("face_plate:", face_plate, log_verbosity, DEBUG);
-            
-    back_plate = dims[BACK_PLATE_IDX];
-    log_v1("back_plate:", back_plate, log_verbosity, DEBUG);
-            
-    housing = dims[HOUSING_IDX]; 
-    log_v1("housing:", housing, log_verbosity, DEBUG);
-            
-    d_knob_clearance = dims[D_KNOB_CLEARANCE_IDX];
-    log_s("d_knob_clearance:", d_knob_clearance, log_verbosity, DEBUG);            
 
-    dx = dims[DX_IDX];
-    log_s("dx:", dx, log_verbosity, DEBUG);
-    
-    x_offset = dims[X_OFFSET_IDX]; 
-    log_s("x_offset:", x_offset, log_verbosity, DEBUG);   
-        
-    pin_width = dims[PIN_WIDTH_IDX];
-    log_s("pin_width:", pin_width, log_verbosity, DEBUG);  
-    
-    pin_length = dims[PIN_LENGTH_IDX];
-    log_s("pin_length:", pin_length, log_verbosity, DEBUG);
-
-    socket_retention = dims[SOCKET_RETENTION_IDX];
-    log_s("socket_retention:", socket_retention, log_verbosity, DEBUG);
-    
-    minimum_socket_opening = dims[MINIMUM_SOCKET_OPENING_IDX];
-    log_v1("minimum_socket_opening:", minimum_socket_opening, log_verbosity, DEBUG);
-    
-    pin_allowance = dims[PIN_ALLOWANCE_IDX];
-    log_v1("pin_allowance:", pin_allowance, log_verbosity, DEBUG);
-    
-    prong = dims[PRONG_IDX];
-    log_v1("prong:", prong, log_verbosity, DEBUG); 
+    function get_by_name(name) = find_in_dct(dims, name);       
+           
+    body = get_by_name("body");               
+    face_plate = get_by_name("face_plate");      
+    back_plate = get_by_name("back_plate");    
+    housing = get_by_name("housing");    
+    d_knob_clearance = get_by_name("d_knob_clearance");            
+    dx = get_by_name("dx");  
+    x_offset = get_by_name("x_offset");    
+    pin_width = get_by_name("pin_width"); 
+    pin_length =  get_by_name("pin_length"); 
+    socket_retention = get_by_name("socket_retention");
+    minimum_socket_opening = get_by_name("minimum_socket_opening");
+    pin_allowance = get_by_name("pin_allowance");
+    prong = get_by_name("prong");
  
     knob_dims =  breadboard_compatible_trim_potentiometer_dimensions();
-    pedistal = knob_dims[PEDISTAL_IDX];             
+    pedistal = knob_dims[PEDISTAL_IDX]; 
+
+    dump_to_log();
+    check_assertions();
     
     if (show_housing) {
         orient() housing();
@@ -279,6 +255,28 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
     
     if (show_mocks) {
         orient() mocks();
+    }
+    
+    check_assertions();
+    
+    module check_assertions() {
+    }
+   
+    module dump_to_log() {
+        
+        log_v1("body:", body, log_verbosity, DEBUG);            
+        log_v1("face_plate:", face_plate, log_verbosity, DEBUG);
+        log_v1("back_plate:", back_plate, log_verbosity, DEBUG);
+        log_v1("housing:", housing, log_verbosity, DEBUG);
+        log_s("d_knob_clearance:", d_knob_clearance, log_verbosity, DEBUG);            
+        log_s("dx:", dx, log_verbosity, DEBUG);
+        log_s("x_offset:", x_offset, log_verbosity, DEBUG);   
+        log_s("pin_width:", pin_width, log_verbosity, DEBUG);  
+        log_s("pin_length:", pin_length, log_verbosity, DEBUG);
+        log_s("socket_retention:", socket_retention, log_verbosity, DEBUG);
+        log_v1("minimum_socket_opening:", minimum_socket_opening, log_verbosity, DEBUG);
+        log_v1("pin_allowance:", pin_allowance, log_verbosity, DEBUG);
+        log_v1("prong:", prong, log_verbosity, DEBUG);       
     } 
     
     module plugs() {
@@ -333,7 +331,8 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
                     socket_wall = wall, 
                     prong_dimensions = prong,
                     minimum_socket_opening = minimum_socket_opening,
-                    orient_for_build=false);  // Obsolete, must handle separately for now.
+                    orient_for_build=false,
+                    log_verbosity=log_verbosity);  // Obsolete, must handle separately for now.
             }
         }
     }    
@@ -416,7 +415,9 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
     
     module replicate() {
         for (i = [0 : count-1] ) {
-            translate([i * dx + x_offset, 0, 0]) {
+            x = i * dx + x_offset;
+            assert(is_num(x));
+            translate([x, 0, 0]) {
                 children();
             }
         }           

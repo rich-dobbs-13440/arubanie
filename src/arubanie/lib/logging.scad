@@ -117,7 +117,7 @@ module log_s(label, s, verbosity, level=INFO, important=0) {
     overridden_level = max(level, important);
     if (overridden_level >= verbosity) { 
         style = console_styling(overridden_level);
-        echo(style, label, s);
+        echo(str(style, parent_module(1), "() - ", label), s);
     }
 }
 
@@ -168,16 +168,17 @@ module log_v2(label, v2, verbosity, level=INFO, important=0) {
 
 
 module log_v1(label, v1, verbosity, level=INFO, important=0) {
+    caller = parent_module(1);
     overridden_level = max(level, important);
     if (overridden_level >= verbosity) { 
         style = console_styling(overridden_level);
-        echo(style, "---");
-        echo(style, label, "= [");
+        echo(str(style, "---"));
+        echo(str(style, caller, "() ", label, "= ["));
         for (v = v1) {
-            echo(style, "-........", v);
+            echo(str(style, "-........", v));
         }
-        echo(style, "-------]");
-        echo(style, " ");
+        echo(str(style, "-------]"));
+        echo(str(style, " "));
     }
 } 
 
