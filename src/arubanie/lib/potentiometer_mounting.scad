@@ -20,32 +20,29 @@ use <dupont_connectors.scad>
  
 
 /* [Customization] */
-    show_housing = true;
+    show_customized = true;
+    show_mocks_ = true;
+    show_housing_ = true;
+    show_plugs_ = true;    
     show_default = false;
     allowance_ = 0.3; // [0:0.05:2]
-    clip_overlap_ = 1; // [0:0.05:1]
-    clip_thickness_ = 1.; // [0:0.25:4]
     count_ = 1; // [1: 10]
     spacing_ = 2; // [-3 : 1 : 20]
-    show_mocks_= false;
-    build_from_ = 0; //[0:Designed, 1:From face, 2:Side, 3:End]
+
+    build_from_ = 0; //[0:To face, 1:From face, 2:Side, 3:End, 4:"Side, for plugs"]
     retain_pins_ = true;
     arrow_up_ = true;
-    spring_width_ = 4.;
-    socket_wall = 2; // [0: 0.25 : 10] 
     
-    if (show_housing) {
+    if (show_customized) {
         breadboard_compatible_trim_potentiometer_housing(
             count = count_, 
             spacing = spacing_, 
             allowance = allowance_,
-            clip_overlap = clip_overlap_,
-            clip_thickness = clip_thickness_,
-            spring_width = spring_width_,
             build_from = build_from_,
             arrow_up = arrow_up_,
-            show_mocks = show_mocks_,
-            retain_pins = retain_pins_,
+            show_housing = show_housing_,
+            show_plugs = show_plugs_,
+            show_mocks = show_mocks_,        
             log_verbosity=verbosity);
     }
 
@@ -59,6 +56,7 @@ module end_of_customization() {}
 Z_TO_MINUS_Z = [180, 0, 0];
 Z_TO_MINUS_Y = [90, 0, 0];
 Z_TO_X = [0, 90, 0];
+Z_TO_Y = [90, 0, 0];
 X_TO_Y = [0, 0, 90];
 
 // Potentiometer Constants
@@ -136,38 +134,36 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         back = 1, 
         count = 1, 
         spacing = 2, 
-        allowance = 0.3, 
-        clip_overlap = 1.0, 
-        clip_thickness = 1.0) =
+        allowance = 0.3 
+        ) =
     let(
-        socket_y = 17,  // Need to get from the dupont connectors
-        socket_x = 17,  // Need to get from the dupont connectors
-        
-        dx = socket_x + spacing,
         knob_dims = breadboard_compatible_trim_potentiometer_dimensions(),
         pedistal = knob_dims[PEDISTAL_IDX],
+        knob_allowance = 0.50,
+        d_knob_clearance = knob_dims[KNOB_IDX][D_BASE] + 2*knob_allowance, 
+        
         allowances = [2*allowance, 2*allowance, 2*allowance],
         walls = [2*wall, 2*wall, 0],
         housing = pedistal+allowances+walls,
+        socket_y = 17,  // Need to get from the dupont connectors
+        socket_x = 17,  // Need to get from the dupont connectors 
+        socket_z = 10.8,       
+        
         x = socket_x * count + spacing * (count-1) + wall,
         y = socket_y, 
-        z = pedistal.z + allowance,
-        
-        back_plate = [x, y, back],
+        z = pedistal.z + allowance + socket_z, 
         body = [x, y, z],
+        face_plate = [body.x, body.y, face],
+        back_plate = [body.x, body.y, back],
+        
+        dx = socket_x + spacing,
         x_offset = -x/2 + socket_x/2 + 1, // What's with the magic 1??? may wall thickness
         
-        face_plate = [body.x, body.y, face],
-        pin_length = 14,
-        pin_length_allowance = 0.2,
-        pin_width = 2.54,
-        clip_thickness = pin_width,
-        knob_allowance = 0.50,
-        d_knob_clearance = knob_dims[KNOB_IDX][D_BASE] + 2*knob_allowance,
+        // All stuff having do with the socket definition
         pin_insert_thickness = 2, // Allow for a pin retention insert into plug
         socket_retention = 4,
         minimum_socket_opening = [0, 10, 10], // pedistal + allowances
-        pin_allowance = [0.5+pin_insert_thickness, 0.5, 0.5],
+        pin_allowance = [0.5 + pin_insert_thickness, 0.5, 0.5],
         spring_length = 13,
         spring_thickness = wall,
         spring_width = 4,
@@ -181,7 +177,9 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
                     catch = [catch_length, catch_thickness, catch_width], 
                     catch_offset = catch_offset,
                     catch_allowance = catch_allowance),
-                
+        // Used for mocking            
+        pin_length = 14,
+        pin_width = 2.54,
          
         last = undef
     ) 
@@ -206,7 +204,8 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
 BUILD_UP_TO_FACE = 0; // As designed, with no rotation 
 BUILD_FROM_FACE = 1;    
 BUILD_FROM_SIDE = 2;
-BUILD_FROM_END = 3; 
+BUILD_FROM_END = 3;
+BUILD_FROM_SIDE_FOR_PLUGS = 4;
  
  module breadboard_compatible_trim_potentiometer_housing(
         wall = 2, 
@@ -215,20 +214,18 @@ BUILD_FROM_END = 3;
         count = 1, 
         spacing = 2, 
         allowance = 0.3, 
-        clip_overlap = 0.5,
-        clip_thickness = 1.0,
-        spring_width = 3, 
         center = 0, 
         build_from = 0,
-        retain_pins = false,
-        arrow_up = true,
-        show_mocks = false,
+        show_housing = true,
+        show_plugs = true,
+        show_mocks = true,
+        arrow_up = true,        
         log_verbosity) {
             
           
             
     dims = breadboard_compatible_trim_potentiometer_housing_dimensions(
-                wall, face, back, count, spacing, allowance, clip_overlap);
+                wall, face, back, count, spacing, allowance);
     log_v1("Dimensions:", dims, log_verbosity, DEBUG);
             
     body = dims[BODY_IDX];
@@ -273,21 +270,43 @@ BUILD_FROM_END = 3;
     knob_dims =  breadboard_compatible_trim_potentiometer_dimensions();
     pedistal = knob_dims[PEDISTAL_IDX];             
     
-    orient() assembly();
+    if (show_housing) {
+        orient() housing();
+    }
+    if (show_plugs) {
+        orient() plugs();
+    }
     
-    module assembly() {
+    if (show_mocks) {
+        orient() mocks();
+    } 
+    
+    module plugs() {
+        replicate() {
+            if (build_from == BUILD_FROM_SIDE_FOR_PLUGS) {
+                rotate([0, 0, 90])
+                    oriented_pin_junction(part="Plug");
+            } else {
+                oriented_pin_junction(part="Plug");
+            }
+        }
+    }
+
+    module mocks() {
+        replicate() {
+            orient_mocks(arrow_up) {
+                breadboard_compatible_trim_potentiometer();
+                dupont_pins();
+            }
+        }        
+    }
+    
+    module housing() {
         
         replicate() {
-            if (show_mocks) {
-                orient_mocks(arrow_up) {
-                    breadboard_compatible_trim_potentiometer();
-                    dupont_pins();
-                }
-            } 
-
             housing_lower_xz_wall();
             housing_yz_walls();
-            pin_socket();
+            oriented_pin_junction(part="Socket");
         } 
     
         render() difference() {
@@ -302,13 +321,13 @@ BUILD_FROM_END = 3;
         three_d_printing_aids();
     }
     
-    module pin_socket() {
+    module oriented_pin_junction(part) {
         translate([0, 0, -housing.z]) {
             rotate([0, 90, 0]) {
                 pin_junction(
                     3, 
                     3, 
-                    part="Socket",
+                    part=part,
                     socket_retention = socket_retention,
                     wall = wall,
                     socket_wall = wall, 
@@ -373,10 +392,16 @@ BUILD_FROM_END = 3;
         allowances = [2*allowance, 2*allowance, 20];
         translate([0, 0, -pedistal.z/2]) block(pedistal + allowances);
     }
-    
+   
     module orient() {
         assert(build_from <=4);
-        rotation = [[0, 0, 0], Z_TO_MINUS_Z, Z_TO_MINUS_Y, Z_TO_X][build_from];
+        rotation = [
+            [0, 0, 0], // BUILD_UP_TO_FACE
+            Z_TO_MINUS_Z, // BUILD_FROM_FACE
+            Z_TO_MINUS_Y, //BUILD_FROM_SIDE
+            Z_TO_X, // BUILD_FROM_END
+            Z_TO_MINUS_Y, // BUILD_FROM_SIDE_FOR_PLUGS
+        ][build_from];
         rotate(rotation) { 
             children();
         }
