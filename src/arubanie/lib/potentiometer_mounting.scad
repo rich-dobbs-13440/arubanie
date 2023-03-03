@@ -164,7 +164,7 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         socket_retention = 4,
         minimum_socket_opening = [0, 10, 10], // pedistal + allowances
         pin_allowance = [0.5 + pin_insert_thickness, 0.5, 0.5],
-        spring_length = 13,
+        spring_length = 11,
         spring_thickness = wall,
         spring_width = 4,
         catch_offset = 7,
