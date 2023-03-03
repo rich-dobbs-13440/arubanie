@@ -1,6 +1,6 @@
 /* 
 
-use <lib/servo_extension_wires.scad>
+use <lib/dupont_connectors.scad>
 
 */
 
