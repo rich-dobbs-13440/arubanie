@@ -190,3 +190,13 @@ module warn(condition, condition_as_text, warning, consequence) {
     }
 }
 
+function assert_msg(c1, c2, c3, c4, c5) = 
+    let (
+        s1 = is_undef(c1) ? "" : c1,
+        s2 = is_undef(c2) ? "" : c2,
+        s3 = is_undef(c3) ? "" : c3,
+        s4 = is_undef(c4) ? "" : c4,
+        s5 = is_undef(c5) ? "" : c5,
+        last = undef
+    )
+    str("In module '", parent_module(0), "' ", s1, s2, s3, s4, s5);
