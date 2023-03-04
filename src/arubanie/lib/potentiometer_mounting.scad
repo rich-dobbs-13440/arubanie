@@ -34,6 +34,9 @@ use <dupont_connectors.scad>
     retain_pins_ = true;
     arrow_up_ = true;
     
+    housing_alpha_ = 1; // [0, 0.10, 0.25, 1]
+    plug_alpha_ = 1; // [0, 0.10, 0.25, 1]
+    
     if (show_customized) {
         breadboard_compatible_trim_potentiometer_housing(
             count = count_, 
@@ -118,19 +121,8 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         allowance = 0.3 
         ) =
     let(
-        spring_length = 11,
-        spring_thickness = wall,
-        spring_width = 4,
-        catch_offset = 7,
-        catch_length = 2,
-        catch_thickness = 1,
-        catch_width = spring_width,
-        catch_allowance = 0.4, 
-        prong = prong_dimensions(
-                    spring = [spring_length, spring_thickness, spring_width],
-                    catch = [catch_length, catch_thickness, catch_width], 
-                    catch_offset = catch_offset,
-                    catch_allowance = catch_allowance),
+
+
                     
         pin_insert_thickness = 2, // Allow for a pin retention insert into plug
         pin_allowance = [0.5 + pin_insert_thickness, 0.5, 0.5],            
@@ -148,6 +140,7 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
             prong_dimensions=prong          
         ),
         
+ 
 
     
         knob_dims = breadboard_compatible_trim_potentiometer_dimensions(),
@@ -246,16 +239,18 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
     dump_to_log();
     check_assertions();
     
-    if (show_housing) {
-        orient() housing();
-    }
-    if (show_plugs) {
-        orient() plugs();
-    }
-    
     if (show_mocks) {
         orient() mocks();
+    } 
+    if (show_plugs) {
+        color("green", alpha=plug_alpha_) orient() plugs();
+    }    
+    if (show_housing) {
+        color("orange", alpha=housing_alpha_) orient() housing();
     }
+
+    
+
     
     check_assertions();
     

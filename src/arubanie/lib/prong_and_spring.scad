@@ -1,5 +1,6 @@
 include <centerable.scad>
 include <logging.scad>
+use <not_included_batteries.scad>
 use <shapes.scad>
 
 infinity = 100;
@@ -73,15 +74,7 @@ if (show_hole_in_matching_face) {
 
 // ********************************* Start of implementation *********************
 
-COMPONENT_NAME = 0;
-SPRING_SIZE = 1;
-CATCH_SIZE = 2;
-X_OFFSET_CATCH = 3;
-CATCH_ALLOWANCE = 4;
-X_OFFSET_WINDOW = 5;
-CUT_WIDTH = 6;
 
-COMPONENT = "prong_dimensions";
 
 
 function prong_dimensions(
@@ -97,18 +90,16 @@ function prong_dimensions(
      )
         
      [
-        "prong_dimensions",
-        is_undef(spring) ? [15, 1, 4]: spring, 
-        is_undef(catch) ? [2, 1, 4] : catch, 
-        is_undef(catch_offset) ? 7: catch_offset,
-        is_undef(catch_allowance) ? 0.4: catch_allowance, 
-        is_undef(window_offset) ? 2: window_offest, 
-        is_undef(cut_width) ? 1: cut_width, 
+        ["component", "prong_dimensions"],
+        ["spring", is_undef(spring) ? [15, 1, 4]: spring], 
+        ["catch", is_undef(catch) ? [2, 1, 4] : catch], 
+        ["catch_offset", is_undef(catch_offset) ? 7: catch_offset],
+        ["catch_allowance",is_undef(catch_allowance) ? 0.4: catch_allowance], 
+        ["window_offset", is_undef(window_offset) ? 2: window_offest], 
+        ["cut_width", is_undef(cut_width) ? 1: cut_width], 
      ];
 
-function prong_dimension(prong_dimensions, item) =
-    item == "catch_offset" ? prong_dimensions[X_OFFSET_CATCH] :
-    assert(false, assert_msg("Not implemented: item", str(item)));
+function prong_dimension(prong_dimensions, item) = find_in_dct(prong_dimensions, item);
     
 
 module spring_and_prong(prong_dimensions, part) {
@@ -124,14 +115,24 @@ module spring_and_prong(prong_dimensions, part) {
     } else {
         assert(false, assert_msg("Unhandled part = ", str(part)));
     }
+    
+    COMPONENT_NAME = 0;
+    SPRING_SIZE = 1;
+    CATCH_SIZE = 2;
+    X_OFFSET_CATCH = 3;
+    CATCH_ALLOWANCE = 4;
+    X_OFFSET_WINDOW = 5;
+    CUT_WIDTH = 6;
 
-    assert(prong_dimensions[COMPONENT_NAME] == COMPONENT, assert_msg("Doesn't look like a prong: ", str(prong_dimensions)));
-    spring = prong_dimensions[SPRING_SIZE];
-    catch = prong_dimensions[CATCH_SIZE];
-    x_offset_catch = prong_dimensions[X_OFFSET_CATCH];
-    x_offset_window = prong_dimensions[X_OFFSET_WINDOW];
-    catch_allowance = prong_dimensions[CATCH_ALLOWANCE];
-    cut_width = prong_dimensions[CUT_WIDTH];
+COMPONENT = "prong_dimensions";
+
+    assert(prong_dimensions[COMPONENT_NAME][1] == COMPONENT, assert_msg("Doesn't look like a prong: ", str(prong_dimensions)));
+    spring = prong_dimensions[SPRING_SIZE][1];
+    catch = prong_dimensions[CATCH_SIZE][1];
+    x_offset_catch = prong_dimensions[X_OFFSET_CATCH][1];
+    x_offset_window = prong_dimensions[X_OFFSET_WINDOW][1];
+    catch_allowance = prong_dimensions[CATCH_ALLOWANCE][1];
+    cut_width = prong_dimensions[CUT_WIDTH][1];
 
 
     module prong() {
