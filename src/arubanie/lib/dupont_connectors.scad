@@ -12,6 +12,7 @@ use <not_included_batteries.scad>
 use <prong_and_spring.scad>
 use <MCAD/boxes.scad>
 use <MCAD/regular_shapes.scad>
+include <TOUL.scad>
 
 /* [Boiler Plate] */
    infinity = 1000; 
@@ -32,7 +33,7 @@ use <MCAD/regular_shapes.scad>
     show_slide_pin_retainer = true;
     show_clip_pin_retainer = true;
     show_pin_junction = true;
-    // This is the 
+    
     show_pin_holder_plug= true; 
     show_pin_holder_socket = true;
     
@@ -60,7 +61,9 @@ use <MCAD/regular_shapes.scad>
     wall_socket_ = 1; // [1, 1.5, 2]
     
     minimum_socket_opening_ = [0, 11, 11];
-    pin_insert_thickness_ = 1; //[0: No plate, 1, 1.5, 2]; 
+    pin_insert_thickness_ = 1; //[0: No plate, 1, 1.5, 2]
+    show_plug = true;
+    show_pin_insert = false; 
     // Distance that the socket extends beyond catch offset 
     socket_retention_ = 4;  // [0: 0.5 : 10]
     
@@ -83,42 +86,14 @@ use <MCAD/regular_shapes.scad>
         catch = [catch_length_, catch_thickness, catch_width_], 
         catch_offset = catch_offset_,
         catch_allowance = catch_allowance_);  
-        
-    echo("prong_dimensions", prong_dimensions_) ;
-        
-    
-    
 
 module end_customization() {}
     
 // Customization Invocations:
 
-if (show_pin_holder_plug) {
-    pin_junction(
-        3, 
-        3, 
-        part="Plug",
-        wall = wall_plug_,
-        prong_dimensions = prong_dimensions_,
-        pin_allowance = [0.5+pin_insert_thickness_, 0.5, 0.5],
-        minimum_socket_opening = minimum_socket_opening_,
-        orient_for_build=orient_for_build_,
-        log_verbosity=verbosity);  
-}
 
-if (show_pin_holder_socket) {
-    pin_junction(
-        3, 
-        3, 
-        part="Socket",
-        socket_retention = socket_retention_,
-        wall = wall_plug_,
-        socket_wall = wall_socket_, 
-        prong_dimensions = prong_dimensions_,
-        minimum_socket_opening = minimum_socket_opening_,
-        orient_for_build=orient_for_build_,
-        log_verbosity=verbosity);     
-}
+
+
     
 if (show_socket_holder ) {
     x_placement(1){
@@ -139,11 +114,11 @@ if (show_clip_pin_retainer ) {
     x_placement(4){
         color("brown")  servo_pin_retainer(assembly="clip", count=count_);
     }
-}   
- 
+} 
+
 if (show_pin_junction) {
     assert(!(show_assembled_ && orient_for_build_), "Thest options conflict!")
-    x_placement(0){
+    x_placement(5){
         if (show_assembled_) {
             pj_bottom (false);
             pj_lid (false);
@@ -158,6 +133,57 @@ if (show_pin_junction) {
             }
         } 
     }
+}
+
+
+if (show_pin_holder_plug) {
+    x_placement(0){
+        if (show_plug) {
+            pin_junction(
+                high_count = 3,
+                wide_count = 3, 
+                part="Plug",
+                wall = wall_plug_,
+                prong_dimensions = prong_dimensions_,
+                pin_allowance = [0.5+pin_insert_thickness_, 0.5, 0.5],
+                minimum_socket_opening = minimum_socket_opening_,
+                orient_for_build=orient_for_build_,
+                log_verbosity=verbosity); 
+            }
+        
+        if (show_pin_insert) {
+            //******************************************************************
+            assert(pin_insert_thickness_ > 0);
+            dy = 0; // 20
+            translate([0, dy, 0]) {
+                pin_retention_plate(
+                   pin_insert_thickness = pin_insert_thickness_,
+                   pattern = "
+                          ▄▄▄
+                          ░━░
+                          ▂▂▂ 
+                    ");
+            }
+        }
+        
+        
+    } 
+}
+ 
+if (show_pin_holder_socket) {
+    x_placement(7){
+        pin_junction(
+            3, 
+            3, 
+            part="Socket",
+            socket_retention = socket_retention_,
+            wall = wall_plug_,
+            socket_wall = wall_socket_, 
+            prong_dimensions = prong_dimensions_,
+            minimum_socket_opening = minimum_socket_opening_,
+            orient_for_build=orient_for_build_,
+            log_verbosity=verbosity); 
+    }    
 }
   
    
@@ -182,7 +208,7 @@ module pj_lid(orient_for_build) {
     
 
 if (show_dupont_pin_orientation_test) {
-    x_placement(7) {
+    x_placement(8) {
         dupont_pin(color="orange", orient=LEFT); 
         dupont_pin(color="green", orient=RIGHT);
         dupont_pin(color="purple", orient=FRONT);
@@ -190,16 +216,14 @@ if (show_dupont_pin_orientation_test) {
         dupont_pin(color="blue", orient=ABOVE);
         dupont_pin(color="red", orient=BELOW);   
     }
-    x_placement(7) {
+    x_placement(9) {
         dupont_pin();  
     }
 }
- 
 
-
-
-
-
+function dupont_pin_width() = 2.54; // Using standard dimensions, rather than measured
+function dupont_pin_length() = 14.0; // Using standard dimensions, rather than measured
+function dupont_wire_diameter() = 1.0 + 0.25; // measured plus allowance
 
 module dupont_pin(color="black", alpha=1, orient=FRONT) {
     
@@ -213,11 +237,214 @@ module dupont_pin(color="black", alpha=1, orient=FRONT) {
         
         orient == RIGHT ? [0, -13, 0] :
         assert(false, assert_msg("Not implement, orient=", orient, "  LEFT:", LEFT));
+    size = [dupont_pin_width(), dupont_pin_width(), dupont_pin_length()];
     color(color, alpha=alpha) {
             rotate(rotation) 
-                block([pin_width, pin_width, pin_length], center=BELOW);
+                block(size, center=BELOW);
     }            
 } 
+
+module pin_retention_plate(
+   pin_insert_thickness,
+   pattern,
+   allowance = 0.1) {
+       
+
+    /*
+       Key: 
+       
+        ▂▄▆█  Pin inserts with various height
+        ╋     Pin and wire clearance, both directions
+        ┃     Pin and wire clearance vertical
+        ━     Pin and wire clearance horizontal
+        ╬║═   Wire access in particular directions 
+        ░     Bare plate
+    */
+       
+
+
+    layout = split_no_separators(pattern);  
+    generate(); 
+   
+    module generate() {
+        render() difference() {
+            union() {
+                base_plate();
+                pin_inserts();
+            }
+            clearances();
+        }
+    }       
+    
+    pin_width = dupont_pin_width();
+    pin_length = dupont_pin_length();
+    pin = [pin_width, pin_width, pin_length];
+    allowances = 2* [allowance, allowance, 0];
+    
+    module base_plate() {
+        plate_map = []; // Empty map
+        process(layout, plate_map, missing_child_idx=0) {
+            block([pin_width, pin_width, pin_insert_thickness] + allowances, center=BELOW);
+        }
+    }
+    
+    
+    module pin_inserts() {
+        module pin(fraction) {
+            block([pin_width, pin_width, fraction*pin_length], center=ABOVE);
+        }
+        
+        map =  concat(
+            [
+                ["█", 0],
+                ["▆", 1],
+                ["▄", 2],
+                ["▂", 3], 
+            ]
+        );
+        
+        //log_v1("map", map,verbosity, DEBUG, IMPORTANT);
+        process(layout, map) {
+            pin(1.0);
+            pin(0.75);
+            pin(0.50);
+            pin(0.25);
+        } 
+    }       
+    
+    module wire_clearance() {
+        hull() {
+            center_reflect([1, 0, 0]) {
+                translate([pin_width, 0, 0]) {
+                    can(d=dupont_wire_diameter(), h = 4*pin_length);
+                }
+            }
+        }
+    }
+
+    module clearances() {
+        /*    
+            ╋     Pin and wire clearance, both directions
+            ┃     Pin and wire clearance vertical
+            ━     Pin and wire clearance horizontal
+            ╬║═   Wire access in particular directions 
+
+        */
+        
+        clearance_map =  [
+            ["╋", 0],
+            ["┃", 1],
+            ["━", 2],        
+            ["╬", 3],
+            ["║", 4],        
+            ["═", 5],        
+
+
+        ];
+        process(layout, clearance_map) {
+            clearance(true, true, true);
+            clearance(true, true, false);
+            clearance(true, false, true);
+            clearance(false, true, true);
+            clearance(false, true, false);
+            clearance(false, false, true);
+        } 
+        
+        module clearance(access_pin, access_wire_x, access_wire_y) {
+            if (access_pin) {
+                clearance_allowances = pin /4;
+                block(pin + clearance_allowances + [0, 0, 2*pin_length]);
+            }
+            if (access_wire_x) {
+                wire_clearance();
+            }
+            if (access_wire_y) {
+                rotate([0, 0, 90]) wire_clearance();
+            }
+
+        }        
+    }
+
+    function split_no_separators(string) = 
+        let(a =  split(string, " ")) 
+        [ for (item = a) if (item != "") item];
+    
+    
+    
+    function pattern_to_map(layout, idx)  = [
+            for (cmd = layout) if (cmd != " ") [cmd, idx]
+        ];
+
+    module locate(i, j) {
+        x = i * pin_width;
+        y = j * pin_width;
+        translate([x, y, 0]) children();
+    }
+    
+    module process(layout, map_cmd_to_child, missing_child_idx) {
+        for (i = [0 : len(layout) -1]) {
+            row = layout[i];
+            for (j = [0 : len(row) -1]) {
+                cmd = row[j];              
+                found_idx = find_in_dct(map_cmd_to_child, cmd);
+                idx = !is_undef(found_idx) ? found_idx : missing_child_idx;
+                echo("cmd", cmd, i, j, "idx", idx);
+                if (!is_undef(idx)) {
+                    locate(i, j) {
+                        children(idx);
+                    } 
+                } 
+            }
+        }
+    }  
+  
+    /*
+         ─	━	│	┃	┄	┅	┆	┇	┈	┉	┊	┋	┌	┍	┎	┏
+    U+251x	┐	┑	┒	┓	└	┕	┖	┗	┘	┙	┚	┛	├	┝	┞	┟
+    U+252x	┠	┡	┢	┣	┤	┥	┦	┧	┨	┩	┪	┫	┬	┭	┮	┯
+    U+253x	┰	┱	┲	┳	┴	┵	┶	┷	┸	┹	┺	┻	┼	┽	┾	┿
+    U+254x	╀	╁	╂	╃	╄	╅	╆	╇	╈	╉	╊	╋	╌	╍	╎	╏
+    U+255x	═	║	╒	╓	╔	╕	╖	╗	╘	╙	╚	╛	╜	╝	╞	╟
+        https://unicode.mayastudios.com/#9641
+    
+    */
+    
+    box_examples = "
+        ███
+        ███
+        ███
+
+        ╔═╗	
+        ║╬║
+        ╚═╝
+        ┏━┓	
+        ┃╋┃   
+        ┗━┛
+
+
+        ┌─┐	
+        │┼│
+        └─┘
+
+        ╭┄╮
+        ┊┉┊
+        ╰┄╯
+
+
+        █ Solid full height pin ?
+
+        ▓  types of holes??? 
+        ▒
+        ░
+
+        ☐
+        ▧
+        ◍
+
+        "; 
+
+   
+}
 
 
 function pin_junction_dimensions(
@@ -237,9 +464,9 @@ function pin_junction_dimensions(
     let (
         x_extension = [100, 0, 0],
         z_extension = [0, 0, 100],
-        pin_width = 2.54, // Using standard dimensions, rather than measured
-        pin_length = 14.0, // Using standard dimensions, rather than measured
-        wire_diameter = 1.0 + 0.25, // measured plus allowance
+        pin_width = dupont_pin_width(), 
+        pin_length = dupont_pin_length(), 
+        //wire_diameter = dupont_wire_diameter, 
         socket_walls = 2 *  [socket_wall, socket_wall, socket_wall],
         socket_allowances = 2 * [socket_allowance, socket_allowance, socket_allowance],
         walls = 2 * [wall, wall, wall],
