@@ -137,7 +137,7 @@ if (show_pin_junction) {
 
 
 if (show_pin_holder_plug) {
-    x_placement(0){
+    x_placement(6){
         if (show_plug) {
             pin_junction(
                 high_count = 3,
@@ -155,14 +155,28 @@ if (show_pin_holder_plug) {
             //******************************************************************
             assert(pin_insert_thickness_ > 0);
             dy = 0; // 20
+            all_pattern = "
+                ░░░░░░░░░
+                ░╋░░┃░░━░ 
+                ░░░░░░░░░
+                ░░░░░░░░░
+                ░╬░░║░░═░
+                ░░░░░░░░░
+                ░┼░░│░░─░ 
+                ░░░░░░░░░ 
+                ▁▂▄▆█
+            ";
+            
+            test_pattern = "
+                          ▄▄█
+                          ╴▄╶
+                          █╷▄ 
+                    
+            ";
             translate([0, dy, 0]) {
                 pin_retention_plate(
                    pin_insert_thickness = pin_insert_thickness_,
-                   pattern = "
-                          ▄▄▄
-                          ░━░
-                          ▂▂▂ 
-                    ");
+                   pattern = test_pattern);
             }
         }
         
@@ -247,18 +261,24 @@ module dupont_pin(color="black", alpha=1, orient=FRONT) {
 module pin_retention_plate(
    pin_insert_thickness,
    pattern,
-   allowance = 0.1) {
+   allowance = 0.0) {
        
 
     /*
        Key: 
        
-        ▂▄▆█  Pin inserts with various height
-        ╋     Pin and wire clearance, both directions
-        ┃     Pin and wire clearance vertical
-        ━     Pin and wire clearance horizontal
-        ╬║═   Wire access in particular directions 
-        ░     Bare plate
+        ▁▂▄▆█  Pin inserts with various height
+        ╋      Pin and wire clearance, both directions
+        ┃      Pin and wire clearance vertical
+        ━      Pin and wire clearance horizontal
+        ╬║═    Wire access in particular directions
+        ┼│─    Wire access in particular directions
+        ╴╵╶╷
+        ░      Bare plate
+       
+       
+       
+       all_pattern = "░░░ ╋┃━ ░░░ ╬║═ ░░░ ▁▂▄▆█ ┼│─ "
     */
        
 
@@ -300,68 +320,82 @@ module pin_retention_plate(
                 ["▆", 1],
                 ["▄", 2],
                 ["▂", 3], 
+                ["▁", 4],
+                ["╬", 0],
+                ["║", 0],
+                ["═", 0]
             ]
         );
         
         //log_v1("map", map,verbosity, DEBUG, IMPORTANT);
         process(layout, map) {
-            pin(1.0);
-            pin(0.75);
-            pin(0.50);
-            pin(0.25);
+            pin(1);
+            pin(3/4);
+            pin(1/2);
+            pin(1/4);
+            pin(1/8);
         } 
     }       
     
-    module wire_clearance() {
-        hull() {
-            center_reflect([1, 0, 0]) {
-                translate([pin_width, 0, 0]) {
-                    can(d=dupont_wire_diameter(), h = 4*pin_length);
-                }
-            }
-        }
-    }
+
+    
+    
 
     module clearances() {
         /*    
             ╋     Pin and wire clearance, both directions
             ┃     Pin and wire clearance vertical
             ━     Pin and wire clearance horizontal
-            ╬║═   Wire access in particular directions 
+            ╬║═   Wire access in particular directions
+                  through pin body
+            ┼│─   Wire access in particular directions
 
         */
+        symbols = "╋┃━╬║═┼│─╷╵╴╶";
         
-        clearance_map =  [
-            ["╋", 0],
-            ["┃", 1],
-            ["━", 2],        
-            ["╬", 3],
-            ["║", 4],        
-            ["═", 5],        
+        map = [for (i = [0:len(symbols)-1]) [symbols[i], i]];
+            
+        log_v1("map", map, verbosity, DEBUG);
+        
 
-
-        ];
-        process(layout, clearance_map) {
-            clearance(true, true, true);
-            clearance(true, true, false);
-            clearance(true, false, true);
-            clearance(false, true, true);
-            clearance(false, true, false);
-            clearance(false, false, true);
+        PIN_PASS_THROUGH = true;
+        NO_PIN_PASS_THROUGH = false;
+        
+        process(layout, map) {
+            clearance(PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
+            clearance(PIN_PASS_THROUGH, [LEFT, RIGHT]);
+            clearance(PIN_PASS_THROUGH, [FRONT, BEHIND]);
+            // Clearance through pin body
+            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
+            clearance(NO_PIN_PASS_THROUGH, [LEFT, RIGHT]);
+            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND]);
+            // Clearance through pin body
+            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
+            clearance(NO_PIN_PASS_THROUGH, [LEFT, RIGHT]);
+            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND]); 
+            
+            clearance(NO_PIN_PASS_THROUGH, [FRONT]);
+            clearance(NO_PIN_PASS_THROUGH, [BEHIND]);
+            clearance(NO_PIN_PASS_THROUGH, [LEFT]);
+            clearance(NO_PIN_PASS_THROUGH, [RIGHT]);            
         } 
         
-        module clearance(access_pin, access_wire_x, access_wire_y) {
-            if (access_pin) {
+        module clearance(pass_through, openings) {
+            if (pass_through) {
                 clearance_allowances = pin /4;
                 block(pin + clearance_allowances + [0, 0, 2*pin_length]);
             }
-            if (access_wire_x) {
-                wire_clearance();
+            for (opening = openings) {
+                wire_clearance(opening);
             }
-            if (access_wire_y) {
-                rotate([0, 0, 90]) wire_clearance();
+        }  
+        module wire_clearance(opening) {
+            wd = dupont_wire_diameter();
+            a_lot = 4*pin_length;
+            hull() {
+                block([pin_width/2, wd, a_lot], center=opening, rank=10);
+                can(d=wd, h=a_lot, $fa=12); 
             }
-
         }        
     }
 
@@ -388,7 +422,6 @@ module pin_retention_plate(
                 cmd = row[j];              
                 found_idx = find_in_dct(map_cmd_to_child, cmd);
                 idx = !is_undef(found_idx) ? found_idx : missing_child_idx;
-                echo("cmd", cmd, i, j, "idx", idx);
                 if (!is_undef(idx)) {
                     locate(i, j) {
                         children(idx);
@@ -396,54 +429,7 @@ module pin_retention_plate(
                 } 
             }
         }
-    }  
-  
-    /*
-         ─	━	│	┃	┄	┅	┆	┇	┈	┉	┊	┋	┌	┍	┎	┏
-    U+251x	┐	┑	┒	┓	└	┕	┖	┗	┘	┙	┚	┛	├	┝	┞	┟
-    U+252x	┠	┡	┢	┣	┤	┥	┦	┧	┨	┩	┪	┫	┬	┭	┮	┯
-    U+253x	┰	┱	┲	┳	┴	┵	┶	┷	┸	┹	┺	┻	┼	┽	┾	┿
-    U+254x	╀	╁	╂	╃	╄	╅	╆	╇	╈	╉	╊	╋	╌	╍	╎	╏
-    U+255x	═	║	╒	╓	╔	╕	╖	╗	╘	╙	╚	╛	╜	╝	╞	╟
-        https://unicode.mayastudios.com/#9641
-    
-    */
-    
-    box_examples = "
-        ███
-        ███
-        ███
-
-        ╔═╗	
-        ║╬║
-        ╚═╝
-        ┏━┓	
-        ┃╋┃   
-        ┗━┛
-
-
-        ┌─┐	
-        │┼│
-        └─┘
-
-        ╭┄╮
-        ┊┉┊
-        ╰┄╯
-
-
-        █ Solid full height pin ?
-
-        ▓  types of holes??? 
-        ▒
-        ░
-
-        ☐
-        ▧
-        ◍
-
-        "; 
-
-   
+    }   
 }
 
 
