@@ -1,6 +1,8 @@
+include <logging.scad>
+include <centerable.scad>
 use <vector_operations.scad>
 use <not_included_batteries.scad>
-include <logging.scad>
+
 use <shapes.scad>
 
 
@@ -400,7 +402,7 @@ module number_to_morse_shape(number_str, size, include_base=true) {
         ["8", "▌▌▌●●"],
         ["9", "▌▌▌▌●"],
         ["0", "▌▌▌▌▌"],
-        [".", "  ●  "],
+        [".", "    ●"],
     ];
     
     

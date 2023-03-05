@@ -16,90 +16,123 @@ use <TOUL.scad>
 pin_width = dupont_pin_width();
 pin_length = dupont_pin_length();
 
-/* [Customization] */
-    base_thickness = 1; // [1, 2, 4, 6, 8, 10]
+/* [Fit tests] */
+    gap = 2.54; // [2.54:"Header Check", 1.68:"Pin Insert Check"]
 
     
-    allowances = [0.2, 0.25, 0.30, 0.35];
-    header_sizes = [2, 4, 8];    
+    min_pins = 2; // [ 1:1:20]
+    delta_pins = 2; // [1, 2, 4]
+    max_pins =  8; // [ 1 : 1 : 20]
+    pins_in_headers = [ each [min_pins : delta_pins: max_pins] ];
+
+    minimum_allowance = 0.0; // [0.0 : 0.05 : 1]
+    delta_allowance = 0.05; // [0.05, 0.1]
+    maximum_allowance = 0.35; // [0.0: 0.05 : 1]
+    allowances = [ each [minimum_allowance : delta_allowance : maximum_allowance ] ];
+    echo(allowances);
     
-/* [Layout Formating] */
-    overlap = 0; // [0:0.25:5]
-    
-    
-    pins_for_gap = 2;
-    pins_for_rim = 2;
-    pins_for_base_width = 3.5;
-    hole_padding = 0.5; //[0:0.25:2]
-    
+/* [Layout] */
+    base_thickness = 2; // [1, 2, 4]
+    hole_padding = 1; //[0:0.25:2]
+    pad = [0, 0, 0];
+ 
 /* [Label Formating] */
     label_padding = 0; //[0:0.25:2]
     label_size = 2; // [1:0.25:3]
     extra_for_label = 0; // [0:10]
+    dx_label_offset = -3; // [-20: 0.5: 20]
+    dy_label_offset = -10; // [-30: 0.5:  30]
+    
+end_of_customization() {}
+    
+pin_gap_check(pins_in_headers, allowances, gap);
 
 
 
 
 
+module pin_gap_check(
+    pins_in_headers, 
+    allowances,
+    gap) {
+        
+    x_c = 2*(hole_padding+label_size + label_padding) + 3;
+    sizing_coefficents = layout_sizing_coefficents(
+        x_sizing = [ 0,         1, x_c],
+        y_sizing = [ pin_width, 0, pin_width],
+        z_sizing = [ 0,         0, base_thickness]
+    );        
+        
+    element_parameters = [
+    ];        
 
-header_fit_blocks(allowances, header_sizes, base_thickness, label_size, extra_for_label);
-
-
-module header_fit_blocks(allowances, header_sizes, base_thickness, label_size, extra_for_label) {
-    for (j = [0 : len(allowances) - 1]) {
-        dx = j * (pins_for_base_width * pin_width - overlap);
-        translate([dx, 0, 0]) {
-            header_fit_block(
-                allowances[j], 
-                header_sizes, 
-                base_thickness, 
-                label_size, 
-                extra_for_label=extra_for_label);
+    sizes = layout_generate_sizes(
+        row_values=pins_in_headers , 
+        column_values=allowances,
+        sizing_coefficents=sizing_coefficents);
+    
+    strategy = [
+        COMPRESS_ROWS(), 
+        COMPRESS_MAX_COLS(), 
+        CONST_OFFSET_FROM_ORIGIN()];
+    
+    displacements = layout_displacements(
+        sizes, 
+        pad, 
+        strategy);
+        
+        
+    
+    
+    for (col = [0: len(allowances)-1]) {
+        translate(displacements[0][col]) {
+            allowance_label(allowances[col]);
+        }
+        for (row = [0 : len(pins_in_headers)-1]) {            
+            translate(displacements[row][col]) {
+                gap_element(
+                    pins_in_headers[row], 
+                    allowances[col], 
+                    sizes[row][col], 
+                    element_parameters, 
+                    pad, 
+                    row, 
+                    col);
+            } 
+        }
+    } 
+    
+    module allowance_label(allowance) { 
+        text = 
+            allowance == 0 ?  "0" :
+            (allowance > 0 && allowance < 1) ? substr(str(allowance), 1) :  // Trim off leading zero,
+            str(allowance);
+        translate([dx_label_offset, dy_label_offset, 0]) {
+            number_to_morse_shape(
+                    text, // Trim off leading zero, tolerances will always be less than one.
+                    size=label_size, 
+                    include_base=false);
         }
     }
+
+    module gap_element(
+        pins_in_header, 
+        allowance, 
+        size, 
+        element_parameters, 
+        pad, 
+        row, 
+        col) {
+        hole = [gap, pins_in_header*pin_width, 10] + 2 * [allowance, allowance, allowance]; 
+            
+        dx = 1;
+        
+        render() difference() {    
+            color("blue") block(size);
+            translate([dx, 0, 0]) {
+                block(hole, center=BEHIND);
+            } 
+        } 
+    }    
 }
-
-
-
-function header_fit_block_blank(header_sizes, base_thickness, extra_for_label)  = 
-    let (
-       total_header_pins = v_sum(header_sizes),
-       extra_pin_spaces = pins_for_gap*(len(header_sizes) - 1) + 2 * pins_for_rim + extra_for_label, // For gaps and at each end
-       total_pins = total_header_pins + extra_pin_spaces,
-       last = undef
-    )
-    [pins_for_base_width*pin_width, total_pins*pin_width, base_thickness]; 
-
-module header_fit_block(allowance, header_sizes, base_thickness, label_size, extra_for_label=0) {
-    header_rows = 1; 
-    translate([label_size/2 + label_padding, 0, 0]) 
-        number_to_morse_shape(
-            substr(str(allowance), 1), // Trim off leading zero, tolerances will always be less than one.
-            size=label_size, 
-            include_base=false);
-    
-    dx = label_size + 2 * label_padding + hole_padding; 
-    
-    cumulative_pins = v_cumsum(header_sizes);
- 
-    render() difference() {
-        base();
-        for (i = [0:len(header_sizes)-1]) {
-            pin_position = pins_for_rim + cumulative_pins[i] + pins_for_gap*(i); // - cumulative_pins[0] + pins_for_gap*(i-1)
-            dy = pin_position * pin_width;
-            size = header(header_rows, header_sizes[i]);
-            allowance_size = 2*[allowance, allowance, 0];
-            translate([dx, dy, 0]) { 
-                block(size + allowance_size, center=LEFT+FRONT);
-            }
-        }
-    }
-    
-    module base() {
-        size = header_fit_block_blank(header_sizes, base_thickness, extra_for_label);
-        block(size, center=RIGHT+FRONT+BELOW);
-    }
-    function header(rows, columns) = [rows*pin_width, columns*pin_width, pin_length];
-}
-
 
