@@ -12,7 +12,7 @@ use <not_included_batteries.scad>
 include <centerable.scad>
 use <shapes.scad>
 use <prong_and_spring.scad>
-use <dupont_connectors.scad>
+use <dupont_pin_junction.scad>
 
 /* [Logging] */
 
@@ -31,8 +31,9 @@ use <dupont_connectors.scad>
     spacing_ = 2; // [-3 : 1 : 20]
 
     build_from_ = 0; //[0:To face, 1:From face, 2:Side, 3:End, 4:"Side, for plugs"]
-    retain_pins_ = true;
+    //retain_pins_ = true;
     arrow_up_ = true;
+    
     
     housing_alpha_ = 1; // [0, 0.10, 0.25, 1]
     plug_alpha_ = 1; // [0, 0.10, 0.25, 1]
@@ -46,7 +47,7 @@ use <dupont_connectors.scad>
             arrow_up = arrow_up_,
             show_housing = show_housing_,
             show_plugs = show_plugs_,
-            show_mocks = show_mocks_,        
+            show_mocks = show_mocks_,
             log_verbosity=verbosity);
     }
 
@@ -125,7 +126,7 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
 
                     
         pin_insert_thickness = 2, // Allow for a pin retention insert into plug
-        pin_allowance = [0.5 + pin_insert_thickness, 0.5, 0.5],            
+        pin_allowance = [0.5, 0.5, 0.5],            
         socket_retention = 4,
         minimum_socket_opening = [0, 10, 10],
         socket_dims = pin_junction_dimensions(
@@ -133,11 +134,11 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
             wide_count=3, 
             wall=wall, 
             pin_allowance=pin_allowance,
+            pin_insert_thickness = pin_insert_thickness,
             part="Socket", 
             socket_wall=wall,
             socket_retention=socket_retention,
-            minimum_socket_opening=minimum_socket_opening,
-            prong_dimensions=prong          
+            minimum_socket_opening=minimum_socket_opening        
         ),
         
  
@@ -186,7 +187,7 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         ["socket_retention", socket_retention],
         ["minimum_socket_opening", minimum_socket_opening],
         ["pin_allowance", pin_allowance],
-        ["prong", prong],
+        //["prong", prong],
         ["pin_width", pin_width], 
         ["pin_length", pin_length], 
     ];
@@ -227,7 +228,8 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
     dx = get_by_name("dx");  
     x_offset = get_by_name("x_offset");    
     pin_width = get_by_name("pin_width"); 
-    pin_length =  get_by_name("pin_length"); 
+    pin_length =  get_by_name("pin_length");
+    pin_insert_thickness = get_by_name("pin_insert_thickness");
     socket_retention = get_by_name("socket_retention");
     minimum_socket_opening = get_by_name("minimum_socket_opening");
     pin_allowance = get_by_name("pin_allowance");
@@ -321,10 +323,10 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
                     3, 
                     3, 
                     part=part,
+                    pin_insert_thickness = pin_insert_thickness,
                     socket_retention = socket_retention,
                     wall = wall,
                     socket_wall = wall, 
-                    prong_dimensions = prong,
                     minimum_socket_opening = minimum_socket_opening,
                     orient_for_build=false,
                     log_verbosity=log_verbosity);  // Obsolete, must handle separately for now.

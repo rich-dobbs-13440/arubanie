@@ -2,6 +2,7 @@ include <centerable.scad>
 include <logging.scad>
 use <not_included_batteries.scad>
 use <shapes.scad>
+use <MCAD/boxes.scad>
 
 infinity = 100;
 
@@ -56,9 +57,9 @@ if (show_attach_prong_to_face) {
     color("green") {
         render() difference() {
             block(face, center=RIGHT+FRONT);
-            spring_and_prong(prong_, "spring_cuts");
+            spring_and_barb(prong_, "spring_cuts");
         }
-        spring_and_prong(prong_, "prong");
+        spring_and_barb(prong_, "prong");
     } 
 }
 
@@ -66,7 +67,7 @@ if (show_hole_in_matching_face) {
     color("orange", alpha=match_face_alpha_) {
         render() difference() {
             translate([0, -dx_between_faces_, 0]) block(face, center=LEFT+FRONT);
-            spring_and_prong(prong_, "prong_hole_through");
+            spring_and_barb(prong_, "prong_hole_through");
         }
     }
 }
@@ -102,9 +103,9 @@ function prong_dimensions(
 function prong_dimension(prong_dimensions, item) = find_in_dct(prong_dimensions, item);
     
 
-module spring_and_prong(prong_dimensions, part) {
+module spring_and_barb(prong_dimensions, part, support_offset) {
 
-
+    
     if (part == "prong") {
         prong();
     } else if (part == "prong_clearance") {
@@ -124,7 +125,7 @@ module spring_and_prong(prong_dimensions, part) {
     X_OFFSET_WINDOW = 5;
     CUT_WIDTH = 6;
 
-COMPONENT = "prong_dimensions";
+    COMPONENT = "prong_dimensions";
 
     assert(prong_dimensions[COMPONENT_NAME][1] == COMPONENT, assert_msg("Doesn't look like a prong: ", str(prong_dimensions)));
     spring = prong_dimensions[SPRING_SIZE][1];
@@ -136,29 +137,60 @@ COMPONENT = "prong_dimensions";
 
 
     module prong() {
+        
+        module rounded_target(spring, cross_section) {
+            assert(!is_undef(cross_section));
+            target = cross_section ? [spring.z, spring.y, 0.01] : [spring.z, spring.y, spring.y];
+            sidesOnly = cross_section;
+            //block(cross_section, center=BEHIND+RIGHT);
+            translate([target.z/2, target.y/2, 0]) 
+                rotate([0, 90, 0]) 
+                   roundedBox(target,  radius=target.y/2, sidesonly=sidesOnly, $fn=12);           
+        }
 
-        module spring_cross_section(dx) {
-            translate([dx, 0, 0]) block([0.01, spring.y, spring.z], center=BEHIND+RIGHT);
+
+        module spring_target(dx, cross_section) {
+            rounded = true;
+            translate([dx, 0, 0]) 
+                if (rounded) {
+                    rounded_target(spring, cross_section); 
+                } else {
+                    cross_section = [0.01, spring.y, spring.z];
+                    block(cross_section, center=BEHIND+RIGHT);
+                }
         }
         
         reduced_catch = catch - [0, 0, catch.y];
         
         hull() {
-            spring_cross_section(x_offset_window);
-            spring_cross_section(x_offset_catch);
+            spring_target(x_offset_window, cross_section=false);
+            spring_target(x_offset_catch, cross_section=true);
             translate([x_offset_catch, 0, catch.y/2]) block(reduced_catch, center=BEHIND+LEFT); 
         }
         hull() {
-            spring_cross_section(x_offset_window);
-            spring_cross_section(spring.x);
+            spring_target(x_offset_window, cross_section=false);
+            spring_target(spring.x, cross_section=true);
         }
+        
+        printer_support(support_offset);
         // Printer Support
-        translate([x_offset_window, 0, -spring.z/2]) 
-            difference() {
-                rod(d = spring.y, l = cut_width, center=RIGHT);
-                plane_clearance(ABOVE);
-            }
+
     }
+    
+    module printer_support(support_offset) {
+        translate([x_offset_window, 0, -spring.z/2]) {
+            hull() {
+                render() difference() {
+                    rod(d = spring.y, l = cut_width+0.5, center=RIGHT);
+                    plane_clearance(ABOVE);
+                }
+                if (is_num(support_offset)) {
+                    translate([0, support_offset, -abs(support_offset)])
+                    rod(d = spring.y, l = cut_width+0.5, center=RIGHT);
+                }
+            }
+        }
+    }    
 
 
     module spring_cuts() {
