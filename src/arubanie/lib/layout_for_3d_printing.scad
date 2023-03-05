@@ -1,7 +1,7 @@
 use <vector_operations.scad>
 use <not_included_batteries.scad>
 include <logging.scad>
-include <shapes.scad>
+use <shapes.scad>
 
 
 /* 
@@ -91,6 +91,75 @@ show_name = false;
 if (show_name) {
     linear_extrude(2) text("layout_for_3d_printing.scad", halign="center");
 }
+
+// ----------- Testing ------------------------------------------------
+    
+module just_blocks(row_values, column_values, pad, sizing_coefficents) {
+    sizes = layout_generate_sizes(
+        row_values, 
+        column_values,
+        sizing_coefficents);
+    
+    strategy = [
+        COMPRESS_ROWS(), 
+        COMPRESS_MAX_COLS(), 
+        CONST_OFFSET_FROM_ORIGIN()];
+    
+    displacements = layout_displacements(sizes, pad, strategy);
+
+    for (r_idx = [0 : len(row_values)-1]) {
+        for (c_idx = [0: len(column_values)-1]) {
+            translate(displacements[r_idx][c_idx]) {
+                // Make the block transparent, so that overlaps can be seen.
+                color("blue", alpha=0.5) block(sizes[r_idx][c_idx]); 
+            } 
+        }
+    }
+}
+    
+        
+if (show_visual_test_for_zero_padding) {
+    pad = [0, 0, 0]; 
+    sizing_coefficents = layout_sizing_coefficents(
+        x_sizing = [ 0, 0, 10],
+        y_sizing = [ 0, 0, 10],
+        z_sizing = [ 0, 0, 1]
+    );
+    r = [1, 2, 3];
+    s = [1, 2];
+    // Run the test
+    just_blocks(r, s, pad, sizing_coefficents); 
+}
+
+if (show_visual_test_for_small_padding) {
+    pad = [1, 2, 3]; 
+    sizing_coefficents = layout_sizing_coefficents(
+        x_sizing = [ 0, 0, 10],
+        y_sizing = [ 0, 0, 10],
+        z_sizing = [ 0, 0, 1]
+    );
+    r = [1, 2, 3];
+    s = [1, 2];
+    // Run the test
+    just_blocks(r, s, pad, sizing_coefficents);  
+}
+
+* echo("concat", concat([0], [1, 2, 3]));
+
+if (show_visual_variable_size_blocks) {
+    pad = [0, 0, 0]; 
+    sizing_coefficents = layout_sizing_coefficents(
+        x_sizing = [ 10, 10, 10],
+        y_sizing = [ 10, 10, 20],
+        z_sizing = [ 0, 0, 10]
+    );
+    r = [1, 2, 3, 4];
+    s = [1, 2];
+    // Run the test
+    just_blocks(r, s, pad, sizing_coefficents);  
+}
+
+// --------------------------------- Start of implemention ----------------------------
 
 X = 0;
 Y = 1;
@@ -310,72 +379,7 @@ function layout_displacements(sizes, pad, strategy_by_axis) =
     )
     result;
 
-// ----------- Testing ------------------------------------------------
-    
-module just_blocks(row_values, column_values, pad, sizing_coefficents) {
-    sizes = layout_generate_sizes(
-        row_values, 
-        column_values,
-        sizing_coefficents);
-    
-    strategy = [
-        COMPRESS_ROWS(), 
-        COMPRESS_MAX_COLS(), 
-        CONST_OFFSET_FROM_ORIGIN()];
-    
-    displacements = layout_displacements(sizes, pad, strategy);
 
-    for (r_idx = [0 : len(row_values)-1]) {
-        for (c_idx = [0: len(column_values)-1]) {
-            translate(displacements[r_idx][c_idx]) {
-                // Make the block transparent, so that overlaps can be seen.
-                color("blue", alpha=0.5) block(sizes[r_idx][c_idx]); 
-            } 
-        }
-    }
-}
-    
-        
-if (show_visual_test_for_zero_padding) {
-    pad = [0, 0, 0]; 
-    sizing_coefficents = layout_sizing_coefficents(
-        x_sizing = [ 0, 0, 10],
-        y_sizing = [ 0, 0, 10],
-        z_sizing = [ 0, 0, 1]
-    );
-    r = [1, 2, 3];
-    s = [1, 2];
-    // Run the test
-    just_blocks(r, s, pad, sizing_coefficents); 
-}
-
-if (show_visual_test_for_small_padding) {
-    pad = [1, 2, 3]; 
-    sizing_coefficents = layout_sizing_coefficents(
-        x_sizing = [ 0, 0, 10],
-        y_sizing = [ 0, 0, 10],
-        z_sizing = [ 0, 0, 1]
-    );
-    r = [1, 2, 3];
-    s = [1, 2];
-    // Run the test
-    just_blocks(r, s, pad, sizing_coefficents);  
-}
-
-* echo("concat", concat([0], [1, 2, 3]));
-
-if (show_visual_variable_size_blocks) {
-    pad = [0, 0, 0]; 
-    sizing_coefficents = layout_sizing_coefficents(
-        x_sizing = [ 10, 10, 10],
-        y_sizing = [ 10, 10, 20],
-        z_sizing = [ 0, 0, 10]
-    );
-    r = [1, 2, 3, 4];
-    s = [1, 2];
-    // Run the test
-    just_blocks(r, s, pad, sizing_coefficents);  
-}
 
 
 module number_to_morse_shape(number_str, size, include_base=true) {
