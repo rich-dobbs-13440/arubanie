@@ -375,3 +375,65 @@ if (show_visual_variable_size_blocks) {
     // Run the test
     just_blocks(r, s, pad, sizing_coefficents);  
 }
+
+
+module number_to_morse_shape(number_str, size) {
+    shape_width = size;
+    shape_height = 2;
+    shape_spacing = 1;
+
+    morse = [
+        ["S", "  ▌  "],
+        ["F", "■■■■■"],
+        ["1", "●▌▌▌▌"],
+        ["2", "●●▌▌▌"],
+        ["3", "●●●▌▌"],
+        ["4", "●●●●▌"],
+        ["5", "●●●●●"],
+        ["6", "▌●●●●"],
+        ["7", "▌▌●●●"],
+        ["8", "▌▌▌●●"],
+        ["9", "▌▌▌▌●"],
+        ["0", "▌▌▌▌▌"],
+        [".", "  ●  "],
+    ];
+    
+    
+    
+    base(len(number_str)); 
+    
+    for (i = [0:len(number_str)-1]) {
+        code = find_in_dct(morse, number_str[i]);
+        echo("code", code);
+        if (!is_undef(code)) {
+            for (j = [0:len(code)-1]) {
+                locate(i, j) morse_shape(code[j]);
+            }
+        }
+    }
+
+
+    module morse_shape(character) {
+        if (character == "●") {
+            can(d=shape_width, h=shape_height, center=ABOVE);
+        } else if (character == "▌") {
+            block([shape_width, shape_width, shape_height], center=ABOVE);   
+        } 
+    }
+    
+    module locate(i, j) {
+        pos = (i)*6 + j + 2;
+        t = [0, pos*(shape_width + shape_spacing), 0];
+        translate(t) children();
+    }
+    
+    module base(char_count) {
+        rotate([0, 180, 0]) {
+            hull() {
+                locate(0, -2) morse_shape("▌");
+                locate(char_count-1, 5) morse_shape("▌");
+            }
+        }
+    }
+    
+}

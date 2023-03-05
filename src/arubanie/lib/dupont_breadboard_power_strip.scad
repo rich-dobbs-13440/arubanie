@@ -6,102 +6,59 @@ to securely  connect dupont pins and headers.
 
 */ 
 include <centerable.scad>
-use <breadboard.scad>
+use <not_included_batteries.scad>
 use <shapes.scad>
 use <dupont_connectors.scad>
+use <vector_operations.scad>
+use <layout_for_3d_printing.scad>
 
-dy = -2; //[-5: 0.05: 5]
-pw = dupont_pin_width();
-pl = dupont_pin_length();
+pin_width = dupont_pin_width();
+pin_length = dupont_pin_length();
 
-board_height = 10;
+//header_rows = 1;
+//header_columns = 4; // [2, 4, 6, 8]
 
-basic_lower();
-translate([0, -4.5*pw, 0]) header_1x8();
+//count = 7;
+//allowance_start = 0;
+//allowance_delta = 0.1;
 
-module lower() {
+base_thickness = 1; // [1, 2, 4, 6, 8, 10]
+rim = 3;
+
+module end_of_customization() {}
+
+header_sizes = [2, 4, 6, 8];
+allowances = [0.2, 0.25, 0.30, 0.35];
+allowances_labels = [".2", ".25", ".3", ".35"]; 
+allowance_block(header_sizes, allowances, allowances_labels);
+
+module allowance_block(header_sizes, allowances, allowances_labels) {
+    cumulative_pins = v_cumsum(header_sizes);
+    for (i = [0 : len(header_sizes)-1])  {
+        header_pins = header_sizes[i];
+        dy = cumulative_pins[i]* pin_width + (i-1) * rim/2;
+        translate([0, dy, 0]) test_block_for_column(header_pins, allowances, allowances_labels);
+    }
+}
+
+
+module test_block_for_column(header_pins, allowances, allowances_labels) {
+    header_columns = 1;
+    al_count = len(allowances);
+    base = [(al_count + al_count -1) * pin_width, header_pins*pin_width, base_thickness] + 2*[rim, rim, 0];
+
+    function header(rows, columns) = [rows*pin_width, columns*pin_width, pin_length]; 
+    function allowance_size(allowance) = 2*[allowance, allowance, 0];
+    //number_to_morse_shape(".45", 2);
+
     render() difference() {
-        basic_lower();
-        
-    }
-    
-}
-
-
-module basic_lower() {
-    
-    allowance = 0.2;
-    ss_allowances = [allowance, allowance, 0];
-    wall = 1;
-    ss_walls = [wall, wall, 0];
-    header_1x8 = [1*pw, 8*pw, pl];
-    header_2x8 = [2*pw, 8*pw, board_height];
-    left_body_behind = header_2x8 + ss_allowances + ss_walls;
-    ty = 4.5 * pw;
-    // Make it centered on y axis
-    translate([0, -ty, 0]) {
-        render() difference() {
-            block(header_1x8 + ss_allowances + ss_walls, center=BELOW+FRONT+RIGHT);
-            header_1x8();
-        }
-        
-        render() difference() {
-            block(left_body_behind, center=BELOW+BEHIND+RIGHT);
-            block(header_2x8, center=BELOW+BEHIND+RIGHT);
-        } 
-        power_strip(pins=8);
-        block([header_2x8.x, 0, board_height] + ss_allowances + ss_walls, center=BELOW+BEHIND+LEFT);
-        block([header_1x8.x, 0, pl] + ss_allowances + ss_walls, center=BELOW+FRONT+LEFT);
-    }
-}
-
-//power_strip(pins=8);
-
-module header_1x8() {
-    header = [1*pw, 8*pw, pl];
-    color("black") {
-        block(header, center=BELOW+FRONT+RIGHT);
-    }
-}
-
-module power_strip(pins) {
-    render() difference() {
-        raw_power_strip();
-        plane_clearance(LEFT);
-        translate([0, pins*pw, 0]) plane_clearance(RIGHT);
-    } 
-}
-
-
-module raw_power_strip() {
-    dy = -3.54 - pw;
-    translate([0, dy, -board_height]) { 
-        render() difference() {
-            breadboard(
-                rows = 16,
-                columns = 1,
-                pinSpacing = dupont_pin_width(),
-                pinDiameter = 1.0,
-                pinsPerGroup = 5,
-                pinGroupSpacing = 3,
-                pinBevelEnabled = true,
-                pinBevelAmount = 0.3,
-                pinBevelSteepness = 1,
-                powerLeftEnabled = true,
-                powerRightEnabled = true,
-                pinsPerPowerGroup = 12,
-                pinPowerGroupSpacing = 2,
-                powerGroupPinOffsetTop = 2,
-                powerGroupPinOffsetBottom = 2,
-                horizontalBorderWidth = 0.5, // Maybe adjust this to get other pins to line up exactly???
-                verticalBorderWidth = 0,
-                boardHeight = board_height,  //Measured : 8.44
-                wiringSectionEnabled = true,
-                wiringSectionTollerance = 0,
-                wallThickness = 1.2,
-                faceThickness = 1.0
-            );
-            plane_clearance(FRONT);
+        block(base, center=FRONT+ABOVE);
+        for (i = [0:len(allowances)-1]) {
+            translate([(i+0.5)*2*pin_width, 0, 0]) {
+                block(header(header_columns, header_pins) + allowance_size(allowances[i]));
+            }
         }
     }
 }
+
+
