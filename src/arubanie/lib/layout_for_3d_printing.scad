@@ -1,6 +1,7 @@
 use <vector_operations.scad>
 use <not_included_batteries.scad>
 include <logging.scad>
+include <shapes.scad>
 
 
 /* 
@@ -377,7 +378,7 @@ if (show_visual_variable_size_blocks) {
 }
 
 
-module number_to_morse_shape(number_str, size) {
+module number_to_morse_shape(number_str, size, include_base=true) {
     shape_width = size;
     shape_height = 2;
     shape_spacing = 1;
@@ -399,8 +400,10 @@ module number_to_morse_shape(number_str, size) {
     ];
     
     
-    
-    base(len(number_str)); 
+    if (include_base) {
+        base(len(number_str));
+    }
+     
     
     for (i = [0:len(number_str)-1]) {
         code = find_in_dct(morse, number_str[i]);
