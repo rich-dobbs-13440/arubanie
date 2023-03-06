@@ -2,7 +2,7 @@ include <logging.scad>
 include <centerable.scad>
 use <vector_operations.scad>
 use <not_included_batteries.scad>
-
+use <TOUL.scad>
 use <shapes.scad>
 
 
@@ -81,6 +81,7 @@ use <shapes.scad>
 show_visual_test_for_zero_padding = false;
 show_visual_test_for_small_padding = false;
 show_visual_variable_size_blocks = true;
+show_morse_test = true;
 
 /* [Logging] */
 
@@ -159,6 +160,62 @@ if (show_visual_variable_size_blocks) {
     s = [1, 2];
     // Run the test
     just_blocks(r, s, pad, sizing_coefficents);  
+}
+
+
+
+if (show_morse_test) {
+    morse_test();
+}
+
+module morse_test() {
+    // Character tests
+    locate(0) number_to_morse_shape(number="0", size=2, base=true);
+    locate(1) number_to_morse_shape(number=1, size=2, base=true);
+    locate(2) number_to_morse_shape(number=2, size=2, base=true);
+    locate(3) number_to_morse_shape(number=3, size=2, base=true);
+    locate(4) number_to_morse_shape(number=4, size=2, base=true);
+    locate(5) number_to_morse_shape(number=5, size=2, base=true);
+    locate(6) number_to_morse_shape(number=6, size=2, base=true);
+    locate(7) number_to_morse_shape(number=7, size=2, base=true);
+    locate(8) number_to_morse_shape(number=8, size=2, base=true);
+    locate(9) number_to_morse_shape(number=9, size=2, base=true);    
+    locate(10) number_to_morse_shape(number=".", size=2, base=true); 
+    locate(11) number_to_morse_shape(number="-", size=2, base=true); 
+    locate(12) number_to_morse_shape(number=" ", size=2, base=true); // Any non digit just shows base
+    
+    locate(20) number_to_morse_shape(number=0, size=2, base=true);
+    locate(21)  number_to_morse_shape(number=1, size=2, base=true);
+    locate(22)  number_to_morse_shape(number=2.1, size=2, base=true);
+    locate(23)  number_to_morse_shape(number=0.5, size=2, base=true);
+    locate(24)  number_to_morse_shape(number=-5, size=2, base=true); 
+    
+ 
+  
+    locate(30) number_to_morse_shape(number=1, size=2, base=0);
+    locate(31) number_to_morse_shape(number=1, size=2, base=1);
+    locate(32) number_to_morse_shape(number=2, size=2, base=2);
+    locate(33) number_to_morse_shape(number=3, size=2, base=4);
+   
+    min_x_in_mm = 4;
+    min_y_in_chars = 5;
+    z_in_mm = 10;
+    locate(40) number_to_morse_shape(number="0", size=2, base=[min_x_in_mm, min_y_in_chars, z_in_mm]);
+    
+    test();
+    module test() {
+        label_size = 2;
+        min_x_in_mm = 0;
+        min_y_in_chars = 0;
+        z_in_mm = 4;
+        locate(50) number_to_morse_shape(
+            ".", size=label_size, base=[min_x_in_mm, min_y_in_chars, z_in_mm]);  
+    }
+    
+    module locate(pos) {
+        dx = 4;
+        translate([pos*dx, 0, 0]) children();
+    }
 }
 
 // --------------------------------- Start of implemention ----------------------------
@@ -384,14 +441,18 @@ function layout_displacements(sizes, pad, strategy_by_axis) =
 
 
 
-module number_to_morse_shape(number_str, size, include_base=true) {
-    shape_width = size;
-    shape_height = 2;
-    shape_spacing = 1;
+module number_to_morse_shape(number, size, base=true) {
+    shape_width = is_num(size) ? size : size[0];
+    shape_height = is_num(size) ? 1 : size[1];
+    shape_spacing = is_num(size) ? 1 : size[2];
+    number_str = is_string(number) ? number : condensed_num_to_str(number);
+    
+    function condensed_num_to_str(number) = 
+        (number == 0) ? " 0" :
+        ((number > 0) && (number < 1)) ? substr(str(number), 1) :  // Trim off leading zero,
+        str(number);
 
     morse = [
-        ["S", "  ▌  "],
-        ["F", "■■■■■"],
         ["1", "●▌▌▌▌"],
         ["2", "●●▌▌▌"],
         ["3", "●●●▌▌"],
@@ -401,19 +462,19 @@ module number_to_morse_shape(number_str, size, include_base=true) {
         ["7", "▌▌●●●"],
         ["8", "▌▌▌●●"],
         ["9", "▌▌▌▌●"],
-        ["0", "▌▌▌▌▌"],
+        ["0", "    ▌"],
         [".", "    ●"],
+        ["-", "█████   "],
     ];
     
     
-    if (include_base) {
-        base(len(number_str));
-    }
+
+    base_for_shape(len(number_str), base);
      
     
     for (i = [0:len(number_str)-1]) {
         code = find_in_dct(morse, number_str[i]);
-        echo("code", code);
+        //echo("code", code);
         if (!is_undef(code)) {
             for (j = [0:len(code)-1]) {
                 locate(i, j) morse_shape(code[j]);
@@ -427,21 +488,33 @@ module number_to_morse_shape(number_str, size, include_base=true) {
             can(d=shape_width, h=shape_height, center=ABOVE);
         } else if (character == "▌") {
             block([shape_width, shape_width, shape_height], center=ABOVE);   
-        } 
+        } else if (character == "█") {
+            block([shape_width, shape_width+shape_spacing, shape_height], center=ABOVE); 
+        }
     }
     
+    function position_in_mm(i, j) = let( cell = (i)*6 + j + 2) cell * (shape_width + shape_spacing);
+    
     module locate(i, j) {
-        pos = (i)*6 + j + 2;
-        t = [0, pos*(shape_width + shape_spacing), 0];
+        t = [0, position_in_mm(i, j), 0];
         translate(t) children();
     }
     
-    module base(char_count) {
-        rotate([0, 180, 0]) {
-            hull() {
-                locate(0, -2) morse_shape("▌");
-                locate(char_count-1, 5) morse_shape("▌");
-            }
+    module base_for_shape(char_count, base) {
+        if (is_bool(base) && !base) {
+            // No base
+        } else {
+            min_x_in_mm = is_list(base) ? base.x : shape_width;
+            min_y_in_chars = is_list(base) ? base.y: 0;
+            z_in_mm = 
+                is_list(base) ? base.z : 
+                is_num(base) ? base :
+                shape_height ; 
+
+            x_in_mm = max(min_x_in_mm, shape_width);
+            chars = max(min_y_in_chars, char_count);
+            y_in_mm = position_in_mm(chars, 0);
+            block([x_in_mm, y_in_mm, z_in_mm], center=BELOW+RIGHT);
         }
     }
     
