@@ -45,9 +45,40 @@ pin_length = dupont_pin_length();
     
 end_of_customization() {}
     
-pin_gap_check(pins_in_headers, allowances, gap);
+* pin_gap_check(pins_in_headers, allowances, gap);
 
 
+pin_insert_element(slit_allowance=0.15, header_allowance= 0.2);
+
+module pin_insert_element(slit_allowance, header_allowance) {
+    a_lot = 20;
+    insert_height = 6.39;
+    board_height = 8.20;
+    base = [3*pin_width, 8*pin_width, board_height];
+    insert = [1.68, 13.66, insert_height];
+    slit_allowances = 2 * [slit_allowance, slit_allowance, a_lot];
+    slit = insert + slit_allowances;
+    pin = [pin_width, pin_width, pin_length];
+    echo("slit", slit);
+    header_allowances = 2 * [header_allowance, header_allowance, a_lot];
+    header = [pin_width, 7*pin_width, pin_length]; 
+    header_slit = header + header_allowances;
+     
+    render() difference() {
+        union() {
+            block(base, center=BELOW);
+            translate([pin_width, 0, 0]) block(base, center=BELOW);
+        }
+        
+        center_reflect([pin_width, 0, 0]) 
+            translate([pin_width/2, 0, 0]) 
+                block(slit);
+        translate([1.5*pin_width, 0, 0]) color("purple") block(header_slit);
+    }
+    * translate([1.5*pin_width, 0, 0]) color("black") block(pin, center=BELOW);
+    
+    *translate([2.5*pin_width, 0, 0]) color("red") block(pin, center=BELOW);
+}
 
 
 
@@ -81,10 +112,7 @@ module pin_gap_check(
         sizes, 
         pad, 
         strategy);
-        
-        
-    
-    
+
     for (col = [0: len(allowances)-1]) {
         render() difference() {
             translate(displacements[0][col]) {

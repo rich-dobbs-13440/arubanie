@@ -13,7 +13,7 @@ include <TOUL.scad>
 /* [Show] */
 
     orient_for_build_ = false;
-    
+    show_development = true;
     show_assembled = true;
     show_plug= true; 
     show_socket = true;
@@ -34,7 +34,21 @@ include <TOUL.scad>
     pin_insert_thickness_ = 1; //[0: No plate, 1, 1.5, 2]
     // Distance that the socket extends beyond catch offset 
     socket_retention_ = 4;  // [0: 0.5 : 10]
+    insert_pattern = "all_pattern"; // ["all_pattern", "test_pattern", "test_latches"]
     
+/* [Pin Latch] */  
+    leading_width = 0.33; //[0: 0.05 : 0.50]
+    leading_height = 0.33; //[0: 0.05 : 2]
+    catch_width = 0.25; //[0: 0.05 : 0.50]
+    catch_height = 0.25; //[0: 0.05 : 1]
+    //back_height = 4;  // [0 : 0.25 : 5]
+    
+    clearance = 0.2; // [0 : 0.05 : 0.5]
+    
+    
+    fraction_pin_length = 0.75; // [0 : 0.05 : 1.0]
+    
+    //da = 0; //[0: 45: 360]
     
 module end_customization() {}
 
@@ -44,9 +58,78 @@ function dupont_pin_length() = 14.0; // Using standard dimensions, rather than m
 function dupont_wire_diameter() = 1.0 + 0.25; // measured plus allowance
 
 
+if (show_development) {
+    x_placement(0) {
+        pin_latch(fraction_pin_length);
+        rotate([0, 180, 0]) pin_latch(1-fraction_pin_length);
+        
+        pin_width = dupont_pin_width();
+        pin_length = dupont_pin_length();
+        color("red", alpha=0.1) block([pin_width, pin_width, pin_length]);
+    }
+}
+
+module pin_latch(fraction_pin_length, orient=FRONT) {
+    pin_width = dupont_pin_width();
+    pin_length = dupont_pin_length();
+    
+    latch_length = fraction_pin_length*pin_length;
+    rotation = 
+        orient == FRONT ? [0, 0, 0] :
+        orient == LEFT ? [0, 0, 270] :
+        orient == BEHIND ? [0, 0, 180] :
+        orient == RIGHT ? [0, 0, 90] :
+        assert(false, assert_msg("Bad orient: ", orient, " SHOULD BE LEFT, RIGHT, FRONT, or BACK"));
+    
+    rotate(rotation) {
+        translate([0, 0, latch_length]) pin_latch_as_designed();
+    }
+    
+    module pin_latch_as_designed() {
+        // Origin is at mid point of the catch
+
+        z_leading = leading_height * pin_width;
+        leading = [
+            leading_width * pin_width, 
+            pin_width, 
+            z_leading
+        ];
+        z_catch = catch_height*pin_width;
+        catch = [
+            (0.5+catch_width)*pin_width, 
+            pin_width, 
+            z_catch
+        ];
+        z_catch_complement = z_catch + z_leading + 4*clearance;
+        catch_complement = [
+            (0.5-catch_width)*pin_width-clearance, 
+            pin_width, 
+            z_catch_complement
+        ];
+        
+        z_to_catch = fraction_pin_length*pin_length;
+        z_back = z_to_catch - z_catch_complement + clearance;
+        
+        back = [
+            pin_width,
+            pin_width,
+            z_back
+        ];
+        cleared_catch_height = catch_height*pin_width + clearance;
+        
+        translate([0, 0, cleared_catch_height]) {
+            hull() {
+                translate([pin_width/2, 0, 0]) block(leading, center=BEHIND+ABOVE);
+                translate([pin_width/2, 0, 0]) block(catch, center=BEHIND+BELOW);
+            }
+        }
+        translate([pin_width/2, 0, clearance]) block(catch_complement, center=BEHIND+BELOW);
+        translate([0, 0, -z_catch_complement+clearance]) block(back, center=BELOW);
+    }
+}
 
 if (show_assembled) {
-    x_placement(1){
+    x_placement(1) {
         component("Plug");
         component("Socket");
         //pin_insert();
@@ -75,13 +158,13 @@ if (show_pin_insert) {
 }
 
 if (show_holder) {
-    x_placement(5) {
+    x_placement(6) {
         component("Holder");
     }    
 }
 
 if (show_clip) {
-    x_placement(5) {
+    x_placement(6) {
         component("Clip");
     }    
 }
@@ -118,6 +201,7 @@ module pin_insert() {
         ░┼░░│░░─░ 
         ░░░░░░░░░ 
         ▁▂▄▆█
+        ░◐░◑░◒░◓░
     ";
     
     test_pattern = "
@@ -126,9 +210,30 @@ module pin_insert() {
                   █╷▄ 
             
     ";
+    
+     end_result_test_latches = "
+        ░◓░
+        ◐█◑
+        ░◒░
+    ";
+    
+    test_latches = "
+        ▆◐░
+        ◓╋◒
+        ░◑▆
+        │││
+        ▆◐░
+        ◓╋◒
+        ░◑▆
+    ";
+    pattern = 
+        insert_pattern == "all_pattern" ? all_pattern :
+        insert_pattern == "test_pattern" ? test_pattern :
+        insert_pattern == "test_latches" ? test_latches :
+        assert(false);
     pin_retention_plate(
        pin_insert_thickness = pin_insert_thickness_,
-       pattern = test_pattern);
+       pattern = pattern);
 }
         
 
@@ -439,6 +544,7 @@ module pin_retention_plate(
         ╬║═    Wire access in particular directions
         ┼│─    Wire access in particular directions
         ╴╵╶╷
+        ◐◑◒◓   Latches with a particular orientation
         ░      Bare plate
        
        
@@ -488,7 +594,11 @@ module pin_retention_plate(
                 ["▁", 4],
                 ["╬", 0],
                 ["║", 0],
-                ["═", 0]
+                ["═", 0],
+                ["◐", 5],
+                ["◑", 6],
+                ["◓", 7],
+                ["◒", 8],       
             ]
         );
         
@@ -499,6 +609,10 @@ module pin_retention_plate(
             pin(1/2);
             pin(1/4);
             pin(1/8);
+            pin_latch(0.50, LEFT);
+            pin_latch(0.50, RIGHT);
+            pin_latch(0.50, BEHIND);
+            pin_latch(0.50, FRONT);
         } 
     }       
     
