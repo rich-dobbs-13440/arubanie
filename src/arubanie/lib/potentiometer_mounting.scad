@@ -13,6 +13,9 @@ include <centerable.scad>
 use <shapes.scad>
 use <prong_and_spring.scad>
 use <dupont_pin_junction.scad>
+use <dupont_pins.scad>
+
+use <dupont_pin_fitting.scad>
 
 /* [Logging] */
 
@@ -57,16 +60,6 @@ use <dupont_pin_junction.scad>
 
 module end_of_customization() {}
 
-
-function potentiometer_housing_fitting() = "
-        ▆◐▒▒▒◑▆  ;
-        ◓╳╳╳╳╳◓ ;
-        ▒╳╳╳╳╳▒  ;
-        ▒╳╳╳╳╳▒  ;
-        ▒╳╳╳╳╳▒  ;
-        ◒╳╳╳╳╳◒  ;
-        ▆◐▒▒▒◑▆ ;
-    "; 
 
 
 
@@ -132,10 +125,12 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         back = 1, 
         count = 1, 
         spacing = 2, 
-        allowance = 0.3 
-        ) =
-    let(
+        allowance = 0.3,
+        pin_fitting_attachment = true) =
 
+    let(
+        pin_length = 14,
+        pin_width = 2.54,
 
                     
         pin_insert_thickness = 2, // Allow for a pin retention insert into plug
@@ -166,24 +161,23 @@ function  breadboard_compatible_trim_potentiometer_housing_dimensions(
         walls = [2*wall, 2*wall, 0],
         housing = pedistal+allowances+walls,
         socket_body = pin_junction_dimension(socket_dims, "socket_body"),
-        // [22, 16.82, 16.82],  // Extracted from log. Need to get from the dupont connectors 
-        socket_x = socket_body.z,   // Rotation to get coordinate systems to match up.
-        socket_y = socket_body.y,
-        socket_z = socket_body.x,     
+        x_socket = socket_body.z,   // Rotation to get coordinate systems to match up.
+        y_socket = socket_body.y,
+        z_socket = socket_body.x,     
         
-        x = socket_x * count + spacing * (count-1) + wall,
-        y = socket_y, 
-        z = pedistal.z + allowance + socket_z, 
+        x_base = pin_fitting_attachment ? 7 * pin_width : x_socket,
+        y_base = pin_fitting_attachment ? 7 * pin_width : y_socket,
+        z_base = pin_fitting_attachment ? pin_width/2 : z_socket,
+        
+        x = x_base * count + spacing * (count-1),
+        y = y_base, 
+        z = pedistal.z + allowance + z_base, 
         body = [x, y, z],
         face_plate = [body.x, body.y, face],
         back_plate = [body.x, body.y, back],
         
-        dx = socket_x + spacing,
-        x_offset = -x/2 + socket_x/2 + 1, // What's with the magic 1??? may wall thickness
-
-        // Used for mocking            
-        pin_length = 14,
-        pin_width = 2.54,
+        dx = x_base + spacing,
+        x_offset = -x/2 + x_base/2, 
         HOUSING_COMPONENT_NAME = "breadboard_compatible_trim_potentiometer_housing_dimensions", 
         last = undef
     )
@@ -264,7 +258,6 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
         color("orange", alpha=housing_alpha_) orient() housing();
     }
 
-    
 
     
     check_assertions();
@@ -309,12 +302,18 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
         }        
     }
     
-    module housing() {
+    
+    module housing(pin_fitting_attachment=true) {
         
         replicate() {
             housing_lower_xz_wall();
             housing_yz_walls();
-            oriented_pin_junction(part="Socket");
+            if (pin_fitting_attachment) {
+                oriented_pin_fitting_attachment();
+            } else {
+                oriented_pin_junction(part="Socket");
+            }
+            
         } 
     
         render() difference() {
@@ -327,6 +326,30 @@ BUILD_FROM_SIDE_FOR_PLUGS = 4;
             replicate() pedistal_clearance();
         }
         three_d_printing_aids();
+    }
+    
+    module oriented_pin_fitting_attachment() {
+        
+        pattern = "
+            ▆◐▒▒▒◑▆  ;
+            ◓╳╳╳╳╳◓  ;
+            ▒╳╳╳╳╳▒  ;
+            ▒╳╳╳╳╳▒  ;
+            ▒╳╳╳╳╳▒  ;
+            ◒╳╳╳╳╳◒  ;
+            ▆◐▒▒▒◑▆ ;
+        "; 
+        pin_fitting_base_thickness = 2;
+        dz = - pin_length/4 - pedistal.x + pin_fitting_base_thickness;
+        dx = + pin_width/2;  //Kludge!
+        translate([dx, 0, dz]) {
+            rotate([180, 0, 0]) {
+                dupont_pin_fitting(
+                    pattern = pattern,
+                    base_thickness = pin_fitting_base_thickness,
+                    allowance = 0.0);
+            }
+        }
     }
     
     module oriented_pin_junction(part) {

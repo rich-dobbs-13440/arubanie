@@ -5,6 +5,7 @@ use <not_included_batteries.scad>
 use <prong_and_spring.scad>
 use <MCAD/boxes.scad>
 include <TOUL.scad>
+use <dupont_pins.scad>
 
 /* [Logging] */
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]

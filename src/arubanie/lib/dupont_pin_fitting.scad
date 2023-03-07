@@ -1,8 +1,70 @@
+/* 
+
+Provides highly customizable fittings for working with Dupont pins.  
+The fittings can be either plugs or sockets, and should serve
+as an effective way to assemble components, providing strain 
+relief so the pins won't accidently unplug.
+
+The 
+
+Usage:
+
+    use <lib/dupont_pin_fitting.scad> 
+
+
+    pattern = "
+           ◑▆░▆◐ ;
+           ░▒▆▒░  ;
+           ▒▂╷▂▒  ;
+           ▆╶╳╴▆  ;
+           ▒▂╵▂▒  ;
+           ░▒▆▒░  ;
+           ◑▆░▆◐  ;
+           
+
+    dupont_pin_fitting(
+        pattern = pattern,
+        base_thickness = 2,
+        allowance = 0.0, 
+        center=0);
+
+Pattern Language:
+
+        Pin inserts with various height:
+        ▁▂▄▆█  
+        
+        Pin clearance through the base plate and adjacent dummy pins
+        ╳
+        
+        Wire clearance through half height dummy pins:
+        ╋┃━ 
+        
+        Wire clearance though quarter height dummy pins:
+        ╬║═     
+        
+        Wire clearance though the base plate:
+        ┼│─╶╵╶╷    
+        
+        Latches with a particular orientation:
+        ◐◑◒◓  
+        
+        Bare plate:
+        ▒
+        
+        Void space:
+        ░      
+
+*/
+
+
+
+
+
+
 include <logging.scad>
 include <centerable.scad>
 use <shapes.scad>
 use <not_included_batteries.scad>
-//include <TOUL.scad>
 use <relativity/strings.scad>
 use <dupont_pins.scad>
 use <dupont_pin_latch.scad>
@@ -272,6 +334,10 @@ module dupont_pin_fitting(
 
         if (center == 0) {
             fitting_at_center();
+        } else if (center == ABOVE) {
+            translate([0, 0, pin_length/2]) {
+                fitting_at_center();
+            }
         } else {
             assert(false, "Not implemented");
         }
