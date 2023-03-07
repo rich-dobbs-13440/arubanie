@@ -2,7 +2,8 @@ include <logging.scad>
 include <centerable.scad>
 use <shapes.scad>
 use <not_included_batteries.scad>
-include <TOUL.scad>
+//include <TOUL.scad>
+use <relativity/strings.scad>
 use <dupont_pins.scad>
 use <dupont_pin_latch.scad>
 
@@ -19,38 +20,102 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 show_fitting = true;  
 
 /* [Fitting] */
+pattern__ = "all_pattern"; // ["None", all_pattern, potentiometer_insert, potentiometer_housing_fitting, test_latches, pin_retention_key, all_symbols]
+mated_pattern__ = "None"; // ["None", all_pattern, potentiometer_insert, potentiometer_housing_fitting, test_latches, pin_retention_key, all_symbols]
+
+function match_pattern(pattern_name) = 
+    pattern_name == "None" ? undef :
+    pattern_name == "all_symbols" ? all_symbols() :
+    pattern_name == "all_pattern" ? all_pattern() :
+    pattern_name == "potentiometer_insert" ? potentiometer_insert() :
+    pattern_name == "potentiometer_housing_fitting" ? potentiometer_housing_fitting() :
+    pattern_name == "test_latches" ? test_latches() :
+    pattern_name == "pin_retention_key" ? pin_retention_key() :
+    assert(false, assert_msg("Unable to find pattern: ", pattern_name) ); 
+   
+pattern_ = match_pattern(pattern__);
+mated_pattern_  = match_pattern(mated_pattern__);    
+
+base_thickness_ = 2; //[0: No plate, 1, 1.5, 2]
+
+//// Measured in pins
+//mated_y_offset = 1; // [-4: 4]
+//
+//// Fractional pin length
+//mated_z_offset = 1; // [-1:0.25:+1]
 
 
-fitting_pattern = "all_pattern"; // ["all_pattern", "potentiometer_insert", "potentiometer_housing_fitting", "test_latches", "pin_retention_key"]
-mated_fitting_pattern = "None"; // ["None", "potentiometer_housing_fitting", "test_latches"]
-
-pin_insert_thickness_ = 1; //[0: No plate, 1, 1.5, 2]
-
-// Measured in pins
-mated_y_offset = 1; // [-4: 4]
-
-// Fractional pin length
-mated_z_offset = 1; // [-1:0.25:+1]
-
-
-/* [Pin Latch] */  
-leading_width = 0.33; //[0: 0.05 : 0.50]
-leading_height = 1; //[0: 0.05 : 2]
-catch_width = 0.25; //[0: 0.05 : 0.50]
-catch_height = 0.25; //[0: 0.05 : 1]
-
-
-clearance = 0.2; // [0 : 0.05 : 0.5]
-
-
-
+///* [Pin Latch] */  
+//leading_width = 0.33; //[0: 0.05 : 0.50]
+//leading_height = 1; //[0: 0.05 : 2]
+//catch_width = 0.25; //[0: 0.05 : 0.50]
+//catch_height = 0.25; //[0: 0.05 : 1]
+//
+//
+//clearance = 0.2; // [0 : 0.05 : 0.5]
 
 module end_customization() {}
+    
+    
+function all_pattern() = "
+        ░░░░░░░█░    ;
+        ░╋░░┃░█━█    ;
+        ░░░░░░░█░    ;
+        ░░░░░░░░░    ;
+        ░╬░░║░░═░    ;
+        ░░░░░░░░░    ;
+        ░┼░░│░░─░    ;
+        ░░░░░░░░░    ;
+        ░╴╵╶╷░░░░    ;
+        ▁▂▄▆█░░░░    ;
+        ░◐░◑░◒░◓░    ;
+    ";
+   
+function test_latches() = "
+        ▆◐░    ;
+        ◓╋◒    ;
+        ░◑▆    ;
+        ───    ;
+        ▆◐░    ;
+        ◓╋◒    ;
+        ░◑▆    ;
+    "; 
+ 
+function potentiometer_insert() = "
+        ▆◐│░░  ;
+        ◓░╵░░  ;
+        ─╴█╶─  ;
+        ░░╷░◒  ;
+        ░░│◑▆  ;
+               ;
+        ▆◐▂    ;
+        ◓╷▄    ;
+        ╶╋╴    ;
+        ▄╵◒    ;
+        ▂◑▆    ;
+    ";
 
 
-function dupont_pin_width() = 2.54; // Using standard dimensions, rather than measured
-function dupont_pin_length() = 14.0; // Using standard dimensions, rather than measured
-function dupont_wire_diameter() = 1.0 + 0.25; // measured plus allowance
+function potentiometer_housing_fitting() = "
+        ▆◐▁    ;
+        ◓╷▂    ;
+        ╶╋╴    ;
+        ▂╵◒    ;
+        ▁◑▆    ;  
+
+    ";  
+  
+function all_symbols() = "█▆▄▂▁◐◑◒◓╋━┃╬═║┼─│╷╵╴╶░";   
+
+
+
+module x_placement(index) {
+    dx_spacing = 20;
+    translate([index*dx_spacing, 0, 0]) {
+        children();
+    }
+}
+
 
 if (show_fitting) {
     x_placement(0) {
@@ -60,107 +125,56 @@ if (show_fitting) {
 
 
 
-potentiometer_insert = "
-        ▆◐▂
-        ◓╷▄
-        ╶╋╴
-        ▄╵◒
-        ▂◑▆ 
-    ";
-
-
-potentiometer_housing_fitting = "
-        ▆◐▁
-        ◓╷▂
-        ╶╋╴
-        ▂╵◒
-        ▁◑▆  
-
-    ";    
+ 
 
         
-module pin_fitting_for_customization(pin_insert_thickness) {
-    all_pattern = "
-        ░░░░░░░█░
-        ░╋░░┃░█━█ 
-        ░░░░░░░█░
-        ░░░░░░░░░
-        ░╬░░║░░═░
-        ░░░░░░░░░
-        ░┼░░│░░─░ 
-        ░░░░░░░░░
-        ░╴╵╶╷░░░░
-        ▁▂▄▆█
-        ░◐░◑░◒░◓░
-    ";
-   
+module pin_fitting_for_customization(fitting_base_thickness) {
 
 
- 
-    test_latches = "
-        ▆◐░
-        ◓╋◒
-        ░◑▆
-        ───
-        ▆◐░
-        ◓╋◒
-        ░◑▆
-    ";
-    function match_pattern(pattern) = 
-        pattern == "None" ? "" :
-        pattern == "all_pattern" ? all_pattern :
-        pattern == "potentiometer_insert" ? potentiometer_insert :
-        pattern == "test_latches" ? test_latches :
-        pattern == "pin_retention_key" ? pin_retention_key :
-        assert(false, assert_msg("Unable to find pattern: ", pattern) );
         
    module located_pin_fitting() {
-            pin_fitting(
-                pin_insert_thickness = pin_insert_thickness_,
+            dupont_pin_fitting(
+                fitting_base_thickness = fitting_base_thickness_,
                 pattern = match_pattern(insert_pattern));
     }
     
     
 
-    pin_fitting(
-        pin_insert_thickness = pin_insert_thickness_,
-        pattern = match_pattern(fitting_pattern) ); 
+    dupont_pin_fitting(
+        pattern = pattern_,
+        base_thickness = base_thickness_); 
     
-    if (mated_fitting_pattern == "None") {
+    if (is_undef(mated_pattern_)) {
         // Do nothing
     } else {
-       fitting_pattern = match_pattern(fitting_pattern);
         color("red", alpha = 0.25) 
             rotate([180, 0, 0]) 
-                pin_fitting(
-                    pin_insert_thickness = pin_insert_thickness,
-                    pattern = fitting_pattern); 
+                dupont_pin_fitting(pattern = mated_pattern_, base_thickness = base_thickness_); 
     }
 }
 
 
-pin_retention_key = "      
-        ▁▂▄▆█  Pin inserts with various height
-        ╋      Pin and wire clearance, both directions
-        ┃      Pin and wire clearance vertical
-        ━      Pin and wire clearance horizontal
-        ╬║═    Wire access in particular directions
-        ┼│─    Wire access in particular directions
-        ╴╵╶╷
-        ◐◑◒◓   Latches with a particular orientation
-        ░      Bare plate
+function pin_retention_key() = "      
+        ▁▂▄▆█  ; // Pin inserts with various height
+        ╋      ; // Pin and wire clearance, both directions
+        ┃      ; // Pin and wire clearance vertical
+        ━      ; // Pin and wire clearance horizontal
+        ╬║═    ; // Wire access in particular directions through full blocks
+        ┼│─    ; // Wire access passing through in particular
+        ╴╵╶╷   ; // Wire access in particular directions
+        ◐◑◒◓   ; // Latches with a particular orientation
+        ░      ; // Bare plate
 
      ";
 
 
-module pin_fitting(
-        pin_insert_thickness,
+module dupont_pin_fitting(
         pattern,
+        base_thickness = 2,
         allowance = 0.0, 
         center=0) {
        
     assert(is_string(pattern)); 
-    echo("pattern", pattern);
     assert(pattern != "");
       
        
@@ -182,7 +196,7 @@ module pin_fitting(
        
        
        
-       all_pattern = "░░░ ╋┃━ ░░░ ╬║═ ░░░ ▁▂▄▆█ ┼│─ "
+
     */
        
 
@@ -192,7 +206,7 @@ module pin_fitting(
     allowances = 2* [allowance, allowance, 0];
     
 
-    layout = split_no_separators(pattern);
+    layout = pattern_to_layout(pattern);
     echo("layout" , layout);
     echo("len(layout)", len(layout));
     function layout_extent(layout) = 
@@ -249,55 +263,42 @@ module pin_fitting(
         }
     }       
     
-
     
+    
+    
+
     module base_plate() {
-        plate_map = []; // Empty map
-        process(layout, plate_map, missing_child_idx=0) {
-            block([pin_width, pin_width, pin_insert_thickness] + allowances, center=BELOW);
+        plate_symbols = "█▆▄▂▁◐◑◒◓╋━┃╬═║┼─│╷╵╴╶░";
+        plate_map = [ for (symbol = plate_symbols) [symbol, 0] ];            
+        process(layout, plate_map, map_is_full=false) {
+            block([pin_width, pin_width, base_thickness] + allowances, center=BELOW);
         }
     }
     
-    
     module pin_inserts() {
-        module pin(fraction) {
-            block([pin_width, pin_width, fraction*pin_length], center=ABOVE);
-        }
-        
-        map =  concat(
-            [
-                ["█", 0],
-                ["▆", 1],
-                ["▄", 2],
-                ["▂", 3], 
-                ["▁", 4],
-                ["╬", 0],
-                ["║", 0],
-                ["═", 0],
-                ["◐", 5],
-                ["◑", 6],
-                ["◓", 7],
-                ["◒", 8],       
-            ]
-        );
+        pin_symbols = "█▆▄▂▁◐◑◒◓╬║═";
+        pin_map = [for (i = [0:len(pin_symbols)-1]) [pin_symbols[i], i]];
         
         //log_v1("map", map,verbosity, DEBUG, IMPORTANT);
-        process(layout, map) {
+        process(layout, pin_map, map_is_full=true) {
             pin(1);
             pin(3/4);
             pin(1/2);
             pin(1/4);
             pin(1/8);
-            dupont_pin_latch(0.50, LEFT);
-            dupont_pin_latch(0.50, RIGHT);
-            dupont_pin_latch(0.50, BEHIND);
-            dupont_pin_latch(0.50, FRONT);
+            dupont_pin_latch(0.50, opening=LEFT);
+            dupont_pin_latch(0.50, opening=RIGHT);
+            dupont_pin_latch(0.50, opening=BEHIND);
+            dupont_pin_latch(0.50, opening=FRONT);
+            pin(1);
+            pin(1);
+            pin(1);
         } 
+        
+        module pin(fraction) {
+            block([pin_width, pin_width, fraction*pin_length], center=ABOVE);
+        }        
     }       
-    
-
-    
-    
 
     module clearances() {
         /*    
@@ -309,17 +310,15 @@ module pin_fitting(
             ┼│─   Wire access in particular directions
 
         */
-        symbols = "╋━┃╬═║┼─│╷╵╴╶";
-        
-        map = [for (i = [0:len(symbols)-1]) [symbols[i], i]];
-            
-        log_v1("map", map, verbosity, DEBUG);
+
+        clearance_symbols = "╋━┃╬═║┼─│╷╵╴╶";    
+        clearance_map = [for (i = [0:len(clearance_symbols)-1]) [clearance_symbols[i], i]];
         
 
         PIN_PASS_THROUGH = true;
         NO_PIN_PASS_THROUGH = false;
         
-        process(layout, map) {
+        process(layout, clearance_map, map_is_full=true) {
             clearance(PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
             clearance(PIN_PASS_THROUGH, [LEFT, RIGHT]);
             clearance(PIN_PASS_THROUGH, [FRONT, BEHIND]);
@@ -356,14 +355,20 @@ module pin_fitting(
             }
         }        
     }
+    
+ 
+    
+    
+    function pattern_to_layout(pattern) =
+        assert(is_string(pattern))
+        let(
+            lines =  split(pattern, ";"),
+            trimmed_lines = [ for (line = lines) trim(line)],
+            last = undef
+        ) 
+        lines; //[ for (item = a) if (item != "") item];        
 
-    function split_no_separators(string) = 
-        assert(is_string(string))
-        let(a =  split(string, " ")) 
-        [ for (item = a) if (item != "") item];
-    
-    
-    
+
     function pattern_to_map(layout, idx)  = [
             for (cmd = layout) if (cmd != " ") [cmd, idx]
         ];
@@ -374,7 +379,10 @@ module pin_fitting(
         translate([x, y, 0]) children();
     }
     
-    module process(layout, map_cmd_to_child, missing_child_idx) {
+    module process(layout, map_cmd_to_child, missing_child_idx, map_is_full) {
+        if (map_is_full) { 
+            assert(len(map_cmd_to_child) == $children);
+        }
         for (i = [0 : len(layout) -1]) {
             row = layout[i];
             for (j = [0 : len(row) -1]) {
@@ -393,10 +401,5 @@ module pin_fitting(
 }
 
 
-module x_placement(index) {
-    dx_spacing = 20;
-    translate([index*dx_spacing, 0, 0]) {
-        children();
-    }
-}
+
 
