@@ -7,48 +7,50 @@ use <MCAD/boxes.scad>
 include <TOUL.scad>
 
 /* [Logging] */
-    log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
-    verbosity = log_verbosity_choice(log_verbosity_choice); 
+log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+verbosity = log_verbosity_choice(log_verbosity_choice); 
     
+
+
 /* [Show] */
 
-    orient_for_build_ = false;
-    show_development = true;
-    show_assembled = true;
-    show_plug= true; 
-    show_socket = true;
-    show_pin_insert = true;
-    show_holder = true;
-    show_clip = true;
+orient_for_build_ = false;
+show_development = true;
+show_assembled = true;
+show_plug= true; 
+show_socket = true;
+
+show_holder = true;
+show_clip = true;
     
 
 /* [Pin Holder Plug and Socket] */
 
-    show_pin_holder_plug= true; 
-    show_pin_holder_socket = true;
+show_pin_holder_plug= true; 
+show_pin_holder_socket = true;
 
-    wall_plug_ = 1; // [1, 1.5, 2]
-    wall_socket_ = 1; // [1, 1.5, 2]
-    
-    minimum_socket_opening_ = [0, 11, 11];
-    pin_insert_thickness_ = 1; //[0: No plate, 1, 1.5, 2]
-    // Distance that the socket extends beyond catch offset 
-    socket_retention_ = 4;  // [0: 0.5 : 10]
-    insert_pattern = "all_pattern"; // ["all_pattern", "test_pattern", "test_latches"]
-    
+wall_plug_ = 1; // [1, 1.5, 2]
+wall_socket_ = 1; // [1, 1.5, 2]
+
+minimum_socket_opening_ = [0, 11, 11];
+pin_insert_thickness_ = 1; //[0: No plate, 1, 1.5, 2]
+// Distance that the socket extends beyond catch offset 
+socket_retention_ = 4;  // [0: 0.5 : 10]
+
+
 /* [Pin Latch] */  
-    leading_width = 0.33; //[0: 0.05 : 0.50]
-    leading_height = 0.33; //[0: 0.05 : 2]
-    catch_width = 0.25; //[0: 0.05 : 0.50]
-    catch_height = 0.25; //[0: 0.05 : 1]
-    //back_height = 4;  // [0 : 0.25 : 5]
-    
-    clearance = 0.2; // [0 : 0.05 : 0.5]
-    
-    
-    fraction_pin_length = 0.75; // [0 : 0.05 : 1.0]
-    
-    //da = 0; //[0: 45: 360]
+leading_width = 0.33; //[0: 0.05 : 0.50]
+leading_height = 1; //[0: 0.05 : 2]
+catch_width = 0.25; //[0: 0.05 : 0.50]
+catch_height = 0.25; //[0: 0.05 : 1]
+
+
+clearance = 0.2; // [0 : 0.05 : 0.5]
+
+
+fraction_pin_length = 0.75; // [0 : 0.05 : 1.0]
+
+
     
 module end_customization() {}
 
@@ -148,14 +150,7 @@ if (show_plug) {
     }
 }
 
-if (show_pin_insert) {
-    x_placement(4) {
-        dy = 0; // 20
-        translate([0, dy, 0]) {
-            pin_insert();
-        }
-    } 
-}
+
 
 if (show_holder) {
     x_placement(6) {
@@ -189,52 +184,10 @@ module component(part) {
             pin_insert_thickness = pin_insert_thickness_,
             log_verbosity=verbosity); 
 }
-        
-module pin_insert() {
-    all_pattern = "
-        ░░░░░░░░░
-        ░╋░░┃░░━░ 
-        ░░░░░░░░░
-        ░░░░░░░░░
-        ░╬░░║░░═░
-        ░░░░░░░░░
-        ░┼░░│░░─░ 
-        ░░░░░░░░░ 
-        ▁▂▄▆█
-        ░◐░◑░◒░◓░
-    ";
-    
-    test_pattern = "
-                  ▄▄█
-                  ╴▄╶
-                  █╷▄ 
-            
-    ";
-    
-     end_result_test_latches = "
-        ░◓░
-        ◐█◑
-        ░◒░
-    ";
-    
-    test_latches = "
-        ▆◐░
-        ◓╋◒
-        ░◑▆
-        │││
-        ▆◐░
-        ◓╋◒
-        ░◑▆
-    ";
-    pattern = 
-        insert_pattern == "all_pattern" ? all_pattern :
-        insert_pattern == "test_pattern" ? test_pattern :
-        insert_pattern == "test_latches" ? test_latches :
-        assert(false);
-    pin_retention_plate(
-       pin_insert_thickness = pin_insert_thickness_,
-       pattern = pattern);
-}
+
+
+
+
         
 
 
@@ -527,189 +480,6 @@ module pin_junction(
     }    
 }
 
-
-module pin_retention_plate(
-   pin_insert_thickness,
-   pattern,
-   allowance = 0.0) {
-       
-
-    /*
-       Key: 
-       
-        ▁▂▄▆█  Pin inserts with various height
-        ╋      Pin and wire clearance, both directions
-        ┃      Pin and wire clearance vertical
-        ━      Pin and wire clearance horizontal
-        ╬║═    Wire access in particular directions
-        ┼│─    Wire access in particular directions
-        ╴╵╶╷
-        ◐◑◒◓   Latches with a particular orientation
-        ░      Bare plate
-       
-       
-       
-       all_pattern = "░░░ ╋┃━ ░░░ ╬║═ ░░░ ▁▂▄▆█ ┼│─ "
-    */
-       
-
-
-    layout = split_no_separators(pattern);  
-    generate(); 
-   
-    module generate() {
-        render() difference() {
-            union() {
-                base_plate();
-                pin_inserts();
-            }
-            clearances();
-        }
-    }       
-    
-    pin_width = dupont_pin_width();
-    pin_length = dupont_pin_length();
-    pin = [pin_width, pin_width, pin_length];
-    allowances = 2* [allowance, allowance, 0];
-    
-    module base_plate() {
-        plate_map = []; // Empty map
-        process(layout, plate_map, missing_child_idx=0) {
-            block([pin_width, pin_width, pin_insert_thickness] + allowances, center=BELOW);
-        }
-    }
-    
-    
-    module pin_inserts() {
-        module pin(fraction) {
-            block([pin_width, pin_width, fraction*pin_length], center=ABOVE);
-        }
-        
-        map =  concat(
-            [
-                ["█", 0],
-                ["▆", 1],
-                ["▄", 2],
-                ["▂", 3], 
-                ["▁", 4],
-                ["╬", 0],
-                ["║", 0],
-                ["═", 0],
-                ["◐", 5],
-                ["◑", 6],
-                ["◓", 7],
-                ["◒", 8],       
-            ]
-        );
-        
-        //log_v1("map", map,verbosity, DEBUG, IMPORTANT);
-        process(layout, map) {
-            pin(1);
-            pin(3/4);
-            pin(1/2);
-            pin(1/4);
-            pin(1/8);
-            pin_latch(0.50, LEFT);
-            pin_latch(0.50, RIGHT);
-            pin_latch(0.50, BEHIND);
-            pin_latch(0.50, FRONT);
-        } 
-    }       
-    
-
-    
-    
-
-    module clearances() {
-        /*    
-            ╋     Pin and wire clearance, both directions
-            ┃     Pin and wire clearance vertical
-            ━     Pin and wire clearance horizontal
-            ╬║═   Wire access in particular directions
-                  through pin body
-            ┼│─   Wire access in particular directions
-
-        */
-        symbols = "╋┃━╬║═┼│─╷╵╴╶";
-        
-        map = [for (i = [0:len(symbols)-1]) [symbols[i], i]];
-            
-        log_v1("map", map, verbosity, DEBUG);
-        
-
-        PIN_PASS_THROUGH = true;
-        NO_PIN_PASS_THROUGH = false;
-        
-        process(layout, map) {
-            clearance(PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
-            clearance(PIN_PASS_THROUGH, [LEFT, RIGHT]);
-            clearance(PIN_PASS_THROUGH, [FRONT, BEHIND]);
-            // Clearance through pin body
-            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
-            clearance(NO_PIN_PASS_THROUGH, [LEFT, RIGHT]);
-            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND]);
-            // Clearance through pin body
-            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
-            clearance(NO_PIN_PASS_THROUGH, [LEFT, RIGHT]);
-            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND]); 
-            
-            clearance(NO_PIN_PASS_THROUGH, [FRONT]);
-            clearance(NO_PIN_PASS_THROUGH, [BEHIND]);
-            clearance(NO_PIN_PASS_THROUGH, [LEFT]);
-            clearance(NO_PIN_PASS_THROUGH, [RIGHT]);            
-        } 
-        
-        module clearance(pass_through, openings) {
-            if (pass_through) {
-                clearance_allowances = pin /4;
-                block(pin + clearance_allowances + [0, 0, 2*pin_length]);
-            }
-            for (opening = openings) {
-                wire_clearance(opening);
-            }
-        }  
-        module wire_clearance(opening) {
-            wd = dupont_wire_diameter();
-            a_lot = 4*pin_length;
-            hull() {
-                block([pin_width/2, wd, a_lot], center=opening, rank=10);
-                can(d=wd, h=a_lot, $fa=12); 
-            }
-        }        
-    }
-
-    function split_no_separators(string) = 
-        let(a =  split(string, " ")) 
-        [ for (item = a) if (item != "") item];
-    
-    
-    
-    function pattern_to_map(layout, idx)  = [
-            for (cmd = layout) if (cmd != " ") [cmd, idx]
-        ];
-
-    module locate(i, j) {
-        x = i * pin_width;
-        y = j * pin_width;
-        translate([x, y, 0]) children();
-    }
-    
-    module process(layout, map_cmd_to_child, missing_child_idx) {
-        for (i = [0 : len(layout) -1]) {
-            row = layout[i];
-            for (j = [0 : len(row) -1]) {
-                cmd = row[j];              
-                found_idx = find_in_dct(map_cmd_to_child, cmd);
-                idx = !is_undef(found_idx) ? found_idx : missing_child_idx;
-                if (!is_undef(idx)) {
-                    locate(i, j) {
-                        children(idx);
-                    } 
-                } 
-            }
-        }
-    }   
-}
 
 
 
