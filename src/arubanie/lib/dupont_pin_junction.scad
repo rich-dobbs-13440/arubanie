@@ -48,86 +48,17 @@ catch_height = 0.25; //[0: 0.05 : 1]
 clearance = 0.2; // [0 : 0.05 : 0.5]
 
 
-fraction_pin_length = 0.75; // [0 : 0.05 : 1.0]
 
 
     
 module end_customization() {}
 
 
-function dupont_pin_width() = 2.54; // Using standard dimensions, rather than measured
-function dupont_pin_length() = 14.0; // Using standard dimensions, rather than measured
-function dupont_wire_diameter() = 1.0 + 0.25; // measured plus allowance
+
 
 
 if (show_development) {
-    x_placement(0) {
-        pin_latch(fraction_pin_length);
-        rotate([0, 180, 0]) pin_latch(1-fraction_pin_length);
-        
-        pin_width = dupont_pin_width();
-        pin_length = dupont_pin_length();
-        color("red", alpha=0.1) block([pin_width, pin_width, pin_length]);
-    }
-}
 
-module pin_latch(fraction_pin_length, orient=FRONT) {
-    pin_width = dupont_pin_width();
-    pin_length = dupont_pin_length();
-    
-    latch_length = fraction_pin_length*pin_length;
-    rotation = 
-        orient == FRONT ? [0, 0, 0] :
-        orient == LEFT ? [0, 0, 270] :
-        orient == BEHIND ? [0, 0, 180] :
-        orient == RIGHT ? [0, 0, 90] :
-        assert(false, assert_msg("Bad orient: ", orient, " SHOULD BE LEFT, RIGHT, FRONT, or BACK"));
-    
-    rotate(rotation) {
-        translate([0, 0, latch_length]) pin_latch_as_designed();
-    }
-    
-    module pin_latch_as_designed() {
-        // Origin is at mid point of the catch
-
-        z_leading = leading_height * pin_width;
-        leading = [
-            leading_width * pin_width, 
-            pin_width, 
-            z_leading
-        ];
-        z_catch = catch_height*pin_width;
-        catch = [
-            (0.5+catch_width)*pin_width, 
-            pin_width, 
-            z_catch
-        ];
-        z_catch_complement = z_catch + z_leading + 4*clearance;
-        catch_complement = [
-            (0.5-catch_width)*pin_width-clearance, 
-            pin_width, 
-            z_catch_complement
-        ];
-        
-        z_to_catch = fraction_pin_length*pin_length;
-        z_back = z_to_catch - z_catch_complement + clearance;
-        
-        back = [
-            pin_width,
-            pin_width,
-            z_back
-        ];
-        cleared_catch_height = catch_height*pin_width + clearance;
-        
-        translate([0, 0, cleared_catch_height]) {
-            hull() {
-                translate([pin_width/2, 0, 0]) block(leading, center=BEHIND+ABOVE);
-                translate([pin_width/2, 0, 0]) block(catch, center=BEHIND+BELOW);
-            }
-        }
-        translate([pin_width/2, 0, clearance]) block(catch_complement, center=BEHIND+BELOW);
-        translate([0, 0, -z_catch_complement+clearance]) block(back, center=BELOW);
-    }
 }
 
 if (show_assembled) {
