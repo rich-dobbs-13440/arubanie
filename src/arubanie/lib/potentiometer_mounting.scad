@@ -57,6 +57,19 @@ use <dupont_pin_junction.scad>
 
 module end_of_customization() {}
 
+
+function potentiometer_housing_fitting() = "
+        ▆◐▒▒▒◑▆  ;
+        ◓╳╳╳╳╳◓ ;
+        ▒╳╳╳╳╳▒  ;
+        ▒╳╳╳╳╳▒  ;
+        ▒╳╳╳╳╳▒  ;
+        ◒╳╳╳╳╳◒  ;
+        ▆◐▒▒▒◑▆ ;
+    "; 
+
+
+
 // Rotations:  Move to centrable???
 Z_TO_MINUS_Z = [180, 0, 0];
 Z_TO_MINUS_Y = [90, 0, 0];

@@ -17,18 +17,19 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 
 //orient_for_build_ = false;
 
-show_fitting = true;  
+show_fitting = true; 
+show_mate = true;
+show_potentiometer_insert = true;
+show_internal_entry_potentiometer_insert = true;
 
 /* [Fitting] */
-pattern__ = "all_pattern"; // ["None", all_pattern, potentiometer_insert, potentiometer_housing_fitting, test_latches, pin_retention_key, all_symbols]
-mated_pattern__ = "None"; // ["None", all_pattern, potentiometer_insert, potentiometer_housing_fitting, test_latches, pin_retention_key, all_symbols]
+pattern__ = "all_pattern"; // ["None", all_pattern, test_latches, pin_retention_key, all_symbol]
+mated_pattern__ = "None"; // ["None", all_pattern, test_latches, pin_retention_key, all_symbol]
 
 function match_pattern(pattern_name) = 
     pattern_name == "None" ? undef :
     pattern_name == "all_symbols" ? all_symbols() :
     pattern_name == "all_pattern" ? all_pattern() :
-    pattern_name == "potentiometer_insert" ? potentiometer_insert() :
-    pattern_name == "potentiometer_housing_fitting" ? potentiometer_housing_fitting() :
     pattern_name == "test_latches" ? test_latches() :
     pattern_name == "pin_retention_key" ? pin_retention_key() :
     assert(false, assert_msg("Unable to find pattern: ", pattern_name) ); 
@@ -56,11 +57,15 @@ base_thickness_ = 2; //[0: No plate, 1, 1.5, 2]
 
 module end_customization() {}
     
-    
+//░▒
+   
 function all_pattern() = "
-        ░░░░░░░█░    ;
-        ░╋░░┃░█━█    ;
-        ░░░░░░░█░    ;
+  ;
+        ░╋░░┃░━░   ;
+        ░░░░░░░░░    ;
+        ███    ;
+        █╳██    ;
+        ███    ;
         ░░░░░░░░░    ;
         ░╬░░║░░═░    ;
         ░░░░░░░░░    ;
@@ -81,28 +86,16 @@ function test_latches() = "
         ░◑▆    ;
     "; 
  
-function potentiometer_insert() = "
-        ▆◐│░░  ;
-        ◓░╵░░  ;
-        ─╴█╶─  ;
-        ░░╷░◒  ;
-        ░░│◑▆  ;
-               ;
-        ▆◐▂    ;
-        ◓╷▄    ;
-        ╶╋╴    ;
-        ▄╵◒    ;
-        ▂◑▆    ;
-    ";
 
 
 function potentiometer_housing_fitting() = "
-        ▆◐▁    ;
-        ◓╷▂    ;
-        ╶╋╴    ;
-        ▂╵◒    ;
-        ▁◑▆    ;  
-
+        ▆◐▒▒▒◑▆  ;
+        ◓╳╳╳╳╳◓ ;
+        ▒╳╳╳╳╳▒  ;
+        ▒╳╳╳╳╳▒  ;
+        ▒╳╳╳╳╳▒  ;
+        ◒╳╳╳╳╳◒  ;
+        ▆◐▒▒▒◑▆ ;
     ";  
   
 function all_symbols() = "█▆▄▂▁◐◑◒◓╋━┃╬═║┼─│╷╵╴╶░";   
@@ -110,7 +103,7 @@ function all_symbols() = "█▆▄▂▁◐◑◒◓╋━┃╬═║┼─│
 
 
 module x_placement(index) {
-    dx_spacing = 20;
+    dx_spacing = 50;
     translate([index*dx_spacing, 0, 0]) {
         children();
     }
@@ -119,37 +112,86 @@ module x_placement(index) {
 
 if (show_fitting) {
     x_placement(0) {
-        pin_fitting_for_customization();
+        dupont_pin_fitting(
+            pattern = pattern_,
+            base_thickness = base_thickness_); 
     } 
 }
 
 
 
- 
+if (show_mate) {
+    x_placement(1) {
+        dupont_pin_fitting(
+            pattern = mated_pattern_, 
+            base_thickness = base_thickness_); 
+    } 
+}
+
+if (show_potentiometer_insert) {
+    x_placement(2) {
+        pattern = "
+               ░◑▆░░░░  ;
+               ◒▂▂║▂░░  ;
+               ▆▂▆╵▆▂░  ;
+               ░═╴█╶═░  ;
+               ░▂▆╷▆▂▆  ;
+               ░░▂║▂▂◓  ;
+               ░░░░▆◐░
+            ";
+        dupont_pin_fitting(
+            pattern = pattern, 
+            base_thickness = 2);        
+    }
+}
+if (show_internal_entry_potentiometer_insert) {
+    x_placement(3) {
+        pattern = "
+           ◑▆░▆◐ ;
+           ░▒▆▒░  ;
+           ▒▂╷▂▒  ;
+           ▆╶╳╴▆  ;
+           ▒▂╵▂▒  ;
+           ░▒▆▒░  ;
+           ◑▆░▆◐  ;
+        ";
+        dupont_pin_fitting(
+            pattern = pattern, 
+            base_thickness = 2);
+    }
+}
+
+  
+
+
 
         
 module pin_fitting_for_customization(fitting_base_thickness) {
 
 
         
-   module located_pin_fitting() {
-            dupont_pin_fitting(
-                fitting_base_thickness = fitting_base_thickness_,
-                pattern = match_pattern(insert_pattern));
-    }
+//   module located_pin_fitting() {
+//            dupont_pin_fitting(
+//                fitting_base_thickness = fitting_base_thickness_,
+//                pattern = match_pattern(insert_pattern));
+//    }
     
     
 
     dupont_pin_fitting(
         pattern = pattern_,
-        base_thickness = base_thickness_); 
+        base_thickness = base_thickness_,
+        center=CENTER); 
     
     if (is_undef(mated_pattern_)) {
         // Do nothing
     } else {
         color("red", alpha = 0.25) 
             rotate([180, 0, 0]) 
-                dupont_pin_fitting(pattern = mated_pattern_, base_thickness = base_thickness_); 
+                dupont_pin_fitting(
+                    pattern = mated_pattern_, 
+                    base_thickness = base_thickness_, 
+                    center=CENTER); 
     }
 }
 
@@ -207,8 +249,8 @@ module dupont_pin_fitting(
     
 
     layout = pattern_to_layout(pattern);
-    echo("layout" , layout);
-    echo("len(layout)", len(layout));
+    log_v1("layout" , layout, verbosity, DEBUG);
+    //echo("len(layout)", len(layout));
     function layout_extent(layout) = 
         let ( 
             row_count = len(layout),
@@ -268,7 +310,7 @@ module dupont_pin_fitting(
     
 
     module base_plate() {
-        plate_symbols = "█▆▄▂▁◐◑◒◓╋━┃╬═║┼─│╷╵╴╶░";
+        plate_symbols = "█▆▄▂▁◐◑◒◓╋━┃╬═║┼─│╷╵╴╶▒";
         plate_map = [ for (symbol = plate_symbols) [symbol, 0] ];            
         process(layout, plate_map, map_is_full=false) {
             block([pin_width, pin_width, base_thickness] + allowances, center=BELOW);
@@ -276,7 +318,7 @@ module dupont_pin_fitting(
     }
     
     module pin_inserts() {
-        pin_symbols = "█▆▄▂▁◐◑◒◓╬║═";
+        pin_symbols = "█▆▄▂▁◐◑◒◓╋━┃╬║═";
         pin_map = [for (i = [0:len(pin_symbols)-1]) [pin_symbols[i], i]];
         
         //log_v1("map", map,verbosity, DEBUG, IMPORTANT);
@@ -286,13 +328,16 @@ module dupont_pin_fitting(
             pin(1/2);
             pin(1/4);
             pin(1/8);
-            dupont_pin_latch(0.50, opening=LEFT);
             dupont_pin_latch(0.50, opening=RIGHT);
+            dupont_pin_latch(0.50, opening=LEFT);
             dupont_pin_latch(0.50, opening=BEHIND);
             dupont_pin_latch(0.50, opening=FRONT);
-            pin(1);
-            pin(1);
-            pin(1);
+            pin(1/2);
+            pin(1/2);
+            pin(1/2);
+            pin(1/4);
+            pin(1/4);
+            pin(1/4);            
         } 
         
         module pin(fraction) {
@@ -311,7 +356,7 @@ module dupont_pin_fitting(
 
         */
 
-        clearance_symbols = "╋━┃╬═║┼─│╷╵╴╶";    
+        clearance_symbols = "╳╋━┃╬═║┼─│╷╵╴╶";  // TODO:    └ ┐ ┌ └ ├ ┬ ┤ ┣ ┫ ┓ ┏ ┛ ┗ ┳ ┻
         clearance_map = [for (i = [0:len(clearance_symbols)-1]) [clearance_symbols[i], i]];
         
 
@@ -320,8 +365,9 @@ module dupont_pin_fitting(
         
         process(layout, clearance_map, map_is_full=true) {
             clearance(PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
-            clearance(PIN_PASS_THROUGH, [LEFT, RIGHT]);
-            clearance(PIN_PASS_THROUGH, [FRONT, BEHIND]);
+            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
+            clearance(NO_PIN_PASS_THROUGH, [LEFT, RIGHT]);
+            clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND]);
             // Clearance through pin body
             clearance(NO_PIN_PASS_THROUGH, [FRONT, BEHIND, LEFT, RIGHT]);
             clearance(NO_PIN_PASS_THROUGH, [LEFT, RIGHT]);
@@ -355,10 +401,7 @@ module dupont_pin_fitting(
             }
         }        
     }
-    
- 
-    
-    
+
     function pattern_to_layout(pattern) =
         assert(is_string(pattern))
         let(
@@ -366,7 +409,7 @@ module dupont_pin_fitting(
             trimmed_lines = [ for (line = lines) trim(line)],
             last = undef
         ) 
-        lines; //[ for (item = a) if (item != "") item];        
+        trimmed_lines;       
 
 
     function pattern_to_map(layout, idx)  = [
@@ -399,7 +442,3 @@ module dupont_pin_fitting(
     }
 
 }
-
-
-
-

@@ -72,6 +72,9 @@ x_placement(0) {
     }
 }
 
+pin_width = dupont_pin_width();
+pin_length = dupont_pin_length();
+
 module centered_latch(fraction_pin_length) {
     dupont_pin_latch(
         fraction_pin_length, 
@@ -100,6 +103,7 @@ x_placement(3) {
     if (show_mated_default) {
         dupont_pin_latch(origin=CENTER);
         rotate([0, 180, 0]) dupont_pin_latch(origin=CENTER); 
+        color("red", alpha=0.25) block([pin_width, pin_width, pin_length]);
     }   
 }
 
