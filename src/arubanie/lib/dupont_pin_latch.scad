@@ -12,7 +12,7 @@ show_mated_default = true;
 /* [Pin Latch] */  
 
 // The amount of engagement in the catch as a fraction of the width
-catch_width_ = 0.125; //[0: 0.01 : 0.50]
+catch_width_ = 0.125; //[-.50: 0.01 : 1]
 
 // In pin widths
 catch_height_ = 0.5 ; //[0: 0.01 : 1]

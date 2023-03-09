@@ -56,11 +56,6 @@ Pattern Language:
 
 */
 
-
-
-
-
-
 include <logging.scad>
 include <centerable.scad>
 use <shapes.scad>
@@ -68,6 +63,10 @@ use <not_included_batteries.scad>
 use <relativity/strings.scad>
 use <dupont_pins.scad>
 use <dupont_pin_latch.scad>
+
+
+
+
 
 /* [Logging] */
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
@@ -107,6 +106,12 @@ show_4x4_plug_ = true;
 show_4x4_socket_for_print_ = true;
 show_4x4_socket_mated_ = true;
 show_4x4_mocks_ = true;
+// Relative strength of latch - scaled height of catch
+latch_strength_ = 0.0; // [-1: 0.01 : 1]
+// Distance between latch parts in mm
+latch_clearance_ = 0.2; // [0: 0.05 : 1]
+
+f_ = 0; // [0:0.05:2]
 
 //// Measured in pins
 //mated_y_offset = 1; // [-4: 4]
@@ -125,8 +130,9 @@ show_4x4_mocks_ = true;
 //clearance = 0.2; // [0 : 0.05 : 0.5]
 
 module end_customization() {}
+
     
-//░▒
+log_s("Language Key", dupont_pin_fitting_key(), verbosity, INFO);
 
 
    
@@ -183,6 +189,27 @@ module x_placement(index) {
     }
 }
 
+*bare_plug();
+
+module bare_plug() {
+    pin_width = 2.54;
+    base_thickness = pin_width;
+    bare_plug = "
+       ▒◒◒◒◒▒  ;
+       ◑░░░░◐  ;
+       ◑░░░░◐  ;
+       ◑░░░░◐  ;        
+       ◑░░░░◐  ;
+       ▒◓◓◓◓▒   ";
+   
+    union() {
+        dupont_pin_fitting(
+            pattern = bare_plug, 
+            base_thickness = base_thickness);
+        block([0.1, 0.1, 0.1]); 
+    }
+}
+
 module develop_4x4_plug_and_socket() {
     
     pin_width = 2.54;
@@ -197,11 +224,13 @@ module develop_4x4_plug_and_socket() {
     if (show_4x4_socket_for_print_) {
         color("olive")  translate([0, 20, 0])  socket();
     }
-    if (show_4x4_socket_mated_) {
-        rotate([180, 0, 0]) {
-            color("olive") socket();
-        }
-    }
+//    if (show_4x4_socket_mated_) {
+//        rotate([180, 0, 0]) {
+//            color("olive") socket();
+//        }
+//            color("olive") socket();
+//        }
+//    }
     
     module plug() {
     
@@ -212,9 +241,7 @@ module develop_4x4_plug_and_socket() {
           ▂╶┼╴▂  ;
           ▂▂╵▂▂  ;
           ▂▂▂▂▂  ";
-       dupont_pin_fitting(
-            pattern = pin_holder, 
-            base_thickness = pin_width); 
+
         
         bare_plug = "
            ▒◒◒◒◒▒  ;
@@ -223,9 +250,17 @@ module develop_4x4_plug_and_socket() {
            ◑░░░░◐  ;        
            ◑░░░░◐  ;
            ▒◓◓◓◓▒   ";
+       
         dupont_pin_fitting(
             pattern = bare_plug, 
-            base_thickness = base_thickness); 
+            latch_strength = latch_strength_,
+            latch_clearance = latch_clearance_,
+            base_thickness = base_thickness);
+        dupont_pin_fitting(
+            pattern = pin_holder,
+            latch_strength = latch_strength_,
+            latch_clearance =latch_clearance_,
+            base_thickness = pin_width); 
            
     } 
     module socket() {
@@ -239,6 +274,8 @@ module develop_4x4_plug_and_socket() {
         
         dupont_pin_fitting(
             pattern = socket, 
+            latch_strength = latch_strength_,
+            latch_clearance =latch_clearance_,        
             base_thickness = pin_width);
     }
 }
@@ -394,16 +431,9 @@ module pin_fitting_for_customization(fitting_base_thickness) {
 }
 
 
-function pin_retention_key() = "      
-        ▁▂▄▆█     ; // Pin inserts with various height
-        ╳   ; // Pin and wire clearance, both directions
-        ╬║═         ; // Wire access in particular directions through full blocks
-        ┼│─    ; // Wire access passing through in particular
-        ╴╵╶╷   ; // Wire access in particular directions
-        ◐◑◒◓   ; // Latches with a particular orientation
-        ░      ; // Bare plate
 
-     ";
+
+
 
 function dupont_pin_fitting_language() = 
     let (
@@ -440,6 +470,7 @@ function dupont_pin_fitting_language() =
             ["║", [PIN, [SHORT, [FRONT, BEHIND]]]], 
 
             // Clearance through plate 
+            ["▒", [PLATE]],
             ["┼", [PLATE, [FRONT, BEHIND, LEFT, RIGHT]]],
             ["─", [PLATE, [LEFT, RIGHT]]],
             ["│", [PLATE, [FRONT, BEHIND]]],
@@ -457,22 +488,86 @@ function dupont_pin_fitting_language() =
             ["◑", [LATCH, [MID, LEFT]]],
             ["◒", [LATCH, [MID, BEHIND]]],
             ["◓", [LATCH, [MID, FRONT]]],
-            ["▒", [PLATE]],
+            
+            [" ", [SPACER]], // Interior - exterior will be trimmed off
             ["░", [SPACER]],
+            
         ],
+        pin_pass_through_symbols = join([for (element = element_map) if (element[1][0] == PIN_PASS_THROUGH) element[0]]),
+        latch_symbols = join([for (element = element_map) if (element[1][0] == LATCH) element[0]]),
+        plate_symbols = join([for (element = element_map) if (element[1][0] == PLATE) element[0]]),
+        pin_symbols = join([for (element = element_map) if (element[1][0] == PIN) element[0]]), 
+            
         last = undef
     )
     [ 
         ["element_map", element_map],
+        ["plate_symbols", plate_symbols],
+        ["pin_symbols", pin_symbols],
+        ["latch_symbols", latch_symbols],
+        ["pin_pass_through_symbols", pin_pass_through_symbols],
+        
+        
     ];
+        
+//language = dupont_pin_fitting_language();
+//log_v1("language", language, verbosity, debug);
+        
+
+        
+function dpf_format_glossary(item, explanation) =
+        let (
+            tab = 20,
+            NBSP = "\u00A0",
+            indent = join([NBSP, NBSP, NBSP, NBSP]),
+            current = len(indent) + len(item),
+            padding =  tab > current ?  join([for (i = [current : tab -1]) NBSP]) : " ",
+                
+            line = join([indent, item, padding, explanation, "\n"])
+        )
+        line;
      
- 
+function dupont_pin_fitting_key() = 
+        let (
+            language = dupont_pin_fitting_language(),
+            NBSP = "\u00A0",
+            indent = join([NBSP, NBSP, NBSP, NBSP]),
+            plate_symbols = find_in_dct(language, "plate_symbols"),
+            pin_symbols = find_in_dct(language, "pin_symbols"),
+            latch_symbols = find_in_dct(language, "latch_symbols"),
+            pin_pass_through_symbols = find_in_dct(language, "pin_pass_through_symbols"),
+            last = undef 
+        )
+        str(
+            "\nDupont Pin Fitting Language: \n",
+            
+            dpf_format_glossary(plate_symbols, "Just plate, perhaps with wire clearances."), 
+            dpf_format_glossary(pin_symbols, "Dummy pins of various heights, perhaps with wire clearances."),
+            dpf_format_glossary(latch_symbols, "Latchs, for connecting fittings."),
+            dpf_format_glossary(pin_pass_through_symbols, "Pass through for a pin into a fitting."),   
+            "\n");
+        
+//        "  
+//    
+//    
+//        
+//        ▁▂▄▆█     ; // Pin inserts with various height
+//        ╳   ; // Pin and wire clearance, both directions
+//        ╬║═    ; // Wire access in particular directions through full blocks
+//        ┼│─    ; // Wire access passing through in particular
+//        ╴╵╶╷   ; // Wire access in particular directions
+//        ◐◑◒◓   ; // Latches with a particular orientation
+//        ░      ; // Bare plate
+//
+//     "; 
 
 
 module dupont_pin_fitting(
         pattern,
         base_thickness = 2,
-        pin_allowance = 0.0, 
+        pin_allowance = 0.0,
+        latch_strength = 1,
+        latch_clearance = 0.1, 
         center=0) {
        
     assert(is_string(pattern)); 
@@ -563,7 +658,7 @@ module dupont_pin_fitting(
     }
   
     module fitting_as_generated() {
-        render(convexity=10) difference() {
+        render(convexity=20) difference() {
             process("shapes");
             process("pin_passthrough");
         }
@@ -579,11 +674,11 @@ module dupont_pin_fitting(
         dupont_pin_latch(
             fraction_pin_length = 0.50, 
             opening=opening,
-            catch_width = 1/16,
+            catch_width = latch_strength * (1/16),
             catch_height = 0.50,
             leading_width = 0,
             leading_height = 0.50,
-            clearance = 0.1);
+            clearance = latch_clearance);
         // Provide extra support for the pin latch
         rotation = 
             opening == LEFT ? [0, 0, 0] :
@@ -649,8 +744,10 @@ module dupont_pin_fitting(
     
     module produce_pin_pass_through(aspect, element_features) {
         if (aspect == "pin_passthrough") {
-            z_alot = [0, 0, 4*pin_length]; 
-            clearance_allowances = pin /4;
+            z_alot = [0, 0, 4*pin_length];
+            wd = dupont_wire_diameter();
+            central_wire_clearance = [wd, wd, 0]; 
+            clearance_allowances = pin  - central_wire_clearance;
             block(pin + clearance_allowances + z_alot);            
         }
     }
@@ -688,9 +785,10 @@ module dupont_pin_fitting(
     module process(aspect) {
         
         language = dupont_pin_fitting_language();
+        log_v1("language", language, verbosity, DEBUG);
         
         element_map = find_in_dct(language, "element_map");
-        log_v1("element_map", element_map, verbosity, INFO);
+        log_v1("element_map", element_map, verbosity, DEBUG);
         for (i = [0 : len(layout) -1]) {
             row = layout[i];
             for (j = [0 : len(row) -1]) {
@@ -725,3 +823,4 @@ module dupont_pin_fitting(
     }
 
 }
+

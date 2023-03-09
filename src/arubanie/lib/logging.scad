@@ -26,15 +26,21 @@ NOTSET = 0 + 0;
 
 /*
 
-    
-Add this to your customizer section:   
+    Add the contents of the logging_customize_section module to your
+    customizer section.  The module is just there to hide
+    these lines from inclusion.
 
-*/
+*/ 
 
-/* [Logging] */
 
-log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
-verbosity = log_verbosity_choice(log_verbosity_choice);    
+module logging_customize_section() {
+
+    /* [Logging] */
+
+    log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
+    verbosity = log_verbosity_choice(log_verbosity_choice);    
+}
+
 
 /*  
 
@@ -88,7 +94,7 @@ if (show_name) {
 IMPORTANT = 25 + 0;
 
 big_fonts = false;
-font_size = big_fonts ? "<font size='+1'>" : "";
+font_size = big_fonts ? "<font size='+1'>" : "<code>";
 
 
 function console_styling(level) =
