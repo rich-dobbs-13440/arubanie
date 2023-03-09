@@ -131,7 +131,6 @@ module end_customization() {}
 
    
 function all_pattern() = "
-       █░█
        █░█  ;
        █╳█  ;
        ███  ;
@@ -454,10 +453,10 @@ function dupont_pin_fitting_language() =
             ["┌", [PLATE, [RIGHT, FRONT]]], 
             ["└", [PLATE, [LEFT, BEHIND]]],
 
-            ["◐", [LATCH, [MID, [RIGHT]]]],
-            ["◑", [LATCH, [MID, [LEFT]]]],
-            ["◒", [LATCH, [MID, [BEHIND]]]],
-            ["◓", [LATCH, [MID, [FRONT]]]],
+            ["◐", [LATCH, [MID, RIGHT]]],
+            ["◑", [LATCH, [MID, LEFT]]],
+            ["◒", [LATCH, [MID, BEHIND]]],
+            ["◓", [LATCH, [MID, FRONT]]],
             ["▒", [PLATE]],
             ["░", [SPACER]],
         ],
@@ -565,11 +564,8 @@ module dupont_pin_fitting(
   
     module fitting_as_generated() {
         render(convexity=10) difference() {
-            union()  {
-                base_plate();
-                pin_inserts();
-            }
-            clearances();
+            process("shapes");
+            process("pin_passthrough");
         }
     }       
     
@@ -598,47 +594,21 @@ module dupont_pin_fitting(
         rotate(rotation) backer();
     }
     
+    function pin_fraction_from_pin_height(height) = 
+        height == "FULL" ? 1 :
+        height == "TALL" ? 0.75 :
+        height == "MID" ? 0.50 :
+        height == "SHORT" ? 0.25 :
+        height == "MINIMAL" ? 0.125 :
+        assert(false);
     
-
-    module base_plate() {
-        plate_symbols = "█▆▄▂▁◐◑◒◓╋━┃╸╹╺╻╬═║┼─│╷╵╴╶▒";
-        plate_map = [ for (symbol = plate_symbols) [symbol, 0] ];
-        log_v1("plate_map", plate_map, verbosity, DEBUG); 
-        process(layout, plate_map, map_is_full=false) {
-            block([pin_width, pin_width, base_thickness], center=BELOW);
+       
+    module wire_clearances(openings) {
+        if (!is_undef(openings)) { 
+            for (opening = openings) {
+                wire_clearance(opening);
+            }
         }
-    }
-    
-    module pin_inserts() {
-        pin_symbols = "█▆▄▂▁◐◑◒◓╋━┃╸╹╺╻╬║═";
-        pin_map = [for (i = [0:len(pin_symbols)-1]) [pin_symbols[i], i]];
-        
-        log_v1("pin_map", pin_map, verbosity, DEBUG);
-        process(layout, pin_map, map_is_full=true) {
-            pin(1);
-            pin(3/4);
-            pin(1/2);
-            pin(1/4);
-            pin(1/8);
-            pin_latch(opening=RIGHT); 
-            pin_latch(opening=LEFT);
-            pin_latch(opening=BEHIND);
-            pin_latch(opening=FRONT);
-            pin(1/2);
-            pin(1/2);
-            pin(1/2);            
-            pin(1/2);
-            pin(1/2);
-            pin(1/2);
-            pin(1/2);
-            pin(1/4);
-            pin(1/4);
-            pin(1/4);            
-        } 
-        
-        module pin(fraction) {
-            block([pin_width, pin_width, fraction*pin_length], center=ABOVE);
-        }        
     }
     
     module wire_clearance(opening) {
@@ -650,62 +620,72 @@ module dupont_pin_fitting(
         }
     }  
  
-    module produce_pin(kind, element_features) {
-        // echo("kind", kind);
-        //echo("element_features", element_features);
-        height = element_features[0];
-        openings = element_features[1];
-        if (kind == "clearances") {
-            for (opening = openings) {
-                wire_clearance(opening);
-            }
-        } else {
-            assert(false);
-        }
-    }
-    
-    module produce_plate(kind, element_features) {
-        //echo("kind", kind);
-        //echo("element_features", element_features);
-        if (kind == "clearances") {
-            if (is_undef(element_features)) {
-                // Do nothing
-            } else {
-                openings = element_features;
-                for (opening = openings) {
-                    wire_clearance(opening);
+    module produce_pin(aspect, element_features) {
+        
+        if (aspect == "shapes") {
+            height = element_features[0];
+            openings = element_features[1];
+            // TODO Change to to ABOVE+CENTER+RIGHT  -
+           fraction = pin_fraction_from_pin_height(height); 
+            difference() {
+                union() {
+                    block([pin_width, pin_width, fraction*pin_length], center=ABOVE); 
+                    block([pin_width, pin_width, base_thickness], center=BELOW);
                 }
-            }
-            
-        } else {
-            assert(false);
+                wire_clearances(openings);
+            } 
         }
     }
     
-    module produce_pin_pass_through(kind, element_features) {
-        if (kind == "clearances") {
+    module produce_plate(aspect, element_features) {
+        if (aspect == "shapes") {
+            openings = element_features;
+            difference() {
+                block([pin_width, pin_width, base_thickness], center=BELOW);
+                wire_clearances(openings);
+            } 
+        }
+    }
+    
+    module produce_pin_pass_through(aspect, element_features) {
+        if (aspect == "pin_passthrough") {
             z_alot = [0, 0, 4*pin_length]; 
             clearance_allowances = pin /4;
             block(pin + clearance_allowances + z_alot);            
         }
     }
+    
+    module  produce_latch(aspect, element_features) {
+        if (aspect == "shapes") {        
+            height = element_features[0];
+            opening = element_features[1];
+            pin_latch(opening);
+            block([pin_width, pin_width, base_thickness], center=BELOW);
+        }
+    }
 
-    module produce(element, kind) {
-        //echo("element", element);
+    module produce(element, aspect) {
+        
         element_type = element[0];
         element_features = element[1];
         if (element_type == "PLATE") {
-            produce_plate(kind, element_features);
+            produce_plate(aspect, element_features);
         } else if (element_type == "PIN") {
-            produce_pin(kind, element_features);
+            produce_pin(aspect, element_features);
+        } else if (element_type == "LATCH") {
+            produce_latch(aspect, element_features);            
         } else if (element_type == "PIN_PASS_THROUGH") {
-            produce_pin_pass_through(kind, element_features);
+            produce_pin_pass_through(aspect, element_features);
+        } else if (element_type == "SPACER") {
+            // Do nothing
+        } else {
+            echo("element_type", element_type);
+            assert(false);
         }
-        //assert(false);
     }
 
 
-    module process2(kind) {
+    module process(aspect) {
         
         language = dupont_pin_fitting_language();
         
@@ -718,17 +698,13 @@ module dupont_pin_fitting(
                 element = find_in_dct(element_map, cmd);
                 if (!is_undef(element)) {
                     locate(i, j) {
-                        produce(element, kind);
+                        produce(element, aspect);
                     } 
                 } 
             }
         }
     }
         
-    module clearances() {
-        process2("clearances");
-    }
-
     function pattern_to_layout(pattern) =
         assert(is_string(pattern), assert_msg("pattern : ", str(pattern)) )
         let(
@@ -738,7 +714,6 @@ module dupont_pin_fitting(
         ) 
         trimmed_lines;       
 
-
     function pattern_to_map(layout, idx)  = [
             for (cmd = layout) if (cmd != " ") [cmd, idx]
         ];
@@ -747,26 +722,6 @@ module dupont_pin_fitting(
         x = i * pin_width;
         y = j * pin_width;
         translate([x, y, 0]) children();
-    }
-    
-    module process(layout, map_cmd_to_child, missing_child_idx, map_is_full) {
-        if (map_is_full) { 
-            assert(len(map_cmd_to_child) == $children, 
-                assert_msg("len(map): ", len(map_cmd_to_child),  "  $children: ", $children));
-        }
-        for (i = [0 : len(layout) -1]) {
-            row = layout[i];
-            for (j = [0 : len(row) -1]) {
-                cmd = row[j];              
-                found_idx = find_in_dct(map_cmd_to_child, cmd);
-                idx = !is_undef(found_idx) ? found_idx : missing_child_idx;
-                if (!is_undef(idx)) {
-                    locate(i, j) {
-                        children(idx);
-                    } 
-                } 
-            }
-        }
     }
 
 }
