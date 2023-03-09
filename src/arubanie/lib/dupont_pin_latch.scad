@@ -12,16 +12,16 @@ show_mated_default = true;
 /* [Pin Latch] */  
 
 // The amount of engagement in the catch as a fraction of the width
-catch_width_ = 0.125; //[0: 0.05 : 0.50]
+catch_width_ = 0.125; //[0: 0.01 : 0.50]
 
 // In pin widths
-catch_height_ = 1/2; //[0: 0.05 : 1]
+catch_height_ = 0.5 ; //[0: 0.01 : 1]
 
 // As a fraction of the width
 leading_width_ = 0.33; //[0: 0.05 : 0.50]
 
 // In pin widths
-leading_height_ = 1/2; //[0: 0.05 : 2]
+leading_height_ =  0.5; //[0: 0.05 : 2]
 
 // Distance between parts in mm
 clearance_ = 0.2; // [0 : 0.05 : 0.5]
@@ -83,13 +83,17 @@ module centered_latch(fraction_pin_length) {
         catch_width = catch_width_,
         catch_height = catch_height_,
         leading_width = leading_width_,
-        leading_height = leading_height_);
+        leading_height = leading_height_,
+        clearance = clearance_);
 }
     
 x_placement(1) {
     if (show_mate) {
-        centered_latch(fraction_pin_length);
-        rotate([0, 180, 0]) centered_latch(1-fraction_pin_length);
+        translate([0, 0, fraction_pin_length*pin_length]) {
+            centered_latch(fraction_pin_length);
+            rotate([0, 180, 0]) centered_latch(1-fraction_pin_length);
+        }
+        color("blue", alpha=0.25) block([pin_width, pin_width, pin_length/2], center=ABOVE);
     }
 }
 
