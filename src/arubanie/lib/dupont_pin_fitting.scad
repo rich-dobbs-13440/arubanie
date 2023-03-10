@@ -131,8 +131,12 @@ f_ = 0; // [0:0.05:2]
 
 module end_customization() {}
 
-    
-log_s("Language Key", dupont_pin_fitting_key(), verbosity, INFO);
+
+language_key(verbosity);
+
+module language_key(log_verbosity) {   
+    log_s("Language Key", dupont_pin_fitting_key(), log_verbosity, DEBUG);
+}
 
 
    
@@ -210,75 +214,7 @@ module bare_plug() {
     }
 }
 
-module develop_4x4_plug_and_socket() {
-    
-    pin_width = 2.54;
-    pin_length = 14;
-    if (show_4x4_mocks_) {
-        color("red") block([pin_width, pin_width, pin_length]);  
-    }      
-    
-    if (show_4x4_plug_) {
-        color("orange") plug();
-    }
-    if (show_4x4_socket_for_print_) {
-        color("olive")  translate([0, 20, 0])  socket();
-    }
-//    if (show_4x4_socket_mated_) {
-//        rotate([180, 0, 0]) {
-//            color("olive") socket();
-//        }
-//            color("olive") socket();
-//        }
-//    }
-    
-    module plug() {
-    
-        base_thickness = pin_width;
-        pin_holder = "
-          ▂▂▂▂▂  ;
-          ▂▂╳▂▂  ;
-          ▂╶┼╴▂  ;
-          ▂▂╵▂▂  ;
-          ▂▂▂▂▂  ";
 
-        
-        bare_plug = "
-           ▒◒◒◒◒▒  ;
-           ◑░░░░◐  ;
-           ◑░░░░◐  ;
-           ◑░░░░◐  ;        
-           ◑░░░░◐  ;
-           ▒◓◓◓◓▒   ";
-       
-        dupont_pin_fitting(
-            pattern = bare_plug, 
-            latch_strength = latch_strength_,
-            latch_clearance = latch_clearance_,
-            base_thickness = base_thickness);
-        dupont_pin_fitting(
-            pattern = pin_holder,
-            latch_strength = latch_strength_,
-            latch_clearance =latch_clearance_,
-            base_thickness = pin_width); 
-           
-    } 
-    module socket() {
-        socket = "
-           ▒◓◓◓◓▒  ;
-           ◐░░░░◑  ;
-           ◐░░░░◑  ;
-           ◐░░░░◑  ;
-           ◐░░░░◑  ;           
-           ▒◒◒◒◒▒   "; 
-        
-        dupont_pin_fitting(
-            pattern = socket, 
-            latch_strength = latch_strength_,
-            latch_clearance =latch_clearance_,        
-            base_thickness = pin_width);
-    }
-}
 
 module check_alignments() {
     //╷╵╴╶▒
@@ -302,8 +238,6 @@ module check_alignments() {
 
 if (show_dev) {
     x_placement(0) {
-       *check_alignments();
-       develop_4x4_plug_and_socket();
     }
 }
 
@@ -568,7 +502,8 @@ module dupont_pin_fitting(
         pin_allowance = 0.0,
         latch_strength = 1,
         latch_clearance = 0.1, 
-        center=0) {
+        center=0,
+        log_verbosity = INFO) {
        
     assert(is_string(pattern)); 
     assert(pattern != "");
@@ -603,7 +538,7 @@ module dupont_pin_fitting(
     
 
     layout = pattern_to_layout(pattern);
-    log_v1("layout" , layout, verbosity, INFO);
+    log_v1("layout" , layout, log_verbosity, INFO);
     function layout_extent(layout) = 
         let ( 
             row_count = len(layout),
@@ -615,7 +550,7 @@ module dupont_pin_fitting(
             
     
     layout_extent = layout_extent(layout);
-    log_s("layout_extent" , layout_extent, verbosity, INFO);
+    log_s("layout_extent" , layout_extent, log_verbosity, INFO);
     
     handle_center(center, layout_extent);
     
@@ -665,19 +600,24 @@ module dupont_pin_fitting(
     }       
     
     module pin_latch(opening) {
+        leading_height = 0.50;
+        catch_height = 0.50;
         module backer() {
-            size = [pin_width, pin_width/2-pin_allowance, 7/8*pin_length];
-            translate([0, pin_width/2, -base_thickness])
-                block(size, center=ABOVE+RIGHT);            
+            backer_cs = [pin_width, pin_width/2-pin_allowance, 0];
+            z_backer = [0, 0, 0.5*pin_length + leading_height*pin_width  + catch_height*pin_width +  4*latch_clearance];
+            translate([0, pin_width/2, 0]) {
+               block(backer_cs + z_backer, center=ABOVE+RIGHT);
+               block(backer_cs + [0, 0, base_thickness], center = BELOW + RIGHT); 
+            }
         }
         
         dupont_pin_latch(
             fraction_pin_length = 0.50, 
             opening=opening,
             catch_width = latch_strength * (1/16),
-            catch_height = 0.50,
+            catch_height = catch_height,
             leading_width = 0,
-            leading_height = 0.50,
+            leading_height = leading_height,
             clearance = latch_clearance);
         // Provide extra support for the pin latch
         rotation = 
@@ -785,10 +725,10 @@ module dupont_pin_fitting(
     module process(aspect) {
         
         language = dupont_pin_fitting_language();
-        log_v1("language", language, verbosity, DEBUG);
+        log_v1("language", language, log_verbosity, DEBUG);
         
         element_map = find_in_dct(language, "element_map");
-        log_v1("element_map", element_map, verbosity, DEBUG);
+        log_v1("element_map", element_map, log_verbosity, DEBUG);
         for (i = [0 : len(layout) -1]) {
             row = layout[i];
             for (j = [0 : len(row) -1]) {
