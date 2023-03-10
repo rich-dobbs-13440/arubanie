@@ -132,13 +132,12 @@ f_ = 0; // [0:0.05:2]
 module end_customization() {}
 
 
-language_key(verbosity);
+dupont_pin_fitting_language_key(verbosity);
 
-module language_key(log_verbosity) {   
+
+module dupont_pin_fitting_language_key(log_verbosity) {   
     log_s("Language Key", dupont_pin_fitting_key(), log_verbosity, DEBUG);
 }
-
-
    
 function all_pattern() = "
        █░█  ;
@@ -416,7 +415,7 @@ function dupont_pin_fitting_language() =
             ["└", [PLATE, [RIGHT, BEHIND]]],
             ["┐", [PLATE, [LEFT, FRONT]]],
             ["┌", [PLATE, [RIGHT, FRONT]]], 
-            ["└", [PLATE, [LEFT, BEHIND]]],
+            ["┘", [PLATE, [LEFT, BEHIND]]],
 
             ["◐", [LATCH, [MID, RIGHT]]],
             ["◑", [LATCH, [MID, LEFT]]],
@@ -431,6 +430,7 @@ function dupont_pin_fitting_language() =
         latch_symbols = join([for (element = element_map) if (element[1][0] == LATCH) element[0]]),
         plate_symbols = join([for (element = element_map) if (element[1][0] == PLATE) element[0]]),
         pin_symbols = join([for (element = element_map) if (element[1][0] == PIN) element[0]]), 
+        spacer_symbols = join([for (element = element_map) if (element[1][0] == SPACER) element[0]]),
             
         last = undef
     )
@@ -439,6 +439,7 @@ function dupont_pin_fitting_language() =
         ["plate_symbols", plate_symbols],
         ["pin_symbols", pin_symbols],
         ["latch_symbols", latch_symbols],
+        ["spacer_symbols", spacer_symbols],
         ["pin_pass_through_symbols", pin_pass_through_symbols],
         
         
@@ -470,6 +471,7 @@ function dupont_pin_fitting_key() =
             pin_symbols = find_in_dct(language, "pin_symbols"),
             latch_symbols = find_in_dct(language, "latch_symbols"),
             pin_pass_through_symbols = find_in_dct(language, "pin_pass_through_symbols"),
+            spacer_symbols = find_in_dct(language, "spacer_symbols"),
             last = undef 
         )
         str(
@@ -478,7 +480,8 @@ function dupont_pin_fitting_key() =
             dpf_format_glossary(plate_symbols, "Just plate, perhaps with wire clearances."), 
             dpf_format_glossary(pin_symbols, "Dummy pins of various heights, perhaps with wire clearances."),
             dpf_format_glossary(latch_symbols, "Latchs, for connecting fittings."),
-            dpf_format_glossary(pin_pass_through_symbols, "Pass through for a pin into a fitting."),   
+            dpf_format_glossary(spacer_symbols, "Spacers - the space character only works internally."),
+            dpf_format_glossary(pin_pass_through_symbols, "Pass through for a pin into a fitting."),    
             "\n");
         
 //        "  
