@@ -143,6 +143,9 @@ function all_pattern() = "
        █░█  ;
        █╳█  ;
        ███  ;
+       ███ ███ ███ ;
+       █▤█ █▥█ █▦█ ;
+       ███ ███ ███;;
        ;
        █▆▄▂▁ ;
        ;
@@ -372,7 +375,7 @@ function dupont_pin_fitting_language() =
     let (
         // TODO:    └ ┐ ┌ └ ├ ┬ ┤ ┣ ┫┳ ┻┓ ┏ ┛ ┗ 
         // Element types
-        PIN_PASS_THROUGH = "PIN_PASS_THROUGH", 
+        CLEARANCE = "CLEARANCE",
         PLATE = "PLATE", 
         PIN = "PIN",
         LATCH = "LATCH",
@@ -383,8 +386,17 @@ function dupont_pin_fitting_language() =
         MID = "MID",
         SHORT = "SHORT",
         MINIMAL = "MINIMAL",
+        // Clearance types
+        PIN_PASS_THROUGH = "PIN_PASS_THROUGH", 
+        HALF = "HALF",
+        
         element_map = [
-            ["╳", [PIN_PASS_THROUGH]], 
+            ["╳", [CLEARANCE, [PIN_PASS_THROUGH]]], 
+            ["▽", [CLEARANCE, [HALF, [FRONT]]]],
+            ["△", [CLEARANCE, [HALF, [BEHIND]]]],
+            ["◁", [CLEARANCE, [HALF, [LEFT]]]],
+            ["▷", [CLEARANCE, [HALF, [RIGHT]]]],            
+            ["◊", [CLEARANCE, [HALF, [LEFT, RIGHT, FRONT, BEHIND]]]],
             ["▁", [PIN, [MINIMAL]]],
             ["▂", [PIN, [SHORT]]],
             ["▄", [PIN, [MID]]],
@@ -426,7 +438,7 @@ function dupont_pin_fitting_language() =
             ["░", [SPACER]],
             
         ],
-        pin_pass_through_symbols = join([for (element = element_map) if (element[1][0] == PIN_PASS_THROUGH) element[0]]),
+        clearance_symbols = join([for (element = element_map) if (element[1][0] == CLEARANCE) element[0]]),
         latch_symbols = join([for (element = element_map) if (element[1][0] == LATCH) element[0]]),
         plate_symbols = join([for (element = element_map) if (element[1][0] == PLATE) element[0]]),
         pin_symbols = join([for (element = element_map) if (element[1][0] == PIN) element[0]]), 
@@ -440,13 +452,11 @@ function dupont_pin_fitting_language() =
         ["pin_symbols", pin_symbols],
         ["latch_symbols", latch_symbols],
         ["spacer_symbols", spacer_symbols],
-        ["pin_pass_through_symbols", pin_pass_through_symbols],
+        ["clearance_symbols", clearance_symbols],
         
         
     ];
         
-//language = dupont_pin_fitting_language();
-//log_v1("language", language, verbosity, debug);
         
 
         
@@ -470,18 +480,22 @@ function dupont_pin_fitting_key() =
             plate_symbols = find_in_dct(language, "plate_symbols"),
             pin_symbols = find_in_dct(language, "pin_symbols"),
             latch_symbols = find_in_dct(language, "latch_symbols"),
-            pin_pass_through_symbols = find_in_dct(language, "pin_pass_through_symbols"),
+            clearance_symbols = find_in_dct(language, "clearance_symbols"),
             spacer_symbols = find_in_dct(language, "spacer_symbols"),
             last = undef 
         )
         str(
             "\nDupont Pin Fitting Language: \n",
             
-            dpf_format_glossary(plate_symbols, "Just plate, perhaps with wire clearances."), 
-            dpf_format_glossary(pin_symbols, "Dummy pins of various heights, perhaps with wire clearances."),
+            dpf_format_glossary(plate_symbols, "Just plate, perhaps"),
+            dpf_format_glossary("", "with wire clearances."), 
+            dpf_format_glossary(pin_symbols, "Dummy pins of various heights, "),
+            dpf_format_glossary("", "perhaps with wire clearances."),
             dpf_format_glossary(latch_symbols, "Latchs, for connecting fittings."),
-            dpf_format_glossary(spacer_symbols, "Spacers - the space character only works internally."),
-            dpf_format_glossary(pin_pass_through_symbols, "Pass through for a pin into a fitting."),    
+            dpf_format_glossary(join(["'", spacer_symbols, "'"]), "Spacers - the space character"), 
+            dpf_format_glossary("", "only works internally."),
+            dpf_format_glossary(clearance_symbols, "Clearances - used to pass a"),
+            dpf_format_glossary("", "pin or shave down walls."),    
             "\n");
         
 //        "  
@@ -512,8 +526,7 @@ module dupont_pin_fitting(
     assert(pattern != "");
       
        
-   assert(pattern != ""); 
-
+    assert(pattern != ""); 
 
     /*
        Key: 
@@ -538,6 +551,7 @@ module dupont_pin_fitting(
     pin_length = dupont_pin_length();
     pin = [pin_width, pin_width, pin_length];
     pin_allowances = 2* [pin_allowance, pin_allowance, 0];
+    z_alot = [0, 0, 100];
     
 
     layout = pattern_to_layout(pattern);
@@ -596,9 +610,9 @@ module dupont_pin_fitting(
     }
   
     module fitting_as_generated() {
-        render(convexity=20) difference() {
+        render(convexity=10) difference() {
             process("shapes");
-            process("pin_passthrough");
+            process("clearances");
         }
     }       
     
@@ -685,8 +699,43 @@ module dupont_pin_fitting(
         }
     }
     
+    module produce_half_clearance(aspect, element_features) {
+        
+        if (aspect == "clearances") {
+            openings = element_features[1];
+            delta = pin_width/2 - pin_allowance; 
+            for (opening = openings) {
+                translation = 
+                    opening == FRONT ? [delta, 0, 0] :
+                    opening == BEHIND ? [-delta, 0, 0] :
+                    opening == LEFT ? [0, -delta, 0] :
+                    opening == RIGHT ? [0, delta, 0] :
+                    assert(false);
+                translate(translation) block(pin + z_alot);
+                block(pin + z_alot);
+            }
+        }
+        
+    }
+    
+    module produce_clearance(aspect, element_features) {
+        echo("aspect", aspect);
+        echo("element_features", element_features);
+        if (aspect == "clearances") {
+            if (element_features[0] == "PIN_PASS_THROUGH") {
+                produce_pin_pass_through(aspect, element_features);
+            } else if (element_features[0] == "HALF") {
+                produce_half_clearance(aspect, element_features); 
+                
+            } else {
+                assert(false);
+            }
+        }
+        
+    }
+    
     module produce_pin_pass_through(aspect, element_features) {
-        if (aspect == "pin_passthrough") {
+        if (aspect == "clearances") {
             z_alot = [0, 0, 4*pin_length];
             wd = dupont_wire_diameter();
             central_wire_clearance = [wd, wd, 0]; 
@@ -714,8 +763,8 @@ module dupont_pin_fitting(
             produce_pin(aspect, element_features);
         } else if (element_type == "LATCH") {
             produce_latch(aspect, element_features);            
-        } else if (element_type == "PIN_PASS_THROUGH") {
-            produce_pin_pass_through(aspect, element_features);
+        } else if (element_type == "CLEARANCE") {
+            produce_clearance(aspect, element_features);
         } else if (element_type == "SPACER") {
             // Do nothing
         } else {

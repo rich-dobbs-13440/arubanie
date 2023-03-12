@@ -11,7 +11,6 @@ include <centerable.scad>
 use <not_included_batteries.scad>
 use <dupont_pin_fitting.scad>
 use <shapes.scad>
-//use <vector_operations.scad>
 use <layout_for_3d_printing.scad>
 
 function dupont_pin_width() = 2.54; // Using standard dimensions, rather than measured
@@ -30,49 +29,57 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 orient_for_build = false;
 
 show_housing_ = true;
-show_plug_ = true;
-show_mock_instrument = true;
+show_mock_instrument_ = true;
+show_pin_clip_ = true;
 
-/* [Customize] */
-
+/*
+⏺
+[Customize] */
+pin_allowance_ = 0.3; // [0:0.05: 0.5]
 // Relative strength of latch - scaled height of catch
 latch_strength_ = 0.2; // [-1: 0.01 : 1]
 // Distance between latch parts in mm
 latch_clearance_ = 0.2; // [0: 0.05 : 1]
+power_strip_clearance_ = 0.4; // [0: 0.05 : 1]
+pin_clip_looseness_percent_ = 9; // [0: 1: 9]
+
+use_plug_1_ = true;
 
 /* [Fit tests] */
-    gap = 2.54; // [2.54:"Header Check", 1.68:"Pin Insert Check"]
+gap = 2.54; // [2.54:"Header Check", 1.68:"Pin Insert Check"]
 
+
+min_pins = 2; // [ 1:1:20]
+delta_pins = 2; // [1, 2, 4]
+max_pins =  8; // [ 1 : 1 : 20]
+pins_in_headers = [ each [min_pins : delta_pins: max_pins] ];
+
+minimum_allowance = 0.0; // [0.0 : 0.05 : 1]
+delta_allowance = 0.05; // [0.05, 0.1]
+maximum_allowance = 0.35; // [0.0: 0.05 : 1]
+allowances = [ each [minimum_allowance : delta_allowance : maximum_allowance ] ];
     
-    min_pins = 2; // [ 1:1:20]
-    delta_pins = 2; // [1, 2, 4]
-    max_pins =  8; // [ 1 : 1 : 20]
-    pins_in_headers = [ each [min_pins : delta_pins: max_pins] ];
-
-    minimum_allowance = 0.0; // [0.0 : 0.05 : 1]
-    delta_allowance = 0.05; // [0.05, 0.1]
-    maximum_allowance = 0.35; // [0.0: 0.05 : 1]
-    allowances = [ each [minimum_allowance : delta_allowance : maximum_allowance ] ];
+    
     
 /* [Layout] */
-    base_thickness = 2; // [1, 2, 4]
-    hole_padding = 0.25; //[0.25:0.25:10]
+base_thickness = 2; // [1, 2, 4]
+hole_padding = 0.25; //[0.25:0.25:10]
     
  
 /* [Label Formating] */
-    label_padding = 0; //[0:0.25:2]
-    label_size = 2; // [1:0.25:3]
-    dy_label_offset = -4; // [-30: 0.5:  30]
-    min_y_in_chars = 3; // [1: 0.5:  5]
-    
-    x_padded_label = label_size + 2*label_padding;
-    pad = [0, 0, 0];
+label_padding = 0; //[0:0.25:2]
+label_size = 2; // [1:0.25:3]
+dy_label_offset = -4; // [-30: 0.5:  30]
+min_y_in_chars = 3; // [1: 0.5:  5]
+
+x_padded_label = label_size + 2*label_padding;
+pad = [0, 0, 0];
     
 end_of_customization() {}
 
 power_strip = [9.35, 82.3, 8.52];
 
-if (show_mock_instrument && !orient_for_build) {
+if (show_mock_instrument_ && !orient_for_build) {
     color("white")
         block(power_strip, center=BELOW);
 }
@@ -80,94 +87,147 @@ if (show_mock_instrument && !orient_for_build) {
 
 dupont_pin_fitting_language_key(DEBUG);
 
-mounting_plug_and_socket(orient_for_build, show_plug_, show_housing_); 
 
-module mounting_plug_and_socket(orient_for_build, show_plug, show_housing) {
+mounting_plug_and_socket(
+    power_strip_clearance_, 
+    orient_for_build, 
+    show_housing_, 
+    show_pin_clip_,
+    pin_clip_looseness_percent_); 
+
+module mounting_plug_and_socket(
+        power_strip_clearance, 
+        orient_for_build, 
+        show_housing, 
+        show_pin_clip, 
+        pin_clip_looseness_percent=10) {
     pin_width = 2.54;
     pin_length = 14;
     plug_base_thickness = 2;
-    wall = 2;
+    wall = 2.54;
     clearance = 0.2;    
     socket_base_thickness = power_strip.z + clearance + wall; 
     
-    color("orange") {
-        if (show_plug) {
+    color("salmon") {
+        if (show_pin_clip) {
             if (orient_for_build) {
-                    translate([0, 20, plug_base_thickness ])  //-plug_base_thickness
-                        rotate([0, 0, -90]) 
-                            plug();
-            
-            } else {
-                translate([0, 0, pin_length]) 
-                    rotate([0, 180, -90]) 
-                        plug();
+                translate([0, 40, 0 ]) {        
+                    pin_clip();
+                }
+            }
+            else {
+                translate([0, 0, pin_length/2]) pin_clip();
             }
         }
     }
     
-    if (show_housing) {
-        if (orient_for_build) {
-            translate([0, 0, socket_base_thickness ])
-                housing();            
-        } else {
-            housing(); 
-        } 
+    
+    color("olive") {
+        if (show_housing) {
+            if (orient_for_build) {
+                translate([0, 0, 2.5*pin_width]) //   //socket_base_thickness ])
+                    rotate([90, 0, 0])
+                        housing();            
+            } else {
+                housing(); 
+            } 
+        }
     }
+    
+    module strip_clip(pin_count) {
+        power_strip_clearances = [2*power_strip_clearance, 0, 2*power_strip_clearance];
+        walls = [2*wall, 0, wall];
+        power_strip_segment = [power_strip.x, pin_count*pin_width, power_strip.z];
+        strip_clip = power_strip_segment + power_strip_clearances + walls;
+        difference() {
+            block(strip_clip, center=BELOW);
+            block(power_strip + power_strip_clearances, center=BELOW, rank=3);
+        }
+    }    
     
     module housing() {
-
-        power_strip_clearance = [0, 0, 0];
-        render() difference() {
-            translate([0, 0, 0]) { 
-               rotate([0, 0, 90]) 
-                   socket();
-            }
-            block(power_strip + power_strip_clearance, center=BELOW, rank=100);
-        }
+        strip_clip(5);
+        translate([0, 0, pin_length]) rotate([180, 0, 0]) pin_retainer();
+        pin_retention_posts(); 
     }
 	
-    module plug() {
-    
-        
-        plug = "
-         ◑▄┌┐▄◐ ;
-         ◑▄││▄◐ ;
-         ◑▄││▄◐ ;
-         ◑▄││▄◐ ;
-         ◑▄└┘▄◐ 
-        ";        
-        
-        dupont_pin_fitting(
-            pattern = plug,
-            latch_strength = latch_strength_,
-            latch_clearance =latch_clearance_,
-            base_thickness = plug_base_thickness,
-            center = ABOVE,
-            log_verbosity = verbosity); 
-        end_wall = [pin_width/2-0.2, 6*pin_width, pin_length + plug_base_thickness];
-        *center_reflect([1, 0, 0]) 
-            translate([2.5*pin_width, 0, -plug_base_thickness]) 
-                block(end_wall, center = ABOVE+FRONT);
-           
-    } 
-    module socket() {
-        socket = "
-           ◐▄▒▒▄◑  ;
-           ◐▒▒▒▒◑  ;
-           ◐▒▒▒▒◑  ;  
-           ◐▒▒▒▒◑  ;
-           ◐▄▒▒▄◑  "; 
-        
+    module pin_retainer() { 
+     
+        retainer = "
+            ▁▁▁▁▁ ;
+            ▁▁▁▁▁ ;
+            ────╴ ;
+            ────╴ ;
+            ▁▁▁▁▁ ;
+            ▁▁▁▁▁ ";
+        middle_clearance = "
+            ██████ ";
 
-        
-        
+//        difference() {
+            dupont_pin_fitting(
+                pattern = retainer,
+                base_thickness = plug_base_thickness,
+                center = ABOVE,
+                log_verbosity = verbosity);
+//            dupont_pin_fitting(
+//                pattern = middle_clearance,
+//                base_thickness = 2*plug_base_thickness,
+//                center = ABOVE,
+//                log_verbosity = verbosity);  
+//        }          
+    } 
+    
+    module pin_retention_posts() {      
+        posts = "
+            ▄▄▄▄▄ ;
+            █████ ;      
+            ░░░░░ ;
+            ░░░░░ ;        
+            █████ ;
+            ▄▄▄▄▄  "; 
+       
+        //printer_layer_height = 0.28;
         dupont_pin_fitting(
-            pattern = socket, 
-            latch_strength = latch_strength_,
-            latch_clearance =latch_clearance_,        
-            base_thickness = socket_base_thickness,
+            pattern = posts,        
+            base_thickness = 0,
+            pin_allowance = pin_allowance_,
             center=ABOVE,
-            log_verbosity = verbosity);
+            log_verbosity = verbosity);   
+    }
+    
+    module pin_clip() {
+        clip = "
+            ▷▁▁▁▁▁▁▁◁ ;
+            ▷▁     ▁◁ ;
+            ▷▁     ▁◁ ;
+            ▷▁     ▁◁ ;       
+            ▷▁     ▁◁ ;
+            ▷▁▁▁▁▁▁▁◁ ";
+        
+        pin_clip_scale = 1 + pin_clip_looseness_percent/100;
+        
+        pin_clip_base_thickness = 1;
+        label_translation = [
+            2.5*pin_width,
+            -12.5, 
+            pin_clip_base_thickness + 0.5
+            
+        ];        
+        
+        
+        scale([pin_clip_scale, pin_clip_scale, 1]) {
+
+            translate(label_translation) {
+                number_to_morse_shape(number=pin_clip_looseness_percent, size=2.2, base=false);
+            }
+            
+            dupont_pin_fitting(
+                pattern = clip,        
+                base_thickness = pin_clip_base_thickness,
+                pin_allowance = pin_allowance_,
+                center=ABOVE,
+                log_verbosity = verbosity);  
+        }       
     }
 }
 

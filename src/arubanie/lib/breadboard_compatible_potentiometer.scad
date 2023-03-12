@@ -12,8 +12,7 @@ orient_for_build = false;
 
 show_housing_ = true;
 show_plug_ = true;
-show_mock_instrument = true;
-
+    show_mock_instrument = true;
 /* [Replicate] */
 
     count_ = 1; // [1: 10]
@@ -45,7 +44,7 @@ rotate(rotation) {
     }
 }
 
-module x_replicate_facing_above(count, spacing, face, padding) {
+module x_replicate_facing_above(count, spacing, face, padding, show_padding = false) {
     x_offset = face.x/2; 
     dx = face.x + spacing;
     // Replicate the item
@@ -56,33 +55,36 @@ module x_replicate_facing_above(count, spacing, face, padding) {
             children();
         }
     }
-    face_spacer = [spacing, face.y, face.z];
-    back_spacer = [spacing, face.y, padding.z];
-    space_count = count - 1;
-    x_offset_space = face.x;
-    for (i = [0 : space_count-1] ) {
-        x = i * dx + x_offset_space;
-        translate([x, 0, 0]) {
-            block(face_spacer, center=ABOVE+FRONT);
-            block(back_spacer, center=BELOW+FRONT);
+    if (show_padding) {    
+        face_spacer = [spacing, face.y, face.z];
+        back_spacer = [spacing, face.y, padding.z];
+        space_count = count - 1;
+        x_offset_space = face.x;
+        for (i = [0 : space_count-1] ) {
+            x = i * dx + x_offset_space;
+            translate([x, 0, 0]) {
+                block(face_spacer, center=ABOVE+FRONT);
+                block(back_spacer, center=BELOW+FRONT);
+            }
         }
-    }
-    x_total = count * face.x + space_count * spacing;
-    x_padding_face = [x_total + 2 * padding.x, padding.y, face.z];
-    x_padding_back = [x_total + 2 * padding.x, padding.y, padding.z];
-    center_reflect([0, 1, 0]) {
-        translate([-padding.x, face.y/2, 0]) {
-            block(x_padding_face, center = ABOVE+FRONT+RIGHT);
-            block(x_padding_back, center = BELOW+FRONT+RIGHT);
+
+        x_total = count * face.x + space_count * spacing;
+        x_padding_face = [x_total + 2 * padding.x, padding.y, face.z];
+        x_padding_back = [x_total + 2 * padding.x, padding.y, padding.z];
+        center_reflect([0, 1, 0]) {
+            translate([-padding.x, face.y/2, 0]) {
+                block(x_padding_face, center = ABOVE+FRONT+RIGHT);
+                block(x_padding_back, center = BELOW+FRONT+RIGHT);
+            }
         }
-    }
-    y_padding_face = [padding.x, face.y, face.z];
-    y_padding_back = [padding.x, face.y, padding.z];
-    translate([x_total/2, 0, 0]) {
-        center_reflect([1, 0, 0]) {
-            translate([x_total/2, 0, 0]) {
-                block(y_padding_face, center = ABOVE+FRONT);
-                block(y_padding_back, center = BELOW+FRONT);
+        y_padding_face = [padding.x, face.y, face.z];
+        y_padding_back = [padding.x, face.y, padding.z];
+        translate([x_total/2, 0, 0]) {
+            center_reflect([1, 0, 0]) {
+                translate([x_total/2, 0, 0]) {
+                    block(y_padding_face, center = ABOVE+FRONT);
+                    block(y_padding_back, center = BELOW+FRONT);
+                }
             }
         }
     }
@@ -143,7 +145,6 @@ H_INDICATER = 4;
     }
     
 
-     
     module pedistal() {
          block(pedistal, center=BELOW); 
     }
@@ -204,8 +205,10 @@ module mounting_plug_and_socket(orient_for_build, show_plug, show_housing) {
         }
     }
     
-    if (show_housing) {
-        housing(); 
+    color("olive", alpha=1){
+        if (show_housing) {
+            housing(); 
+        }
     }
     
     module housing() {
@@ -237,11 +240,11 @@ module mounting_plug_and_socket(orient_for_build, show_plug, show_housing) {
 
         
         bare_plug = "
-           ▒◒◒◒▒  ;
-           ◑░░░◐  ;
-           ◑░░░◐  ;     
-           ◑░░░◐  ;
-           ▒◓◓◓▒   ";
+           ▒◒▂◒▒  ;
+           ◑▂╳▂◐  ;
+           ▂╶┼╴▂  ;     
+           ◑▂╵▂◐  ;
+           ▒◓▂◓▒   ";
        
         dupont_pin_fitting(
             pattern = bare_plug, 
@@ -250,13 +253,13 @@ module mounting_plug_and_socket(orient_for_build, show_plug, show_housing) {
             base_thickness = plug_base_thickness, 
             center = ABOVE,
             log_verbosity = verbosity);
-        dupont_pin_fitting(
-            pattern = pin_holder,
-            latch_strength = latch_strength_,
-            latch_clearance =latch_clearance_,
-            base_thickness = plug_base_thickness,
-            center = ABOVE,
-            log_verbosity = verbosity); 
+//        dupont_pin_fitting(
+//            pattern = pin_holder,
+//            latch_strength = latch_strength_,
+//            latch_clearance =latch_clearance_,
+//            base_thickness = plug_base_thickness,
+//            center = ABOVE,
+//            log_verbosity = verbosity); 
            
     } 
     module socket() {
