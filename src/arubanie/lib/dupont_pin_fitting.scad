@@ -19,7 +19,7 @@ Usage:
            ▆╶╳╴▆  ;
            ▒▂╵▂▒  ;
            ░▒▆▒░  ;
-           ◑▆░▆◐  ;
+           ◑▆░▆◐  ";
            
 
     dupont_pin_fitting(
@@ -28,13 +28,16 @@ Usage:
         allowance = 0.0, 
         center=0);
 
-Pattern Language:
+Pattern Language:  
 
         Pin inserts with various height:
         ▁▂▄▆█  
         
         Pin clearance through the base plate and adjacent dummy pins
         ╳
+        
+        Trim down adjacent walls to half width
+        ▽△◁▷◊
         
         Wire clearance through half height dummy pins:
         ╋┃━ ╸╹╺╻ 
@@ -52,9 +55,31 @@ Pattern Language:
         ▒
         
         Void space:
-        ░      
+       ' ░'    The space character only works internally.
+    
+TODO: Completely drive this documentation from the key!    
 
 */
+
+
+/*
+ECHO: "dupont_pin_fitting_language_key() - Language Key", "
+Dupont Pin Fitting Language: 
+    ▒┼─│╷╵╴╶└┐┌┘    Just plate, perhaps
+                    with wire clearances.
+    ▁▂▄▆█╋━┃╻╹╸╺╬═║ Dummy pins of various heights, 
+                    perhaps with wire clearances.
+    ◐◑◒◓            Latchs, for connecting fittings.
+    ' ░'            Spacers - the space character
+                    only works internally.
+    ╳▽△◁▷◊          Clearances - used to pass a
+                    pin or shave down walls.
+
+"
+
+*/
+
+
 
 include <logging.scad>
 include <centerable.scad>
@@ -63,130 +88,57 @@ use <not_included_batteries.scad>
 use <relativity/strings.scad>
 use <dupont_pins.scad>
 use <dupont_pin_latch.scad>
-
-
-
-
+use <layout_for_3d_printing.scad>
 
 /* [Logging] */
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
 verbosity = log_verbosity_choice(log_verbosity_choice); 
-    
-
 
 /* [Show] */
 
-//orient_for_build_ = false;
-show_dev = true;
-show_fitting = true; 
-show_mate = true;
-show_potentiometer_insert = true;
-show_internal_entry_potentiometer_insert = true;
+// The quickest
+show_join_dev_test = true;
+show_pin_fit_test = true;
+ 
+/* [Demo] */ 
 
-/* [Fitting] */
-pattern__ = "all_pattern"; // ["None", all_pattern, test_latches, pin_retention_key, all_symbol]
-mated_pattern__ = "None"; // ["None", all_pattern, test_latches, pin_retention_key, all_symbol]
+// Space to allow pins to fit between block, and for separately printed blocks to nest
+pin_allowance_ = 0.3;  //[0, 0.2, 0.3, 1:"For dev"]
 
-function match_pattern(pattern_name) = 
-    pattern_name == "None" ? undef :
-    pattern_name == "all_symbols" ? all_symbols() :
-    pattern_name == "all_pattern" ? all_pattern() :
-    pattern_name == "test_latches" ? test_latches() :
-    pattern_name == "pin_retention_key" ? pin_retention_key() :
-    assert(false, assert_msg("Unable to find pattern: ", pattern_name) ); 
-   
-pattern_ = match_pattern(pattern__);
-mated_pattern_  = match_pattern(mated_pattern__);    
-
-base_thickness_ = 2; //[0: No plate, 1, 1.5, 2]
-
-
-/* [4 x 4 Four Development] */
-show_4x4_plug_ = true;
-show_4x4_socket_for_print_ = true;
-show_4x4_socket_mated_ = true;
-show_4x4_mocks_ = true;
 // Relative strength of latch - scaled height of catch
 latch_strength_ = 0.0; // [-1: 0.01 : 1]
+
 // Distance between latch parts in mm
 latch_clearance_ = 0.2; // [0: 0.05 : 1]
 
-f_ = 0; // [0:0.05:2]
+center__ = "ABOVE"; // [ABOVE, BELOW, LEFT, RIGHT, FRONT, BEHIND]
 
-//// Measured in pins
-//mated_y_offset = 1; // [-4: 4]
-//
-//// Fractional pin length
-//mated_z_offset = 1; // [-1:0.25:+1]
-
-
-///* [Pin Latch] */  
-//leading_width = 0.33; //[0: 0.05 : 0.50]
-//leading_height = 1; //[0: 0.05 : 2]
-//catch_width = 0.25; //[0: 0.05 : 0.50]
-//catch_height = 0.25; //[0: 0.05 : 1]
-//
-//
-//clearance = 0.2; // [0 : 0.05 : 0.5]
+center_ = 
+    center__ == "ABOVE" ? ABOVE :
+    center__ == "BELOW" ? BELOW :
+    center__ == "LEFT" ? LEFT :
+    center__ == "RIGHT" ? RIGHT :
+    center__ == "FRONT" ? BEHIND :
+    assert(false); 
 
 module end_customization() {}
 
-
 dupont_pin_fitting_language_key(verbosity);
 
+pin_width = dupont_pin_width();
 
-module dupont_pin_fitting_language_key(log_verbosity) {   
-    log_s("Language Key", dupont_pin_fitting_key(), log_verbosity, DEBUG);
+
+module customized_pin_fitting(pattern) {
+
+    dupont_pin_fitting(
+        pattern = pattern_,
+        base_thickness = base_thickness_,
+        pin_allowance = pin_allowance_,
+        latch_strength = latch_strength_,
+        latch_clearance = latch_clearance_, 
+        center = center_,
+        log_verbosity = verbosity);
 }
-   
-function all_pattern() = "
-       █░█  ;
-       █╳█  ;
-       ███  ;
-       ███ ███ ███ ;
-       █▤█ █▥█ █▦█ ;
-       ███ ███ ███;;
-       ;
-       █▆▄▂▁ ;
-       ;
-       ◐▒◑▒◒▒◓ ;
-       ;
-       ▒▒▒▒▒▒  ;
-       ▒▒╋┃━▒  ;
-       ▒▒╬║═▒  ;
-       ▒▒┼│─▒  ;
-       ▒▒▒▒▒▒  ;
-       ;
-       ╸╹╺╻ ;
-       ╴╵╶╷ ;
-        ;
-    ";
-   
-function test_latches() = "
-        ▆◐▒    ;
-        ◓░◒    ;
-        ▒◑▆    ;
-               ;
-        ▆◐▒    ;
-        ◓░◒    ;
-        ▒◑▆    ;
-    "; 
- 
-
-
-function potentiometer_housing_fitting() = "
-        ▆◐▒▒▒◑▆  ;
-        ◓░░░░░◓ ;
-        ▒░░░░░▒  ;
-        ▒╳╳╳╳╳▒  ;
-        ▒╳╳╳╳╳▒  ;
-        ◒╳╳╳╳╳◒  ;
-        ▆◐▒▒▒◑▆ ;
-    ";  
-  
-function all_symbols() = "█▆▄▂▁◐◑◒◓╋━┃╬═║┼─│╷╵╴╶▒░";   
-
-
 
 module x_placement(index) {
     dx_spacing = 50;
@@ -195,331 +147,81 @@ module x_placement(index) {
     }
 }
 
-*bare_plug();
+if (show_join_dev_test) {
+    test = "
+        ▒▒▒ ;
+        ▒░▒ ;    
+        ▒▒▒ ";
+    base_thickness = 1;
+    dupont_pin_fitting(
+        pattern = test,
+        base_thickness = base_thickness,
+        pin_allowance = pin_allowance_,
+        center = ABOVE,
+        log_verbosity = verbosity);     
+}
 
-module bare_plug() {
-    pin_width = 2.54;
-    base_thickness = pin_width;
-    bare_plug = "
-       ▒◒◒◒◒▒  ;
-       ◑░░░░◐  ;
-       ◑░░░░◐  ;
-       ◑░░░░◐  ;        
-       ◑░░░░◐  ;
-       ▒◓◓◓◓▒   ";
+if (show_pin_fit_test) {
+    pin_fit_test = "
+            ▒▒▂▂  ;
+            ▒ ▒▂ ;
+            ▒▒▂▂ ";
+    
+    nest_test = "
+        ▒▒▒▒▒▒ ;
+        ▒    ▒ ;
+        ▒    ▒ ;
+        ▒    ▒ ;
+        ▒▒▒▒▒▒ ";
+    
+    pin_allowances = [0.5] ; //[each [0:0.1:0.5]];
+    base_thickness = 1;
+    delta = 6 * pin_width;
+    label_size = 2;
+    dy_j = 5 * pin_width;
+    
+    joiner = [delta, label_size, base_thickness];
+        
+    for (i = [0 : len(pin_allowances)-1]) {
+        echo("i", i);
+        dx = i * delta; 
+        translate([dx, 0, 0]) {
+            number_to_morse_shape(number=pin_allowances[i], size=label_size, base=true);
+            translate([0, dy_j, 0])block(joiner, center=BELOW+FRONT);
+            dupont_pin_fitting(
+                pattern = pin_fit_test,
+                base_thickness = base_thickness,
+                pin_allowance = pin_allowances[i],
+                center = ABOVE,
+                log_verbosity = verbosity); 
+            dupont_pin_fitting(
+                pattern = nest_test,
+                base_thickness = base_thickness,
+                pin_allowance = pin_allowances[i],
+                center = ABOVE,
+                log_verbosity = verbosity);
+        }
+    } 
+    
+}
+
+
+
+
+
+
+module dupont_pin_fitting_language_key(log_verbosity) {   
+    log_s("Language Key", dupont_pin_fitting_key(), log_verbosity, DEBUG);
+}
    
-    union() {
-        dupont_pin_fitting(
-            pattern = bare_plug, 
-            base_thickness = base_thickness);
-        block([0.1, 0.1, 0.1]); 
-    }
-}
-
-
-
-module check_alignments() {
-    //╷╵╴╶▒
-    pin_width = 2.54;
-    pin_length = 14;
-    color("red") block([pin_width, pin_width, pin_length], center=ABOVE); 
-    v_alignment_check = "
-                ▒░▒ ;
-                ░░░ ;
-                █╵░ ;  
-                ███ "  ;
-    dupont_pin_fitting(
-                pattern = v_alignment_check, 
-                base_thickness = 2,
-                pin_allowance = 0.25, 
-                center = ABOVE);   
-}
-
-
-
-
-if (show_dev) {
-    x_placement(0) {
-    }
-}
-
-
-if (show_fitting) {
-    x_placement(0) {
-        if (!is_undef(pattern_)) {
-            dupont_pin_fitting(
-                pattern = pattern_,
-                base_thickness = base_thickness_); 
-        }
-    } 
-}
-
-if (show_mate) {
-    x_placement(1) {
-        if (!is_undef(mated_pattern_)) {
-            dupont_pin_fitting(
-                pattern = mated_pattern_, 
-                base_thickness = base_thickness_); 
-        }
-    } 
-}
-
-if (show_potentiometer_insert) {
-    x_placement(2) {
-        pattern = "
-               ░◑▆░░░░  ;
-               ◒▂▂║▂░░  ;
-               ▆▂▆╵▆▂░  ;
-               ░═╴█╶═░  ;
-               ░▂▆╷▆▂▆  ;
-               ░░▂║▂▂◓  ;
-               ░░░░▆◐░
-            ";
-        dupont_pin_fitting(
-            pattern = pattern, 
-            base_thickness = 2);        
-    }
-}
-if (show_internal_entry_potentiometer_insert) {
-    x_placement(3) {
-        pattern = "
-           
-        
-        
-        
-           ◑▆░▆◐  ;
-           ░▒▆▒░  ;
-           ▒▂╷▂▒  ;
-           ▆╶╳╴▆  ;
-           ▒▂╵▂▒  ;
-           ░▒▆▒░  ;
-           ◑▆░▆◐  ;
-        ";
-        dupont_pin_fitting(
-            pattern = pattern, 
-            base_thickness = 2);
-    }
-}
-
-option_4 = false;
-if (option_4) {
-    //all_symbols() = "█▆▄▂▁◐◑◒◓╋━┃╬═║┼─│╷╵╴╶░";  ╸╹╺╻ 
-    x_placement(4) {
-        plug_pattern = "
-            ;
-           ░◒◒◒░  ;
-           ◑▁╳▁◐  ;
-           ◑╶┼╴◐  ;
-           ◑▁╵▁◐  ;
-           ░◓◓◓░   
-        ";
-        translate([0, 20, 0]) dupont_pin_fitting(
-                pattern = plug_pattern, 
-                base_thickness = 2,
-                allowance=0.3);
-        
-        socket_pattern = "
-           ▁◓◓◓▁  ;
-           ◐░░░◑  ;
-           ◐░░░◑  ;
-           ◐░░░◑  ;
-           ▁◒◒◒▁   
-        ";
-        difference() {
-            dupont_pin_fitting(
-                    pattern = socket_pattern, 
-                    base_thickness = 2);
-            
-            block([10.1234, 10.1234, 14], center=BELOW);
-        }
-    }
-}
-
-
-        
-module pin_fitting_for_customization(fitting_base_thickness) {
-
-
-        
-//   module located_pin_fitting() {
-//            dupont_pin_fitting(
-//                fitting_base_thickness = fitting_base_thickness_,
-//                pattern = match_pattern(insert_pattern));
-//    }
-    
-    
-
-    dupont_pin_fitting(
-        pattern = pattern_,
-        base_thickness = base_thickness_,
-        center=CENTER); 
-    
-    if (is_undef(mated_pattern_)) {
-        // Do nothing
-    } else {
-        color("red", alpha = 0.25) 
-            rotate([180, 0, 0]) 
-                dupont_pin_fitting(
-                    pattern = mated_pattern_, 
-                    base_thickness = base_thickness_, 
-                    center=CENTER); 
-    }
-}
-
-
-
-
-
-
-function dupont_pin_fitting_language() = 
-    let (
-        // TODO:    └ ┐ ┌ └ ├ ┬ ┤ ┣ ┫┳ ┻┓ ┏ ┛ ┗ 
-        // Element types
-        CLEARANCE = "CLEARANCE",
-        PLATE = "PLATE", 
-        PIN = "PIN",
-        LATCH = "LATCH",
-        SPACER = "SPACER",
-        // Pin Heights
-        FULL =  "FULL",
-        TALL = "TALL",
-        MID = "MID",
-        SHORT = "SHORT",
-        MINIMAL = "MINIMAL",
-        // Clearance types
-        PIN_PASS_THROUGH = "PIN_PASS_THROUGH", 
-        HALF = "HALF",
-        
-        element_map = [
-            ["╳", [CLEARANCE, [PIN_PASS_THROUGH]]], 
-            ["▽", [CLEARANCE, [HALF, [FRONT]]]],
-            ["△", [CLEARANCE, [HALF, [BEHIND]]]],
-            ["◁", [CLEARANCE, [HALF, [LEFT]]]],
-            ["▷", [CLEARANCE, [HALF, [RIGHT]]]],            
-            ["◊", [CLEARANCE, [HALF, [LEFT, RIGHT, FRONT, BEHIND]]]],
-            ["▁", [PIN, [MINIMAL]]],
-            ["▂", [PIN, [SHORT]]],
-            ["▄", [PIN, [MID]]],
-            ["▆", [PIN, [TALL]]],
-            ["█", [PIN, [FULL]]],
-            ["╋", [PIN, [MID, [FRONT, BEHIND, LEFT, RIGHT]]]],
-            ["━", [PIN, [MID, [LEFT, RIGHT]]]], 
-            ["┃", [PIN, [MID, [FRONT, BEHIND]]]],
-            ["╻", [PIN, [MID, [FRONT]]]],
-            ["╹", [PIN, [MID, [BEHIND]]]],
-            ["╸", [PIN, [MID, [LEFT]]]],
-            ["╺", [PIN, [MID, [RIGHT]]]],
-            // Clearance through pin body
-            ["╬", [PIN, [SHORT, [FRONT, BEHIND, LEFT, RIGHT]]]], 
-            ["═", [PIN, [SHORT, [LEFT, RIGHT]]]],
-            ["║", [PIN, [SHORT, [FRONT, BEHIND]]]], 
-
-            // Clearance through plate 
-            ["▒", [PLATE]],
-            ["┼", [PLATE, [FRONT, BEHIND, LEFT, RIGHT]]],
-            ["─", [PLATE, [LEFT, RIGHT]]],
-            ["│", [PLATE, [FRONT, BEHIND]]],
-            
-            ["╷", [PLATE, [FRONT]]],
-            ["╵", [PLATE, [BEHIND]]], 
-            ["╴", [PLATE, [LEFT]]],
-            ["╶", [PLATE, [RIGHT]]],
-            ["└", [PLATE, [RIGHT, BEHIND]]],
-            ["┐", [PLATE, [LEFT, FRONT]]],
-            ["┌", [PLATE, [RIGHT, FRONT]]], 
-            ["┘", [PLATE, [LEFT, BEHIND]]],
-
-            ["◐", [LATCH, [MID, RIGHT]]],
-            ["◑", [LATCH, [MID, LEFT]]],
-            ["◒", [LATCH, [MID, BEHIND]]],
-            ["◓", [LATCH, [MID, FRONT]]],
-            
-            [" ", [SPACER]], // Interior - exterior will be trimmed off
-            ["░", [SPACER]],
-            
-        ],
-        clearance_symbols = join([for (element = element_map) if (element[1][0] == CLEARANCE) element[0]]),
-        latch_symbols = join([for (element = element_map) if (element[1][0] == LATCH) element[0]]),
-        plate_symbols = join([for (element = element_map) if (element[1][0] == PLATE) element[0]]),
-        pin_symbols = join([for (element = element_map) if (element[1][0] == PIN) element[0]]), 
-        spacer_symbols = join([for (element = element_map) if (element[1][0] == SPACER) element[0]]),
-            
-        last = undef
-    )
-    [ 
-        ["element_map", element_map],
-        ["plate_symbols", plate_symbols],
-        ["pin_symbols", pin_symbols],
-        ["latch_symbols", latch_symbols],
-        ["spacer_symbols", spacer_symbols],
-        ["clearance_symbols", clearance_symbols],
-        
-        
-    ];
-        
-        
-
-        
-function dpf_format_glossary(item, explanation) =
-        let (
-            tab = 20,
-            NBSP = "\u00A0",
-            indent = join([NBSP, NBSP, NBSP, NBSP]),
-            current = len(indent) + len(item),
-            padding =  tab > current ?  join([for (i = [current : tab -1]) NBSP]) : " ",
-                
-            line = join([indent, item, padding, explanation, "\n"])
-        )
-        line;
-     
-function dupont_pin_fitting_key() = 
-        let (
-            language = dupont_pin_fitting_language(),
-            NBSP = "\u00A0",
-            indent = join([NBSP, NBSP, NBSP, NBSP]),
-            plate_symbols = find_in_dct(language, "plate_symbols"),
-            pin_symbols = find_in_dct(language, "pin_symbols"),
-            latch_symbols = find_in_dct(language, "latch_symbols"),
-            clearance_symbols = find_in_dct(language, "clearance_symbols"),
-            spacer_symbols = find_in_dct(language, "spacer_symbols"),
-            last = undef 
-        )
-        str(
-            "\nDupont Pin Fitting Language: \n",
-            
-            dpf_format_glossary(plate_symbols, "Just plate, perhaps"),
-            dpf_format_glossary("", "with wire clearances."), 
-            dpf_format_glossary(pin_symbols, "Dummy pins of various heights, "),
-            dpf_format_glossary("", "perhaps with wire clearances."),
-            dpf_format_glossary(latch_symbols, "Latchs, for connecting fittings."),
-            dpf_format_glossary(join(["'", spacer_symbols, "'"]), "Spacers - the space character"), 
-            dpf_format_glossary("", "only works internally."),
-            dpf_format_glossary(clearance_symbols, "Clearances - used to pass a"),
-            dpf_format_glossary("", "pin or shave down walls."),    
-            "\n");
-        
-//        "  
-//    
-//    
-//        
-//        ▁▂▄▆█     ; // Pin inserts with various height
-//        ╳   ; // Pin and wire clearance, both directions
-//        ╬║═    ; // Wire access in particular directions through full blocks
-//        ┼│─    ; // Wire access passing through in particular
-//        ╴╵╶╷   ; // Wire access in particular directions
-//        ◐◑◒◓   ; // Latches with a particular orientation
-//        ░      ; // Bare plate
-//
-//     "; 
-
 
 module dupont_pin_fitting(
         pattern,
         base_thickness = 2,
-        pin_allowance = 0.0,
+        pin_allowance = 0.3,
         latch_strength = 1,
         latch_clearance = 0.1, 
-        center=0,
+        center = 0,
         log_verbosity = INFO) {
        
     assert(is_string(pattern)); 
@@ -528,23 +230,7 @@ module dupont_pin_fitting(
        
     assert(pattern != ""); 
 
-    /*
-       Key: 
-       
-        ▁▂▄▆█  Pin inserts with various height
-        ╋      Pin and wire clearance, both directions
-        ┃      Pin and wire clearance vertical
-        ━      Pin and wire clearance horizontal
-        ╬║═    Wire access in particular directions
-        ┼│─    Wire access in particular directions
-        ╴╵╶╷
-        ◐◑◒◓   Latches with a particular orientation
-        ░      Bare plate
-       
-       
-       
 
-    */
        
 
     pin_width = dupont_pin_width();
@@ -672,7 +358,7 @@ module dupont_pin_fitting(
         }
     }  
  
-    module produce_pin(aspect, element_features) {
+    module produce_pin(aspect, element_features, i, j) {
         
         if (aspect == "shapes") {
             height = element_features[0];
@@ -689,11 +375,81 @@ module dupont_pin_fitting(
         }
     }
     
-    module produce_plate(aspect, element_features) {
+    
+    
+    module joined_block(directions, plate_thickness, pin_height) {
+        function reduced_block(z) = [pin_width, pin_width, z] - pin_allowances;        
+        displacement_size =  pin_allowances;
+        for (direction = directions) {
+            if (!is_undef(direction)) {
+                center_translation(displacement_size, center=direction) {
+                    block(reduced_block(plate_thickness) , center=direction);
+                    block(reduced_block(pin_height), center=direction);
+                }
+            }
+        }
+    }
+    
+    function join_left(i, j) = 
+        let (
+            last_element = find_element_in_layout(i, j-1),
+            last = undef
+        )
+        echo("i", i, "j", j, "last_element", last_element)
+        is_undef(last_element) ? undef :
+        last_element[0] == "SPACER" ? undef :
+        LEFT;
+    
+    function join_bottom(i, j) = 
+        let (
+            last_element = find_element_in_layout(i-1, j),
+            last = undef
+        )
+        echo("i", i, "j", j, "last_element", last_element)    
+        is_undef(last_element) ? undef :
+        last_element[0] == "SPACER" ? undef :
+        BEHIND;
+    
+    
+    function join_right(i, j) = 
+        let (
+            next_element = find_element_in_layout(i, j+1),
+            last = undef
+        )
+        echo("i", i, "j", j, "next_element", next_element)
+        is_undef(next_element) ? undef :
+        next_element[0] == "SPACER" ? undef :
+        //j == layout_extent[1]-1 ? undef :
+        j == 0 && layout_extent[1] == 1 ? undef :
+        RIGHT;
+    
+    function join_top(i, j) = 
+        let (
+            next_element = find_element_in_layout(i + 1, j),
+            last = undef
+        )
+        echo("i", i, "j", j, "next_element", next_element)
+        is_undef(next_element) ? undef :
+        next_element[0] == "SPACER" ? undef :
+        //j == layout_extent[1]-1 ? undef :
+        i == 0 && layout_extent[0] == 1 ? undef :
+        FRONT;
+    
+    function join_directions(i, j) = [
+        0, 
+        join_left(i, j),
+        join_right(i, j),
+        join_bottom(i, j),
+        join_top(i, j),
+    ];
+        
+    
+    
+    module produce_plate(aspect, element_features, i, j) {
         if (aspect == "shapes") {
             openings = element_features;
             difference() {
-                block([pin_width, pin_width, base_thickness], center=BELOW);
+                joined_block(join_directions(i, j), plate_thickness=base_thickness, pin_height=0);
                 wire_clearances(openings);
             } 
         }
@@ -718,9 +474,9 @@ module dupont_pin_fitting(
         
     }
     
-    module produce_clearance(aspect, element_features) {
-        echo("aspect", aspect);
-        echo("element_features", element_features);
+    module produce_clearance(aspect, element_features, i, j) {
+        //echo("aspect", aspect);
+        //echo("element_features", element_features);
         if (aspect == "clearances") {
             if (element_features[0] == "PIN_PASS_THROUGH") {
                 produce_pin_pass_through(aspect, element_features);
@@ -734,7 +490,7 @@ module dupont_pin_fitting(
         
     }
     
-    module produce_pin_pass_through(aspect, element_features) {
+    module produce_pin_pass_through(aspect, element_features, i, j) {
         if (aspect == "clearances") {
             z_alot = [0, 0, 4*pin_length];
             wd = dupont_wire_diameter();
@@ -744,7 +500,7 @@ module dupont_pin_fitting(
         }
     }
     
-    module  produce_latch(aspect, element_features) {
+    module  produce_latch(aspect, element_features, i, j) {
         if (aspect == "shapes") {        
             height = element_features[0];
             opening = element_features[1];
@@ -753,42 +509,43 @@ module dupont_pin_fitting(
         }
     }
 
-    module produce(element, aspect) {
+    module produce(element, aspect, i, j) {
         
         element_type = element[0];
         element_features = element[1];
         if (element_type == "PLATE") {
-            produce_plate(aspect, element_features);
+            produce_plate(aspect, element_features, i, j);
         } else if (element_type == "PIN") {
-            produce_pin(aspect, element_features);
+            produce_pin(aspect, element_features, i, j);
         } else if (element_type == "LATCH") {
-            produce_latch(aspect, element_features);            
+            produce_latch(aspect, element_features, i, j);            
         } else if (element_type == "CLEARANCE") {
-            produce_clearance(aspect, element_features);
+            produce_clearance(aspect, element_features, i, j);
         } else if (element_type == "SPACER") {
             // Do nothing
         } else {
-            echo("element_type", element_type);
-            assert(false);
+            assert(false, assert_msg("element_type", element_type));
         }
     }
 
+    
+    
+    language = dupont_pin_fitting_language();
+    //log_v1("language", language, log_verbosity, );
+    
+    element_map = find_in_dct(language, "element_map");   
+    //log_v1("element_map", element_map, log_verbosity, DEBUG);
+    
+    function find_element_in_layout(i, j)  = find_in_dct(element_map, layout[i][j]); 
 
     module process(aspect) {
-        
-        language = dupont_pin_fitting_language();
-        log_v1("language", language, log_verbosity, DEBUG);
-        
-        element_map = find_in_dct(language, "element_map");
-        log_v1("element_map", element_map, log_verbosity, DEBUG);
         for (i = [0 : len(layout) -1]) {
             row = layout[i];
-            for (j = [0 : len(row) -1]) {
-                cmd = row[j];              
-                element = find_in_dct(element_map, cmd);
+            for (j = [0 : len(row) -1]) {            
+                element = find_element_in_layout(i, j);
                 if (!is_undef(element)) {
                     locate(i, j) {
-                        produce(element, aspect);
+                        produce(element, aspect, i, j);
                     } 
                 } 
             }
@@ -816,3 +573,215 @@ module dupont_pin_fitting(
 
 }
 
+
+function dupont_pin_fitting_language() = 
+    let (
+        // TODO:    └ ┐ ┌ └ ├ ┬ ┤ ┣ ┫┳ ┻┓ ┏ ┛ ┗ 
+        // Element types
+        CLEARANCE = "CLEARANCE",
+        PLATE = "PLATE", 
+        PIN = "PIN",
+        LATCH = "LATCH",
+        SPACER = "SPACER",
+        // Pin Heights
+        FULL =  "FULL",
+        TALL = "TALL",
+        MID = "MID",
+        SHORT = "SHORT",
+        MINIMAL = "MINIMAL",
+        // Clearance types
+        PIN_PASS_THROUGH = "PIN_PASS_THROUGH", 
+        HALF = "HALF",
+        
+        element_map = [
+            ["╳", [CLEARANCE, [PIN_PASS_THROUGH]]], 
+            ["▽", [CLEARANCE, [HALF, [FRONT]]]],
+            ["△", [CLEARANCE, [HALF, [BEHIND]]]],
+            ["◁", [CLEARANCE, [HALF, [LEFT]]]],
+            ["▷", [CLEARANCE, [HALF, [RIGHT]]]],            
+            ["◊", [CLEARANCE, [HALF, [LEFT, RIGHT, FRONT, BEHIND]]]],
+            ["▁", [PIN, [MINIMAL]]],
+            ["▂", [PIN, [SHORT]]],
+            ["▄", [PIN, [MID]]],
+            ["▆", [PIN, [TALL]]],
+            ["█", [PIN, [FULL]]],
+            ["╋", [PIN, [MID, [FRONT, BEHIND, LEFT, RIGHT]]]],
+            ["┃", [PIN, [MID, [FRONT, BEHIND]]]],
+            ["━", [PIN, [MID, [LEFT, RIGHT]]]], 
+            ["╻", [PIN, [MID, [FRONT]]]],
+            ["╹", [PIN, [MID, [BEHIND]]]],
+            ["╸", [PIN, [MID, [LEFT]]]],
+            ["╺", [PIN, [MID, [RIGHT]]]],
+            // Clearance through pin body
+            ["╬", [PIN, [SHORT, [FRONT, BEHIND, LEFT, RIGHT]]]], 
+            ["║", [PIN, [SHORT, [FRONT, BEHIND]]]], 
+            ["═", [PIN, [SHORT, [LEFT, RIGHT]]]],
+            // Clearance through plate 
+            ["▒", [PLATE]],
+            ["┼", [PLATE, [FRONT, BEHIND, LEFT, RIGHT]]],
+            ["─", [PLATE, [LEFT, RIGHT]]],
+            ["│", [PLATE, [FRONT, BEHIND]]],
+            
+            ["╷", [PLATE, [FRONT]]],
+            ["╵", [PLATE, [BEHIND]]], 
+            ["╴", [PLATE, [LEFT]]],
+            ["╶", [PLATE, [RIGHT]]],
+            ["┌", [PLATE, [RIGHT, FRONT]]],
+            ["┐", [PLATE, [LEFT, FRONT]]],
+            ["└", [PLATE, [RIGHT, BEHIND]]],
+            ["┘", [PLATE, [LEFT, BEHIND]]],
+
+            ["◐", [LATCH, [MID, RIGHT]]],
+            ["◑", [LATCH, [MID, LEFT]]],
+            ["◒", [LATCH, [MID, BEHIND]]],
+            ["◓", [LATCH, [MID, FRONT]]],
+            
+            [" ", [SPACER]], // Interior - exterior will be trimmed off
+            ["░", [SPACER]],
+            
+        ],
+        clearance_symbols = join([for (element = element_map) if (element[1][0] == CLEARANCE) element[0]]),
+        latch_symbols = join([for (element = element_map) if (element[1][0] == LATCH) element[0]]),
+        plate_symbols = join([for (element = element_map) if (element[1][0] == PLATE) element[0]]),
+        pin_symbols = join([for (element = element_map) if (element[1][0] == PIN) element[0]]), 
+        spacer_symbols = join([for (element = element_map) if (element[1][0] == SPACER) element[0]]),
+            
+        last = undef
+    )
+    [ 
+        ["element_map", element_map],
+        ["plate_symbols", plate_symbols],
+        ["pin_symbols", pin_symbols],
+        ["latch_symbols", latch_symbols],
+        ["spacer_symbols", spacer_symbols],
+        ["clearance_symbols", clearance_symbols],
+        
+        
+    ];
+        
+        
+
+        
+function dpf_format_glossary(item, explanation) =
+        let (
+            tab = 20,
+            NBSP = "\u00A0",
+            indent = join([NBSP, NBSP, NBSP, NBSP]),
+            current = len(indent) + len(item),
+            padding =  tab > current ?  join([for (i = [current : tab -1]) NBSP]) : " ",
+                
+            line = join([indent, item, padding, explanation, "\n"])
+        )
+        line;
+     
+function dupont_pin_fitting_key() = 
+        let (
+            language = dupont_pin_fitting_language(),
+            NBSP = "\u00A0",
+            indent = join([NBSP, NBSP, NBSP, NBSP]),
+            plate_symbols = find_in_dct(language, "plate_symbols"),
+            pin_symbols = find_in_dct(language, "pin_symbols"),
+            latch_symbols = find_in_dct(language, "latch_symbols"),
+            clearance_symbols = find_in_dct(language, "clearance_symbols"),
+            spacer_symbols = find_in_dct(language, "spacer_symbols"),
+            last = undef 
+        )
+        str(
+            "\nDupont Pin Fitting Language: \n",
+            
+            dpf_format_glossary(plate_symbols, "Just plate, perhaps"),
+            dpf_format_glossary("", "with wire clearances."), 
+            dpf_format_glossary(pin_symbols, "Dummy pins of various heights, "),
+            dpf_format_glossary("", "perhaps with wire clearances."),
+            dpf_format_glossary(latch_symbols, "Latchs, for connecting fittings."),
+            dpf_format_glossary(join(["'", spacer_symbols, "'"]), "Spacers - the space character"), 
+            dpf_format_glossary("", "only works internally."),
+            dpf_format_glossary(clearance_symbols, "Clearances - used to pass a"),
+            dpf_format_glossary("", "pin or shave down walls."),    
+            "\n");
+        
+
+/*
+ECHO: "dupont_pin_fitting_language_key() - Language Key", "
+Dupont Pin Fitting Language: 
+    ▒┼─│╷╵╴╶└┐┌┘    Just plate, perhaps
+                    with wire clearances.
+    ▁▂▄▆█╋━┃╻╹╸╺╬═║ Dummy pins of various heights, 
+                    perhaps with wire clearances.
+    ◐◑◒◓            Latchs, for connecting fittings.
+    ' ░'            Spacers - the space character
+                    only works internally.
+    ╳▽△◁▷◊          Clearances - used to pass a
+                    pin or shave down walls.
+
+"
+
+*/
+
+//        "  
+//    
+//    Next Goal for key:
+//        
+//        ▁▂▄▆█     ; // Pin inserts with various height
+//        ╳   ; // Pin and wire clearance, both directions
+//        ╬║═    ; // Wire access in particular directions through full blocks
+//        ┼│─    ; // Wire access passing through in particular
+//        ╴╵╶╷   ; // Wire access in particular directions
+//        ◐◑◒◓   ; // Latches with a particular orientation
+//        ░      ; // Bare plate
+//
+//     ";
+
+    /*
+       Key: 
+       
+        ▁▂▄▆█  Pin inserts with various height
+        ╋      Pin and wire clearance, both directions
+        ┃      Pin and wire clearance vertical
+        ━      Pin and wire clearance horizontal
+        ╬║═    Wire access in particular directions
+        ┼│─    Wire access in particular directions
+        ╴╵╶╷
+        ◐◑◒◓   Latches with a particular orientation
+        ░      Bare plate
+       
+       
+       
+
+    */
+
+/*
+
+Long form of output desired:
+
+
+Pattern Language:  
+
+        Pin inserts with various height:
+        ▁▂▄▆█  
+        
+        Pin clearance through the base plate and adjacent dummy pins
+        ╳
+        
+        Trim down adjacent walls to half width
+        ▽△◁▷◊
+        
+        Wire clearance through half height dummy pins:
+        ╋┃━ ╸╹╺╻ 
+        
+        Wire clearance though quarter height dummy pins:
+        ╬║═     
+        
+        Wire clearance though the base plate:
+        ┼│─╶╵╶╷    
+        
+        Latches with a particular orientation:
+        ◐◑◒◓  
+        
+        Bare plate:
+        ▒
+        
+        Void space:
+       ' ░'    The space character only works internally.
+
+*/
