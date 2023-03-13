@@ -21,6 +21,8 @@ show_plug_ = true;
 
 /* [Customize] */
 
+pin_length = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Short + Header", 16.7:"Standard + Header"]
+
 // Relative strength of latch - scaled height of catch
 latch_strength_ = 0.2; // [-1: 0.01 : 1]
 // Distance between latch parts in mm

@@ -102,6 +102,8 @@ show_pin_fit_test = true;
  
 /* [Demo] */ 
 
+pin_width_ = 2.54;
+
 // Space to allow pins to fit between block, and for separately printed blocks to nest
 pin_allowance_ = 0.3;  //[0, 0.2, 0.3, 1:"For dev"]
 
@@ -125,7 +127,8 @@ module end_customization() {}
 
 dupont_pin_fitting_language_key(verbosity);
 
-pin_width = dupont_pin_width();
+//pin_width = dupont_pin_width();
+//pin_length = dupont_pin_length();
 
 
 module customized_pin_fitting(pattern) {
@@ -140,6 +143,8 @@ module customized_pin_fitting(pattern) {
         log_verbosity = verbosity);
 }
 
+color("red") translate([3, 0, 0]) 
+
 module x_placement(index) {
     dx_spacing = 50;
     translate([index*dx_spacing, 0, 0]) {
@@ -148,10 +153,28 @@ module x_placement(index) {
 }
 
 if (show_join_dev_test) {
-    test = "
-        ▒▒▒ ;
-        ▒░▒ ;    
-        ▒▒▒ ";
+    
+    test = "▒◒▂◒▒";
+    
+//    test = "
+//        ▒▒ ;
+//        ▒▒ ";
+//    
+//    test = "
+//        ▒▒▒ ▒▒▒▒▒▒;
+//        ▒▒▒ ▒▒  ▒▒;    
+//        ▒ ▒ ▒    ▒;   
+//        ▒▒▒ ▒▒  ▒▒;    
+//        ▒▒▒ ▒▒▒▒▒▒ ";    
+    
+    
+//    test = "╶╷╴╵";
+    
+    
+//    test = "
+//        ▒▒▁▂▄▆██▆▄▂▁ ;
+//        ▒░▒▁▂▄▆██▆▄▂▁ ;    
+//        ▒▒▒ ";
     base_thickness = 1;
     dupont_pin_fitting(
         pattern = test,
@@ -174,7 +197,7 @@ if (show_pin_fit_test) {
         ▒    ▒ ;
         ▒▒▒▒▒▒ ";
     
-    pin_allowances = [0.5] ; //[each [0:0.1:0.5]];
+    pin_allowances = [0.15, 0.2, 0.25, 0.3];
     base_thickness = 1;
     delta = 6 * pin_width;
     label_size = 2;
@@ -183,10 +206,9 @@ if (show_pin_fit_test) {
     joiner = [delta, label_size, base_thickness];
         
     for (i = [0 : len(pin_allowances)-1]) {
-        echo("i", i);
         dx = i * delta; 
         translate([dx, 0, 0]) {
-            number_to_morse_shape(number=pin_allowances[i], size=label_size, base=true);
+            translate([0, 1, 0]) number_to_morse_shape(number=pin_allowances[i], size=label_size, base=true);
             translate([0, dy_j, 0])block(joiner, center=BELOW+FRONT);
             dupont_pin_fitting(
                 pattern = pin_fit_test,
@@ -206,10 +228,6 @@ if (show_pin_fit_test) {
 }
 
 
-
-
-
-
 module dupont_pin_fitting_language_key(log_verbosity) {   
     log_s("Language Key", dupont_pin_fitting_key(), log_verbosity, DEBUG);
 }
@@ -226,12 +244,6 @@ module dupont_pin_fitting(
        
     assert(is_string(pattern)); 
     assert(pattern != "");
-      
-       
-    assert(pattern != ""); 
-
-
-       
 
     pin_width = dupont_pin_width();
     pin_length = dupont_pin_length();
@@ -300,6 +312,7 @@ module dupont_pin_fitting(
             process("shapes");
             process("clearances");
         }
+        *process("clearances");
     }       
     
     module pin_latch(opening) {
@@ -307,7 +320,10 @@ module dupont_pin_fitting(
         catch_height = 0.50;
         module backer() {
             backer_cs = [pin_width, pin_width/2-pin_allowance, 0];
-            z_backer = [0, 0, 0.5*pin_length + leading_height*pin_width  + catch_height*pin_width +  4*latch_clearance];
+            z_backer = [
+                0, 
+                0, 
+                0.5*pin_length + leading_height*pin_width  + catch_height*pin_width +  4*latch_clearance];
             translate([0, pin_width/2, 0]) {
                block(backer_cs + z_backer, center=ABOVE+RIGHT);
                block(backer_cs + [0, 0, base_thickness], center = BELOW + RIGHT); 
@@ -332,15 +348,22 @@ module dupont_pin_fitting(
         rotate(rotation) backer();
     }
     
-    function pin_fraction_from_pin_height(height) = 
-        height == "FULL" ? 1 :
-        height == "TALL" ? 0.75 :
-        height == "MID" ? 0.50 :
-        height == "SHORT" ? 0.25 :
-        height == "MINIMAL" ? 0.125 :
-        assert(false);
+    function pin_fraction_from_height_code(code) = 
+        code == "FULL" ? 1 :
+        code == "TALL" ? 0.75 :
+        code == "MID" ? 0.50 :
+        code == "SHORT" ? 0.25 :
+        code == "MINIMAL" ? 0.125 :
+        code == 0 ? 0 :
+        assert(false, assert_msg("height code: ", str(code)));
     
-       
+    function pin_height_from_code(code) = 
+        let(
+            fraction = pin_fraction_from_height_code(code),
+            pin_height = fraction*pin_length
+        )
+        pin_height;
+    
     module wire_clearances(openings) {
         if (!is_undef(openings)) { 
             for (opening = openings) {
@@ -352,111 +375,144 @@ module dupont_pin_fitting(
     module wire_clearance(opening) {
         wd = dupont_wire_diameter();
         a_lot = 4*pin_length;
+        displacement_size = 2*[pin_width, pin_width, 0];  
         hull() {
-            block([pin_width/2, wd, a_lot], center=opening, rank=10);
+            center_translation(displacement_size, center=opening ) {
+                block([wd, wd, a_lot], center=opening);
+            }
             can(d=wd, h=a_lot, $fa=12); 
         }
-    }  
- 
-    module produce_pin(aspect, element_features, i, j) {
+    }
+    
+    function reduced_block(z, direction) = 
+        let (
+            full_pin = [pin_width, pin_width, z]
+        )
+        direction == LEFT ? full_pin - 2 * [pin_allowance, 0, 0] :
+        direction == RIGHT ? full_pin - 2 * [pin_allowance, 0, 0] :
+        direction == BEHIND ? full_pin - 2 * [0, pin_allowance, 0] :
+        direction == FRONT ? full_pin - 2 * [0, pin_allowance, 0] :
+        full_pin - 2 * [pin_allowance, pin_allowance, 0];
+
+    module joined_block(directions, plate_thickness, pin_height) {
+        //displacement_size =  pin_allowances/2;
+        full_pin = [pin_width, pin_width, pin_height];
+        plate = [pin_width, pin_width, plate_thickness];
+        reduced_pin = full_pin - pin_allowances;
+        reduced_plate = plate - pin_allowances;
+        module reduced_element() {
+            block(reduced_pin, center=ABOVE);
+            block(reduced_plate, center=BELOW);
+        }
         
-        if (aspect == "shapes") {
-            height = element_features[0];
-            openings = element_features[1];
-            // TODO Change to to ABOVE+CENTER+RIGHT  -
-           fraction = pin_fraction_from_pin_height(height); 
+        left = !is_undef(directions[0]);
+        right = !is_undef(directions[1]);
+        behind = !is_undef(directions[2]);
+        front = !is_undef(directions[3]);
+        
+        left_behind = !is_undef(directions[4]);
+        right_behind = !is_undef(directions[5]);
+        left_front = !is_undef(directions[6]);
+        right_front = !is_undef(directions[7]);
+        
+        //color("red") 
+        reduced_element();
+        if (right) {
+            //color("green") 
+            translate([0, 2 * pin_allowance, 0]) reduced_element();
+        }  
+        if (left) {
+            //color("blue") 
+            translate([0, -2 * pin_allowance, 0]) reduced_element();
+        }  
+        if (behind) {
+            //color("orange") 
+            translate([-2 * pin_allowance, 0, 0]) reduced_element();
+        }
+        if (front) {
+            //color("purple") 
+            translate([2 * pin_allowance, 0, 0]) reduced_element();
+        }
+        if (right_behind && right && behind) {
+            //color("black") 
+            translate([-2 * pin_allowance, 2 * pin_allowance, 0]) reduced_element();  
+        }
+        if (right_front && right && front) {
+            //color("white") 
+            translate([2 * pin_allowance, 2 * pin_allowance, 0]) reduced_element();  
+        }   
+        if (left_behind && left && behind) {
+            //color("cyan") 
+            translate([-2 * pin_allowance, -2 * pin_allowance, 0]) reduced_element();  
+        }
+        if (left_front && left && front) {
+            //color("magenta") 
+            translate([2 * pin_allowance, -2 * pin_allowance, 0]) reduced_element();  
+        }       
+    }  
+    
+    function should_join(target_i, target_j, pin_height) = 
+        let (
+            element = find_element_in_layout(target_i, target_j),
+            element_type = element[0],
+            height_code = element[1][0],
+            element_height = 
+                element_type == "PIN" ? pin_height_from_code(height_code) :
+                element_type == "LATCH" ? pin_height_from_code(height_code) : 0,
+            last = undef
+        )
+    
+        is_undef(element) ? false :
+        element_type == "SPACER" ? false :
+        element_type == "CLEARANCE" ? false :
+        element_height < pin_height ? false :
+        true;
+
+    function join_directions(i, j, pin_height) = [
+        should_join(i, j-1, pin_height) ? LEFT : undef,
+        should_join(i, j+1, pin_height) ? RIGHT : undef, 
+        should_join(i-1, j, pin_height) ? BEHIND : undef,
+        should_join(i+1, j, pin_height) ? FRONT : undef,
+        should_join(i-1, j-1, pin_height) ? BEHIND + LEFT : undef,
+        should_join(i-1, j+1, pin_height) ? BEHIND + RIGHT : undef,
+        should_join(i+1, j-1, pin_height) ? FRONT + LEFT : undef,
+        should_join(i+1, j+1, pin_height) ? FRONT + RIGHT : undef,
+    ];
+    
+    
+    module cleared_join_block(i, j, openings, plate_thickness, pin_height) {
+        if (!is_undef(openings) && len(openings) > 0) {
             difference() {
-                union() {
-                    block([pin_width, pin_width, fraction*pin_length], center=ABOVE); 
-                    block([pin_width, pin_width, base_thickness], center=BELOW);
-                }
+                joined_block(join_directions(i, j, pin_height), plate_thickness, pin_height);
                 wire_clearances(openings);
             } 
         }
-    }
-    
-    
-    
-    module joined_block(directions, plate_thickness, pin_height) {
-        function reduced_block(z) = [pin_width, pin_width, z] - pin_allowances;        
-        displacement_size =  pin_allowances;
-        for (direction = directions) {
-            if (!is_undef(direction)) {
-                center_translation(displacement_size, center=direction) {
-                    block(reduced_block(plate_thickness) , center=direction);
-                    block(reduced_block(pin_height), center=direction);
-                }
-            }
+        else {
+            joined_block(join_directions(i, j, pin_height), plate_thickness, pin_height);
         }
-    }
+    } 
     
-    function join_left(i, j) = 
-        let (
-            last_element = find_element_in_layout(i, j-1),
-            last = undef
-        )
-        echo("i", i, "j", j, "last_element", last_element)
-        is_undef(last_element) ? undef :
-        last_element[0] == "SPACER" ? undef :
-        LEFT;
-    
-    function join_bottom(i, j) = 
-        let (
-            last_element = find_element_in_layout(i-1, j),
-            last = undef
-        )
-        echo("i", i, "j", j, "last_element", last_element)    
-        is_undef(last_element) ? undef :
-        last_element[0] == "SPACER" ? undef :
-        BEHIND;
-    
-    
-    function join_right(i, j) = 
-        let (
-            next_element = find_element_in_layout(i, j+1),
-            last = undef
-        )
-        echo("i", i, "j", j, "next_element", next_element)
-        is_undef(next_element) ? undef :
-        next_element[0] == "SPACER" ? undef :
-        //j == layout_extent[1]-1 ? undef :
-        j == 0 && layout_extent[1] == 1 ? undef :
-        RIGHT;
-    
-    function join_top(i, j) = 
-        let (
-            next_element = find_element_in_layout(i + 1, j),
-            last = undef
-        )
-        echo("i", i, "j", j, "next_element", next_element)
-        is_undef(next_element) ? undef :
-        next_element[0] == "SPACER" ? undef :
-        //j == layout_extent[1]-1 ? undef :
-        i == 0 && layout_extent[0] == 1 ? undef :
-        FRONT;
-    
-    function join_directions(i, j) = [
-        0, 
-        join_left(i, j),
-        join_right(i, j),
-        join_bottom(i, j),
-        join_top(i, j),
-    ];
-        
-    
+    module produce_pin(aspect, element_features, i, j) {
+        if (aspect == "shapes") {
+            height_code = element_features[0];
+            fraction = pin_fraction_from_height_code(height_code); 
+            pin_height = fraction*pin_length; 
+            
+            openings = element_features[1];
+            cleared_join_block(i, j, openings, plate_thickness=base_thickness, pin_height=pin_height);
+        }
+    }    
     
     module produce_plate(aspect, element_features, i, j) {
         if (aspect == "shapes") {
-            openings = element_features;
-            difference() {
-                joined_block(join_directions(i, j), plate_thickness=base_thickness, pin_height=0);
-                wire_clearances(openings);
-            } 
+            openings = element_features[1];
+            cleared_join_block(i, j, openings, plate_thickness=base_thickness, pin_height=0);
+        } else if (aspect == "clearances") {
+            block(pin + pin_allowances, center = ABOVE);
         }
     }
     
     module produce_half_clearance(aspect, element_features) {
-        
         if (aspect == "clearances") {
             openings = element_features[1];
             delta = pin_width/2 - pin_allowance; 
@@ -471,7 +527,6 @@ module dupont_pin_fitting(
                 block(pin + z_alot);
             }
         }
-        
     }
     
     module produce_clearance(aspect, element_features, i, j) {
@@ -482,12 +537,10 @@ module dupont_pin_fitting(
                 produce_pin_pass_through(aspect, element_features);
             } else if (element_features[0] == "HALF") {
                 produce_half_clearance(aspect, element_features); 
-                
             } else {
                 assert(false);
             }
-        }
-        
+        }     
     }
     
     module produce_pin_pass_through(aspect, element_features, i, j) {
@@ -527,8 +580,6 @@ module dupont_pin_fitting(
             assert(false, assert_msg("element_type", element_type));
         }
     }
-
-    
     
     language = dupont_pin_fitting_language();
     //log_v1("language", language, log_verbosity, );
@@ -570,7 +621,6 @@ module dupont_pin_fitting(
         y = j * pin_width;
         translate([x, y, 0]) children();
     }
-
 }
 
 
@@ -617,19 +667,19 @@ function dupont_pin_fitting_language() =
             ["║", [PIN, [SHORT, [FRONT, BEHIND]]]], 
             ["═", [PIN, [SHORT, [LEFT, RIGHT]]]],
             // Clearance through plate 
-            ["▒", [PLATE]],
-            ["┼", [PLATE, [FRONT, BEHIND, LEFT, RIGHT]]],
-            ["─", [PLATE, [LEFT, RIGHT]]],
-            ["│", [PLATE, [FRONT, BEHIND]]],
+            ["▒", [PLATE, [0, []]]],
+            ["┼", [PLATE, [0, [FRONT, BEHIND, LEFT, RIGHT]]]],
+            ["─", [PLATE, [0, [LEFT, RIGHT]]]],
+            ["│", [PLATE, [0, [FRONT, BEHIND]]]],
             
-            ["╷", [PLATE, [FRONT]]],
-            ["╵", [PLATE, [BEHIND]]], 
-            ["╴", [PLATE, [LEFT]]],
-            ["╶", [PLATE, [RIGHT]]],
-            ["┌", [PLATE, [RIGHT, FRONT]]],
-            ["┐", [PLATE, [LEFT, FRONT]]],
-            ["└", [PLATE, [RIGHT, BEHIND]]],
-            ["┘", [PLATE, [LEFT, BEHIND]]],
+            ["╷", [PLATE, [0, [FRONT]]]],
+            ["╵", [PLATE, [0, [BEHIND]]]], 
+            ["╴", [PLATE, [0, [LEFT]]]],
+            ["╶", [PLATE, [0, [RIGHT]]]],
+            ["┌", [PLATE, [0, [RIGHT, FRONT]]]],
+            ["┐", [PLATE, [0, [LEFT, FRONT]]]],
+            ["└", [PLATE, [0, [RIGHT, BEHIND]]]],
+            ["┘", [PLATE, [0, [LEFT, BEHIND]]]],
 
             ["◐", [LATCH, [MID, RIGHT]]],
             ["◑", [LATCH, [MID, LEFT]]],

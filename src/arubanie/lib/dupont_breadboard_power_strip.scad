@@ -10,15 +10,15 @@ include <logging.scad>
 include <centerable.scad>
 use <not_included_batteries.scad>
 use <dupont_pin_fitting.scad>
+use <dupont_pin_fitting.scad>
 use <shapes.scad>
 use <layout_for_3d_printing.scad>
 
-function dupont_pin_width() = 2.54; // Using standard dimensions, rather than measured
-function dupont_pin_length() = 14.0; // Using standard dimensions, rather than measured
-function dupont_wire_diameter() = 1.0 + 0.25; // measured plus allowance
+//function dupont_pin_width() = 2.54; // Using standard dimensions, rather than measured
+//function dupont_pin_length() = 14.0; // Using standard dimensions, rather than measured
+//function dupont_wire_diameter() = 1.0 + 0.25; // measured plus allowance
 
-pin_width = dupont_pin_width();
-pin_length = dupont_pin_length();
+
 
 /* [Logging] */
 log_verbosity_choice = "INFO"; // ["WARN", "INFO", "DEBUG"]
@@ -35,6 +35,9 @@ show_pin_clip_ = true;
 /*
 ⏺
 [Customize] */
+pin_length = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Short + Header", 16.7:"Standard + Header"]
+pin_width = 2.54 + 0; //
+
 pin_allowance_ = 0.3; // [0:0.05: 0.5]
 // Relative strength of latch - scaled height of catch
 latch_strength_ = 0.2; // [-1: 0.01 : 1]
@@ -93,14 +96,18 @@ mounting_plug_and_socket(
     orient_for_build, 
     show_housing_, 
     show_pin_clip_,
-    pin_clip_looseness_percent_); 
+    pin_clip_looseness_percent_,
+    pin_clip_length); 
 
 module mounting_plug_and_socket(
         power_strip_clearance, 
         orient_for_build, 
         show_housing, 
         show_pin_clip, 
-        pin_clip_looseness_percent=10) {
+        pin_clip_looseness_percent=10,
+        pin_length=14,
+        pin_width=2.54) {
+            
     pin_width = 2.54;
     pin_length = 14;
     plug_base_thickness = 2;

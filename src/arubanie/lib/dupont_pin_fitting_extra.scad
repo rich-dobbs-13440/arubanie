@@ -1,4 +1,4 @@
-
+use <dupont_pin_fitting.scad> 
 
 /* [Show] */
 
@@ -68,6 +68,7 @@ function all_pattern() = "
        █▤█ █▥█ █▦█ ;
        ███ ███ ███;;
        ;
+       ▁▂▄▆█ ; 
        █▆▄▂▁ ;
        ;
        ◐▒◑▒◒▒◓ ;
