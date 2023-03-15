@@ -24,6 +24,10 @@ ABOVE = 16;
 BELOW = 32;
 SIDEWISE = 64;
 
+X_AXIS = 128;
+Y_AXIS = 256;
+Z_AXIS = 512;
+
 _X_BITS = [0, 2];
 _Y_BITS = [2, 2];
 _Z_BITS = [4, 2];
@@ -89,9 +93,35 @@ module center_rotation(rotation) {
 
 }
 
+module center_rotate(from_axis, to_axis) {
+    assert(from_axis == Z_AXIS, "Not implemente yet");
+    rotation =
+       to_axis == X_AXIS ? [0, -90, 0] :
+       to_axis == Y_AXIS ? [0, 0, 0] :
+       to_axis == Z_AXIS ? [0, 0, 0] :
+       assert(false);
+       
+
+
+    rotate(rotation) {
+        children();
+    }
+}
+
+
 module center_reflect(v) {
     assert(!is_undef(v), "You must pass an mirroring argument to center_reflect()");
     children();
     mirror(v) children();
 }
+
+
+function center_str_to_center(center_as_str) = 
+    center_as_str == "RIGHT" ? RIGHT :
+    center_as_str == "LEFT" ? LEFT :
+    center_as_str == "FRONT" ? FRONT :    
+    center_as_str == "BEHIND" ? BEHIND :
+    center_as_str == "ABOVE" ? ABOVE :
+    center_as_str == "BELOW" ? BELOW :
+    assert(false, "Not implemented");
   

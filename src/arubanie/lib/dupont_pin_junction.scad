@@ -157,8 +157,7 @@ function pin_junction_dimensions(
 
         x_extension = [100, 0, 0],
         z_extension = [0, 0, 100],
- 
-        //wire_diameter = dupont_wire_diameter, 
+  
         socket_walls = 2 *  [socket_wall, socket_wall, socket_wall],
         socket_allowances = 2 * [socket_allowance, socket_allowance, socket_allowance],
         walls = 2 * [wall, wall, wall],

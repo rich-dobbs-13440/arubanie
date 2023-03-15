@@ -1,7 +1,8 @@
 include <centerable.scad>
+use <dupont_pins.scad>
 use <shapes.scad>
 
-use <dupont_pins.scad>
+
 
 /* [Show] */ 
 
@@ -10,6 +11,9 @@ show_mate = true;
 show_default = true;
 show_mated_default = true;
 /* [Pin Latch] */  
+
+pin_width = DUPONT_HOUSING_WIDTH();
+pin_length = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Short + Header", 16.7:"Standard + Header"]
 
 // The amount of engagement in the catch as a fraction of the width
 catch_width_ = 0.125; //[-.50: 0.01 : 1]
@@ -35,14 +39,7 @@ origin_ =
     assert(false);
      
 opening__ = "FRONT"; // [LEFT, RIGHT, FRONT, BEHIND]
-opening_ = 
-    opening__ == "LEFT" ? LEFT :
-    opening__ == "RIGHT" ? RIGHT :
-    opening__ == "FRONT" ? FRONT :    
-    opening__ == "BEHIND" ? BEHIND :
-    assert(false);  
-
-
+opening_ = center_str_to_center(opening__);
 
 module end_customization() {}
 
@@ -66,14 +63,11 @@ x_placement(0) {
             leading_width = leading_width_,
             leading_height = leading_height_,
             clearance = clearance_);
-        pin_width = dupont_pin_width();
-        pin_length = dupont_pin_length();
-        color("red", alpha=0.1) block([pin_width, pin_width, pin_length], center=ABOVE);
+        color("red", alpha=0.1) dupont_connector();
     }
 }
 
-pin_width = dupont_pin_width();
-pin_length = dupont_pin_length();
+
 
 module centered_latch(fraction_pin_length) {
     dupont_pin_latch(
@@ -120,10 +114,12 @@ module dupont_pin_latch(
         catch_height = 1/2, // In pin widths
         leading_width = 1/3, // In pin widths 
         leading_height = 1/2, // In pin widths,
-        clearance = 0.2 // In mm
+        clearance = 0.2, // In mm
+        width = DUPONT_HOUSING_WIDTH(),
+        housing = DUPONT_STD_HOUSING()
         ) {
-    pin_width = dupont_pin_width();
-    pin_length = dupont_pin_length();
+    pin_width = width;
+    pin_length = housing;
 
     latch_length = fraction_pin_length*pin_length;
     

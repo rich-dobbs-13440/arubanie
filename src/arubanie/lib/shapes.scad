@@ -13,6 +13,7 @@
 include <centerable.scad>
 include <logging.scad>
 use <not_included_batteries.scad>
+include <nutsnbolts-master/cyl_head_bolt.scad>
 
 /* [Boiler Plate] */
 
@@ -59,6 +60,19 @@ module plane_clearance(center) {
     block([infinity, infinity, infinity], center=center);
 }
 
+module nutcatch(screw_axis, cut_axis, center=BELOW, nut_family="M3") {
+    //assert(axis == Z_AXIS, "Not implemented");
+    // Get it to centered with screw axis as Z
+    x = 0;
+    y = 0;
+    z = 1.2;
+    assert(cut_axis==Z_AXIS);
+    center_rotate(from_axis=Z_AXIS, to_axis=screw_axis)
+        translate([x, y, z]) {
+            hole_through(name=nut_family);
+            nutcatch_sidecut(name=nut_family);
+        }
+}
 
 /* 
     Block is a cube with a specific translation about the origin.

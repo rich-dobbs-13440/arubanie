@@ -83,10 +83,11 @@ Dupont Pin Fitting Language:
 
 include <logging.scad>
 include <centerable.scad>
+use <dupont_pins.scad>
 use <shapes.scad>
 use <not_included_batteries.scad>
 use <relativity/strings.scad>
-use <dupont_pins.scad>
+
 use <dupont_pin_latch.scad>
 use <layout_for_3d_printing.scad>
 
@@ -97,8 +98,9 @@ verbosity = log_verbosity_choice(log_verbosity_choice);
 /* [Show] */
 
 // The quickest
-show_join_dev_test = true;
+show_join_dev_test = false;
 show_pin_fit_test = true;
+show_mock_dupont_connector = false;
  
 /* [Demo] */ 
 
@@ -125,10 +127,9 @@ center_ =
 
 module end_customization() {}
 
-dupont_pin_fitting_language_key(verbosity);
 
-//pin_width = dupont_pin_width();
-//pin_length = dupont_pin_length();
+
+dupont_pin_fitting_language_key(verbosity);
 
 
 module customized_pin_fitting(pattern) {
@@ -143,7 +144,9 @@ module customized_pin_fitting(pattern) {
         log_verbosity = verbosity);
 }
 
-color("red") translate([3, 0, 0]) 
+if (show_mock_dupont_connector) {
+    dupont_connector(wire_color="yellow", housing_color="black"); 
+}
 
 module x_placement(index) {
     dx_spacing = 50;
@@ -199,9 +202,9 @@ if (show_pin_fit_test) {
     
     pin_allowances = [0.15, 0.2, 0.25, 0.3];
     base_thickness = 1;
-    delta = 6 * pin_width;
+    delta = 6 * pin_width_;
     label_size = 2;
-    dy_j = 5 * pin_width;
+    dy_j = 5 * pin_width_;
     
     joiner = [delta, label_size, base_thickness];
         
@@ -228,6 +231,7 @@ if (show_pin_fit_test) {
 }
 
 
+
 module dupont_pin_fitting_language_key(log_verbosity) {   
     log_s("Language Key", dupont_pin_fitting_key(), log_verbosity, DEBUG);
 }
@@ -240,13 +244,16 @@ module dupont_pin_fitting(
         latch_strength = 1,
         latch_clearance = 0.1, 
         center = 0,
+        pin_width = DUPONT_HOUSING_WIDTH(),
+        housing = DUPONT_STD_HOUSING(),
+        wire_diameter = DUPONT_WIRE_DIAMETER(),
         log_verbosity = INFO) {
        
     assert(is_string(pattern)); 
     assert(pattern != "");
 
-    pin_width = dupont_pin_width();
-    pin_length = dupont_pin_length();
+    pin_length = housing;
+
     pin = [pin_width, pin_width, pin_length];
     pin_allowances = 2* [pin_allowance, pin_allowance, 0];
     z_alot = [0, 0, 100];
@@ -270,10 +277,6 @@ module dupont_pin_fitting(
     handle_center(center, layout_extent);
     
     module handle_center(center, layout_extent) {
-        
-        pin_width = dupont_pin_width();
-
-
         if (center == 0) {
             fitting_at_center();
         } else if (center == ABOVE) {
@@ -348,6 +351,8 @@ module dupont_pin_fitting(
         rotate(rotation) backer();
     }
     
+    
+
     function pin_fraction_from_height_code(code) = 
         code == "FULL" ? 1 :
         code == "TALL" ? 0.75 :
@@ -356,7 +361,7 @@ module dupont_pin_fitting(
         code == "MINIMAL" ? 0.125 :
         code == 0 ? 0 :
         assert(false, assert_msg("height code: ", str(code)));
-    
+
     function pin_height_from_code(code) = 
         let(
             fraction = pin_fraction_from_height_code(code),
@@ -373,14 +378,13 @@ module dupont_pin_fitting(
     }
     
     module wire_clearance(opening) {
-        wd = dupont_wire_diameter();
         a_lot = 4*pin_length;
         displacement_size = 2*[pin_width, pin_width, 0];  
         hull() {
             center_translation(displacement_size, center=opening ) {
-                block([wd, wd, a_lot], center=opening);
+                block([wire_diameter, wire_diameter, a_lot], center=opening);
             }
-            can(d=wd, h=a_lot, $fa=12); 
+            can(d=wire_diameter, h=a_lot, $fa=12); 
         }
     }
     
@@ -545,9 +549,8 @@ module dupont_pin_fitting(
     
     module produce_pin_pass_through(aspect, element_features, i, j) {
         if (aspect == "clearances") {
-            z_alot = [0, 0, 4*pin_length];
-            wd = dupont_wire_diameter();
-            central_wire_clearance = [wd, wd, 0]; 
+//            z_alot = [0, 0, 4*pin_length];
+            central_wire_clearance = [wire_diameter, wire_diameter, 0]; 
             clearance_allowances = pin  - central_wire_clearance;
             block(pin + clearance_allowances + z_alot);            
         }

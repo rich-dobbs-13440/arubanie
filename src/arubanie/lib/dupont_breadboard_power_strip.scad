@@ -9,14 +9,12 @@ to securely  connect dupont pins and headers.
 include <logging.scad>
 include <centerable.scad>
 use <not_included_batteries.scad>
+use <dupont_pins.scad>
 use <dupont_pin_fitting.scad>
-use <dupont_pin_fitting.scad>
+
 use <shapes.scad>
 use <layout_for_3d_printing.scad>
 
-//function dupont_pin_width() = 2.54; // Using standard dimensions, rather than measured
-//function dupont_pin_length() = 14.0; // Using standard dimensions, rather than measured
-//function dupont_wire_diameter() = 1.0 + 0.25; // measured plus allowance
 
 
 
@@ -35,7 +33,7 @@ show_pin_clip_ = true;
 /*
 ⏺
 [Customize] */
-pin_length = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Short + Header", 16.7:"Standard + Header"]
+housing_ = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Short + Header", 16.7:"Standard + Header"]
 pin_width = 2.54 + 0; //
 
 pin_allowance_ = 0.3; // [0:0.05: 0.5]
@@ -85,6 +83,7 @@ power_strip = [9.35, 82.3, 8.52];
 if (show_mock_instrument_ && !orient_for_build) {
     color("white")
         block(power_strip, center=BELOW);
+    translate([DUPONT_HOUSING_WIDTH()/2, 0, 0]) dupont_connector();
 }
 
 
@@ -97,7 +96,7 @@ mounting_plug_and_socket(
     show_housing_, 
     show_pin_clip_,
     pin_clip_looseness_percent_,
-    pin_clip_length); 
+    housing_); 
 
 module mounting_plug_and_socket(
         power_strip_clearance, 
@@ -105,13 +104,13 @@ module mounting_plug_and_socket(
         show_housing, 
         show_pin_clip, 
         pin_clip_looseness_percent=10,
-        pin_length=14,
-        pin_width=2.54) {
+        housing=14,
+        housing_width=2.54) {
             
-    pin_width = 2.54;
-    pin_length = 14;
+    pin_width = housing_width;
+    pin_length = housing;
     plug_base_thickness = 2;
-    wall = 2.54;
+    wall = pin_width;
     clearance = 0.2;    
     socket_base_thickness = power_strip.z + clearance + wall; 
     
@@ -167,21 +166,14 @@ module mounting_plug_and_socket(
             ────╴ ;
             ▁▁▁▁▁ ;
             ▁▁▁▁▁ ";
-        middle_clearance = "
-            ██████ ";
 
-//        difference() {
-            dupont_pin_fitting(
-                pattern = retainer,
-                base_thickness = plug_base_thickness,
-                center = ABOVE,
-                log_verbosity = verbosity);
-//            dupont_pin_fitting(
-//                pattern = middle_clearance,
-//                base_thickness = 2*plug_base_thickness,
-//                center = ABOVE,
-//                log_verbosity = verbosity);  
-//        }          
+
+        dupont_pin_fitting(
+            pattern = retainer,
+            base_thickness = plug_base_thickness,
+            center = ABOVE,
+            log_verbosity = verbosity);
+        
     } 
     
     module pin_retention_posts() {      
@@ -193,11 +185,11 @@ module mounting_plug_and_socket(
             █████ ;
             ▄▄▄▄▄  "; 
        
-        //printer_layer_height = 0.28;
         dupont_pin_fitting(
             pattern = posts,        
             base_thickness = 0,
             pin_allowance = pin_allowance_,
+            housing = housing,
             center=ABOVE,
             log_verbosity = verbosity);   
     }
@@ -232,6 +224,7 @@ module mounting_plug_and_socket(
                 pattern = clip,        
                 base_thickness = pin_clip_base_thickness,
                 pin_allowance = pin_allowance_,
+                housing = housing,
                 center=ABOVE,
                 log_verbosity = verbosity);  
         }       
