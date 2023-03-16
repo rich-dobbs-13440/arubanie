@@ -66,12 +66,14 @@ module nutcatch(screw_axis, cut_axis, center=BELOW, nut_family="M3") {
     x = 0;
     y = 0;
     z = 1.2;
-    assert(cut_axis==Z_AXIS);
-    center_rotate(from_axis=Z_AXIS, to_axis=screw_axis)
-        translate([x, y, z]) {
-            hole_through(name=nut_family);
-            nutcatch_sidecut(name=nut_family);
-        }
+    center_rotate(from_axis=X_AXIS, to_axis=cut_axis) {
+        center_rotate(from_axis=Z_AXIS, to_axis=screw_axis) {
+            translate([x, y, z]) {
+                hole_through(name=nut_family);
+                nutcatch_sidecut(name=nut_family);
+            }
+        }   
+    }
 }
 
 /* 

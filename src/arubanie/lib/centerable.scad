@@ -94,12 +94,15 @@ module center_rotation(rotation) {
 }
 
 module center_rotate(from_axis, to_axis) {
-    assert(from_axis == Z_AXIS, "Not implemente yet");
+    
     rotation =
-       to_axis == X_AXIS ? [0, -90, 0] :
-       to_axis == Y_AXIS ? [0, 0, 0] :
-       to_axis == Z_AXIS ? [0, 0, 0] :
-       assert(false);
+       (from_axis == X_AXIS) && (to_axis == X_AXIS) ? [0, 0, 0] :
+       (from_axis == X_AXIS) && (to_axis == Y_AXIS) ? [0, 0, 0] :
+       (from_axis == X_AXIS) && (to_axis == Z_AXIS) ? [0, 0, 0] :
+       (from_axis == Z_AXIS) && (to_axis == X_AXIS) ? [0, -90, 0] :
+       (from_axis == Z_AXIS) && (to_axis == Y_AXIS) ? [0, 0, 0] :
+       (from_axis == Z_AXIS) && (to_axis == Z_AXIS) ? [0, 0, 0] :
+       assert(false, assert_msg("Not implemente yet: from_axis", str(from_axis), " to_axis : ", to_axis));
        
 
 
