@@ -1,7 +1,7 @@
 include <logging.scad>
 include <centerable.scad>
-//
 use <shapes.scad>
+include <nutsnbolts-master/cyl_head_bolt.scad>
 
 /* [Show] */
 
@@ -71,6 +71,8 @@ y_position(2) articulate_jaws(jaw_percent_open=jaw_percent_open) {
     jaw_yoke();
 }
 y_position(3) articulate_jaws(show_lower_jaw=false) retainer_washer();
+
+y_position(3) articulate_jaws(jaw_percent_open=jaw_percent_open) jaw_hole_clip();
 
 
 
@@ -150,10 +152,10 @@ module axle(color_name="Gray") {
 module articulate_jaws(
         jaw_angle, 
         jaw_percent_open, 
-        show_lower_jaw=true, 
-        show_lower_jaw_anvil=true, 
-        show_upper_jaw=true, 
-        show_upper_jaw_anvil=true) {
+        show_lower_jaw = true, 
+        show_lower_jaw_anvil = true, 
+        show_upper_jaw = true, 
+        show_upper_jaw_anvil = true) {
     
     angle = 
         !is_undef(jaw_angle) ? jaw_angle :
@@ -164,45 +166,50 @@ module articulate_jaws(
     upper_jaw_child = 1;
     
     translation_to_pivot = [-(back_jaw_to_pivot.x + x_jaw), 0, 0];
-        
-         
-    rotate([180, 0, 0]) {
-        translate(-translation_to_pivot) back_jaw();
-        translate([0, 0, dz_between_upper_and_lower_jaw/2]) {
             
-            if (show_lower_jaw) {
-                jaw();
-            }  
-            if (show_lower_jaw_anvil) {
-                lower_jaw_anvil();
-            }   
-            if ($children > lower_jaw_child) {
-                children(lower_jaw_child); 
+    lower_assembly();
+    upper_assembly(angle);        
+        
+    module lower_assembly() {     
+        rotate([180, 0, 0]) {
+            translate(-translation_to_pivot) back_jaw();
+            translate([0, 0, dz_between_upper_and_lower_jaw/2]) {
+                
+                if (show_lower_jaw) {
+                    jaw();
+                }  
+                if (show_lower_jaw_anvil) {
+                    rotate([180, 0, 0]) lower_jaw_anvil();
+                }   
+                if ($children > lower_jaw_child) {
+                    children(lower_jaw_child); 
+                }
             }
         }
     }
 
-
-    translate(-translation_to_pivot) { 
-        
-        rotate([0, angle, 0]) {
-            axle();
-            back_jaw();
-            translate(translation_to_pivot) {
-                translate([0, 0, dz_between_upper_and_lower_jaw/2]) {
-                    if (show_upper_jaw) {
-                        jaw();
-                    }  
-                    if (show_upper_jaw_anvil) {
-                        upper_jaw_anvil();
-                    }
-                    //
-                    if ($children > upper_jaw_child) {
-                        children(upper_jaw_child);
+    module upper_assembly(angle) {
+        translate(-translation_to_pivot) { 
+            
+            rotate([0, angle, 0]) {
+                axle();
+                back_jaw();
+                translate(translation_to_pivot) {
+                    translate([0, 0, dz_between_upper_and_lower_jaw/2]) {
+                        if (show_upper_jaw) {
+                            jaw();
+                        }  
+                        if (show_upper_jaw_anvil) {
+                            upper_jaw_anvil();
+                        }
+                        //
+                        if ($children > upper_jaw_child) {
+                            children(upper_jaw_child);
+                        }
                     }
                 }
+                
             }
-            
         }
     }
 } 
@@ -231,17 +238,17 @@ module lower_jaw_anvil(color_name="DarkSlateGray") {
                 block([2.60, 20, 0.01], center=ABOVE+RIGHT);
         }
     }
-    mirror([0, 0, 1]) {   
-        color(color_name) {
-            difference() {
-                block(lower_jaw_anvil_blank, center=ABOVE+FRONT);    
-                pin_side_25_mold();
-                wire_side_25_mold();
-            }
+     
+    color(color_name) {
+        difference() {
+            block(lower_jaw_anvil_blank, center=ABOVE+FRONT);    
+            pin_side_25_mold();
+            wire_side_25_mold();
         }
-
-        translate([x_lower_jaw_anvil/2, 0, 0]) anvil_retainer();
     }
+
+    translate([x_lower_jaw_anvil/2, 0, 0]) anvil_retainer();
+
     
 }
 
@@ -570,6 +577,55 @@ module retainer_washer(color_name = "BlanchedAlmond", lower=true) {
             } else {
                 assert(false);
             }
+        }
+    }
+}
+
+module jaw_hole_clip(upper=true, wall=2, dx=0) { // dx == dx_pha
+    m4_plus_padding_width = 10;
+    body = [
+        m4_plus_padding_width, 
+        wall, 
+        z_upper_jaw_anvil + m4_plus_padding_width
+    ];
+    
+    clip = [
+        m4_plus_padding_width,
+        jaws_extent.y - y_upper_jaw_anvil,
+        z_upper_jaw_anvil
+    ];
+    
+    translation = [
+        0,
+        jaws_extent.y/2,  
+        z_upper_jaw_anvil
+    ]; 
+    z_anvil = upper? z_upper_jaw_anvil : z_lower_jaw_anvil;
+    #color("Wheat") {
+        render(convexity=10) difference() {
+            translate([jaws_extent.x/2, jaws_extent.y/2, -z_anvil]) {
+                block(body, center=ABOVE+RIGHT);
+                block(clip, center=ABOVE); //, center=FRONT+ABOVE+LEFT);
+            }
+            jaw_hole_clearance();
+        }
+    }
+    color("hotpink") {
+        upper_jaw_yoke(dx=0);
+    }
+}
+
+module upper_jaw_yoke(color_name="blue", dx=0) { //dx_pha
+    assert(is_num(dx));
+    m4_plus_padding_width = 10;
+    z_yoke = 16.5;
+    joiner =  [m4_plus_padding_width, jaws_extent.y + 2 * w_upper_jaw_yoke, w_upper_jaw_yoke];
+            // [x_body_mpha, jaws_extent.y + 2 * w_upper_jaw_yoke, w_upper_jaw_yoke];
+    side = [m4_plus_padding_width, w_upper_jaw_yoke, z_yoke - m4_plus_padding_width]; //7]; //z_yoke-x_body_mpha
+    color(color_name) {
+        translate([dx, 0, z_yoke]) {
+            block(joiner, center=BELOW+FRONT); 
+            center_reflect([0, 1, 0]) translate([0, jaws_extent.y/2, 0]) block(side, center=BELOW+FRONT+RIGHT); 
         }
     }
 }
