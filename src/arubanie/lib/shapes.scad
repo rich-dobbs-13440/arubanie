@@ -112,7 +112,7 @@ module block(size, center=0, rank=1) {
 
 */
 
-module rod(d, l, center=0, hollow=false, rank=1, fa=undef) {
+module rod(d, l, center=0, hollow=false, taper=false, rank=1, fa=undef) {
     function swell(w=0) = w + 2*rank*eps;
     function swell_inward(w=0) = w - 2*rank*eps;  
     $fa = is_undef(fa) ? $fa : fa;
@@ -130,8 +130,17 @@ module rod(d, l, center=0, hollow=false, rank=1, fa=undef) {
         rotate([0, 0, a])
         rotate([0, 90, 0])
         if (hollow == false) {
-            cylinder(d=swell(d), h=swell(l), center=true);
+            if (!taper) {
+                cylinder(d=swell(d), h=swell(l), center=true);
+            } else if (is_num(taper)) {
+                cylinder(d1=swell(d), d2=swell(taper), h=swell(l), center=true);
+            } else {
+                assert(false, str("Don't know how to handle taper=", taper));  
+            }
         } else if (is_num(hollow)) {
+            if (is_num(taper)) {
+                assert(false, "Hollow and tapered not implement");  
+            }
             render() difference() {
                 cylinder(d=swell(d), h=swell(l), center=true);
                 cylinder(d=swell_inward(hollow), h=2*l, center=true);  
