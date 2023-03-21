@@ -11,6 +11,9 @@ show_development = true;
 delta_ = 10;
 jaw_percent_open = 50; // [0 : 1: 99.99]
 
+
+
+
 /* [Jaw Clip Design] */
 
 // This is a Z offset, so the actual thickness of base will be less than this because of the angle.
@@ -21,8 +24,7 @@ clearance_jaw_clip = 0.5; // // [0:0.5:2]
 z_front_clip_jaw_clip = 1; // [0:0.25:2]
 x_front_clip_jaw_clip = 2; // [0:0.25:2]
 
-// The thickness of the web and flange.
-        
+// The thickness of the web and flange.       
 x_rail_jaw_clip = 26; // [0: 1 : 30]
 y_rail_jaw_clip = 6;
 z_rail_jaw_clip = 6;
@@ -47,11 +49,10 @@ x_jaw_yoke_front = 20; // [0:1:20]
 y_jaw_yoke = 10; // [0:1:10]
 z_jaw_yoke = 2; // [0:0.25:4]
 
+
+
 /* [Upper Jaw Yoke Design] */
 w_upper_jaw_yoke = 2;
-
-
-
 
 
 
@@ -94,29 +95,35 @@ y_position(6)
 y_position(7)
     // Show retainer washer on both sides, and dealing with no fixed children.
     articulate_jaws(show_moving_jaw=false, show_moving_jaw_anvil=false) {
-        union() {
-           // Nothing here! 
-        }
+        no_fixed_jaw_attachments();
         center_reflect([0, 1, 0]) retainer_washer(color_name = "Pink", alpha=1);   
     }
 
-y_position(-1) 
-    // Show default jaw_clip
+y_position(8) 
+    // Show rotation from one jaw to another
     articulate_jaws(jaw_percent_open=jaw_percent_open) {
-        union() {
-           // Nothing here! 
-        }
-        jaw_hole_clip();
+        jaw_hole_clip(x_front=0);
+        jaw_hole_clip(x_front=0);
     }
 
-y_position(-2) 
+y_position(9) 
     // Show default jaw_clip
     articulate_jaws(jaw_percent_open=jaw_percent_open) {
-        union() {
-           // Nothing here! 
-        }
-        jaw_hole_clip(do_cap=true);
+        no_fixed_jaw_attachments();
+        jaw_hole_clip(do_cap=true, x_front=2);
     }
+   
+    
+module no_fixed_jaw_attachments() {}
+    
+module y_position(idx) {
+    if (show_top_level) {
+        if ((show_standard && idx > 0) || (show_development && idx <= 0)) {
+            delta = y_pivot + 10;
+            translate([0, delta * idx, 0]) children();
+        }
+    }
+}    
 
 
 /* [Jaw Measurements] */
@@ -198,14 +205,7 @@ module translation_from_pivot() {
     children();
 }
 
-module y_position(idx) {
-    if (show_standard && idx > 0) {
-        delta = y_pivot + 10;
-        if (show_top_level) {
-            translate([0, delta * idx, 0]) children();
-        }
-    }
-}
+
 
 module axle(color_name="Gray") {
     color(color_name) 
@@ -636,17 +636,32 @@ module retainer_washer(lower=true, color_name = "SaddleBrown", alpha=1) {
     }
 }
 
-module jaw_hole_clip(upper=true, wall=2, dx=0, do_cap=false) { // dx == dx_pha
+module jaw_hole_clip(
+        upper = true, 
+        wall = 2, 
+        x_front = undef,
+        x_back = undef,
+        do_cap = false, 
+        z_cap = 18,
+        color_name= "Wheat") {
+            
     m4_plus_padding_width = 10;
-    z_body = do_cap ? 18 : z_upper_jaw_anvil + m4_plus_padding_width;
+            
+    dx_body_front = !is_undef(x_front) ? x_front : jaws_extent.x/2 - m4_plus_padding_width/2;
+    dx_body_back =  !is_undef(x_back) ?  x_back :  jaws_extent.x/2 + m4_plus_padding_width/2;    
+    x_body = dx_body_back - dx_body_front;      
+    z_body = do_cap ? z_cap + wall : z_upper_jaw_anvil + m4_plus_padding_width;
+     
+    echo("dx_body_front", dx_body_front); 
+    echo("dx_body_back", dx_body_back);        
     body = [
-        m4_plus_padding_width, 
+        x_body, 
         wall, 
         z_body
     ];
     
     clip = [
-        m4_plus_padding_width,
+        body.x,
         jaws_extent.y - y_upper_jaw_anvil,
         z_upper_jaw_anvil
     ];
@@ -655,46 +670,38 @@ module jaw_hole_clip(upper=true, wall=2, dx=0, do_cap=false) { // dx == dx_pha
         jaws_extent.y + 2*wall, 
         wall
     ];
-    
-    translation = [
-        0,
-        jaws_extent.y/2,  
-        z_upper_jaw_anvil
-    ]; 
+     
     z_anvil = upper? z_upper_jaw_anvil : z_lower_jaw_anvil;
-    module gesses() {
-        translate([jaws_extent.x/2, jaws_extent.y/2, -z_anvil]) {
-            
+    
+    module locate() {
+        translate([dx_body_front, jaws_extent.y/2, -z_anvil]) {
+            children();  
         }
     }
     module basic() {
         render(convexity=10) difference() {
-            gesses() {
-                block(body, center=ABOVE+RIGHT);
-                block(clip, center=ABOVE); //, center=FRONT+ABOVE+LEFT);
+            locate() {
+                block(body, center=ABOVE+RIGHT+FRONT);
+                block(clip, center=ABOVE+FRONT); 
             }
             jaw_hole_clearance(loose=true);
         }        
     }
     module cap() {
-        gesses() {
-            block(cap);
+        locate() {
+            translate([0, wall, body.z]) block(cap, center=BELOW+LEFT+FRONT);
         }
     }
     
-    color("Wheat") {
+    color(color_name) {
         if (do_cap) {
-            
             center_reflect([0, 1, 0]) basic();
-            #cap();
+            cap();
         }
         else {
             basic();
         }
     }
-//    color("hotpink") {
-//        upper_jaw_yoke(dx=0);
-//    }
 }
 
 
