@@ -19,55 +19,25 @@ exposed_wire = 2.14;
 d_pin_clearance  = 0.4; // [0:0.1:1]
 // This controls how strong the spring holds
 z_spring_mph = 3.; // [3:0.1:5]
-dx_clearance_spring_mph = 1;
-
-x_split_mph = 7; // [0 : 1 : 12]
-z_split_mph = 0.5;
-clearance_fraction_male_pin_holder = 0.1; //[0: 0.01: 0.20]
-
-
-z_column_mph = 16;
-dx_column_mph = 2.9; // [-5:0.1:5]
-
-alpha_mph = 1; // [0, 0.25, 0.50, 0.75, 1]
-
-dx_male_m3_attachment = 2.25; // [-10:0.05:10]
-dy_male_m3_attachment = 2.25; // [0:0.05:20]
-dz_male_m3_attachment = -1.35; // [-5:0.05: 5]
-t_male_pin_holder_attachment = [dx_male_m3_attachment, dy_male_m3_attachment, dz_male_m3_attachment];
-
 
 
 /* [Show] */
-orient = "For build"; //["As designed", "As assembled", "For build"]
+orient = "As assembled"; //["As designed", "As assembled", "For build"]
 orient_for_build = orient == "For build";
-//show_upper_jaw_clip = false;
-//show_upper_jaw_clip_rail = true;
-
-show_pin_holder_adapter = true;
+show_pin_holder_clip = true;
+show_pin_strip_carriage = false;
 show_pin_strip_breaker = false;
-
-//show_lower_jaw_clip = false;
-
-show_pin_strip_carriage = true;
-show_upper_jaw_yoke = true;
-show_male_pin_holder = true;
-show_m3_attachment = false || false;
-show_retainer_washer = false || false;
-show_jaw_yoke = false || false;
-
-
 
 /* [Show Mocks] */
 percent_open_jaw = 0; // [0:99.9]
 show_male_pin_ = true;
 alpha_mp = 1; // [0, 0.25, 0.5, 0.75, 1]
-show_lower_jaw = true;
-show_upper_jaw = true;
 
-show_lower_jaw_anvil = true;
-show_upper_jaw_anvil = true;
-show_lower_jaw_anvil_retainer = false ||false;
+show_fixed_jaw = true;
+show_fixed_jaw_anvil = true;
+
+show_moving_jaw = true;
+show_moving_jaw_anvil = true;
 
 
 module end_of_customization() {}
@@ -85,76 +55,52 @@ pin_count = 20;
 delta_pin_strip = l_pin_strip / (pin_count -1);    
 
 
- 
-if (orient_for_build || orient == "As designed") {
-    upper_jaw_assembly();
-} else {
-    articulate_jaws(
-            percent_open_jaw*max_jaw_angle/100, 
-            show_fixed_jaw=show_lower_jaw, 
-            show_fixed_jaw_anvil=show_lower_jaw_anvil, 
-            show_moving_jaw=show_upper_jaw, 
-            show_moving_jaw_anvil=show_lower_jaw_anvil) {
-        lower_jaw_assembly();     
-        upper_jaw_assembly();
-    }
-} 
+if (show_pin_holder_clip) { 
+    if (orient == "As designed") {
+        pin_holder_clip();
+    } else if (orient_for_build) {
+        translate([100, 0,0])  pin_holder_clip(orient_for_build=true);
+    } else {
 
-
-
-module pin_holder_adapter() {
-    jaw_hole_clip(); 
-}
-
-module upper_jaw_assembly() { 
-   rotation = 
-        orient_for_build ? [0, -90, 0] : 
-        orient == "As designed" ? [0, 0, 0] :
-        orient == "As assembled" ? [0, 0, 0]: 
-        assert(false, assert_msg("orient: ", orient));
-    translation = 
-        orient_for_build ? [0, 0, -dx_025_anvil+2.54/2] :
-        orient == "As designed" ? [0, 0, 0] :
-        orient == "As assembled" ? [0, 0, dz_between_upper_and_lower_jaw]: 
-        assert(false);   
-    
-    
-    translate(translation) { 
-        rotate(rotation) {
-            if (show_pin_holder_adapter) {
-                pin_holder_adapter(); 
-            }
-            if (show_pin_strip_carriage) {
-                pin_strip_carriage();
-            }
-            if (show_upper_jaw_yoke) {
-                upper_jaw_yoke();
-            }
-            
-            
-            dz = dz_025_wire_punch_z + z_conductor_wrap_mp/2;
-            translate([dx_025_anvil, -dx_insulation_wrap_mp, -dz]) rotate([0, 180, -90]){
-//                if (show_male_pin_ && !orient_for_build) {
-//                    male_pin();  
-//                }
-                if (show_male_pin_holder) {
-                    //color("pink") 
-                    male_pin_holder(
-                        z_spring = z_spring_mph,
-                        clearance_fraction = clearance_fraction_male_pin_holder, 
-                        z_column = z_column_mph, 
-                        dx_column = dx_column_mph,
-                        x_stop = dx_insulation_wrap_mp -y_upper_jaw_anvil/2,
-                        show_mock=show_male_pin_ && !orient_for_build);
-                } 
-            }
-            
-         
+        articulate_jaws(
+                percent_open_jaw*max_jaw_angle/100, 
+                show_fixed_jaw=show_fixed_jaw, 
+                show_fixed_jaw_anvil=show_fixed_jaw_anvil, 
+                show_moving_jaw=show_moving_jaw, 
+                show_moving_jaw_anvil=show_moving_jaw_anvil) {
+                    
+            no_fixed_jaw_attachments();     
+            pin_holder_clip();
         }
-    }
+    } 
 }
 
-module lower_jaw_assembly() { 
+
+module pin_holder_clip(orient_for_build=false) {
+    clearance_fraction_male_pin_holder = 0.1; //[0: 0.01: 0.20]
+    x_front = dx_025_anvil-DUPONT_HOUSING_WIDTH()/2;
+    
+    module oriented_pin_holder() {
+        dz = dz_025_wire_punch_z + z_conductor_wrap_mp/2; 
+        translate([dx_025_anvil, -dx_insulation_wrap_mp, -dz]) {
+            rotate([0, 180, -90]) {
+                male_pin_holder(
+                    z_spring = z_spring_mph,
+                    clearance_fraction = clearance_fraction_male_pin_holder, 
+                    x_stop = dx_insulation_wrap_mp -y_upper_jaw_anvil/2,
+                    show_mock=show_male_pin_ && !orient_for_build);
+            }
+        }        
+    }
+    module clip() {
+        jaw_hole_clip(upper=true, x_front=x_front, do_cap=true);
+        oriented_pin_holder();
+    }
+    if (orient_for_build) {
+        rotate([0, -90, 0]) translate([-x_front, 0, 0]) clip();
+    } else {
+        clip();
+    }
 }
 
 
@@ -168,20 +114,11 @@ module pin_strip_breaker() {
     width = 4;
     gap = 0.5;
 
-//    translate([0, height+gap, 0]) rotate([90, 0, 180]) pin_catch(pins, height, width, true);
-//    rotate([90, 0, 180]) pin_catch(pins, height, width, false);
-    
-    
+
     translate([0, 0, +gap/2]) pin_catch(pins, height, width, true, center=ABOVE);
     translate([0, 0, -gap/2]) pin_catch(pins, height, width, false, center=BELOW);
-    
-    //translate([0, +gap/2, -2.5])  block([(pins+1)*delta_pin_strip, 2*height+gap, 1.5], center=BELOW);
-
-
     rotate([0, 0, -90])  translate([-dx_insulation_wrap_mp, 0, 0]) male_pin_holder(show_mock=true, z_spring = z_spring_mph);
 }
-
-
 
 
 module pin_catch(
@@ -225,27 +162,5 @@ module pin_catch(
         }
     }
 }
-
-
-module pin_strip_carriage() {
-    jaw_hole_clip(upper=true); // ! mirror([0, 1, 0]) pin_holder_adapter();
-    translate([dx_pha, jaws_extent.y/2, 0]) block([x_body_mpha, 20, 2], center=BELOW+RIGHT+FRONT);
-}
-
-
-
-
-
-module m3_attachment() {
-    difference() {
-        block([8, 8, 2], center=BELOW+BEHIND+RIGHT);
-        translate([-4, 4, 25]) hole_through("M3", $fn=12);
-    }
-}
-
-
-
-
-
 
 
