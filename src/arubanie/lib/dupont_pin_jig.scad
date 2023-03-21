@@ -41,14 +41,14 @@ t_male_pin_holder_attachment = [dx_male_m3_attachment, dy_male_m3_attachment, dz
 /* [Show] */
 orient = "For build"; //["As designed", "As assembled", "For build"]
 orient_for_build = orient == "For build";
-show_upper_jaw_assembly = true;
-show_upper_jaw_clip = false;
-show_upper_jaw_clip_rail = true;
+//show_upper_jaw_clip = false;
+//show_upper_jaw_clip_rail = true;
 
 show_pin_holder_adapter = true;
 show_pin_strip_breaker = false;
 
-show_lower_jaw_clip = false;
+//show_lower_jaw_clip = false;
+
 show_pin_strip_carriage = true;
 show_upper_jaw_yoke = true;
 show_male_pin_holder = true;
@@ -85,28 +85,26 @@ pin_count = 20;
 delta_pin_strip = l_pin_strip / (pin_count -1);    
 
 
-    
-
-    
-
  
-if (show_upper_jaw_assembly) {
-    if (orient_for_build || orient == "As designed") {
+if (orient_for_build || orient == "As designed") {
+    upper_jaw_assembly();
+} else {
+    articulate_jaws(
+            percent_open_jaw*max_jaw_angle/100, 
+            show_fixed_jaw=show_lower_jaw, 
+            show_fixed_jaw_anvil=show_lower_jaw_anvil, 
+            show_moving_jaw=show_upper_jaw, 
+            show_moving_jaw_anvil=show_lower_jaw_anvil) {
+        lower_jaw_assembly();     
         upper_jaw_assembly();
-    } else {
-        articulate_jaws(
-                percent_open_jaw*max_jaw_angle/100, 
-                show_lower_jaw=show_lower_jaw, 
-                show_lower_jaw_anvil=show_lower_jaw_anvil, 
-                show_upper_jaw=show_upper_jaw, 
-                show_upper_jaw_anvil) {
-                
-            //#upper_jaw_assembly();
-        }
-
     }
 } 
 
+
+
+module pin_holder_adapter() {
+    jaw_hole_clip(); 
+}
 
 module upper_jaw_assembly() { 
    rotation = 
@@ -123,11 +121,8 @@ module upper_jaw_assembly() {
     
     translate(translation) { 
         rotate(rotation) {
-            if (show_upper_jaw_clip) {
-                color("Olive") jaw_clip(show_upper_jaw_clip_rail, dz_rail_jaw_clip);
-            } 
             if (show_pin_holder_adapter) {
-                jaw_hole_clip(); // pin_holder_adapter();
+                pin_holder_adapter(); 
             }
             if (show_pin_strip_carriage) {
                 pin_strip_carriage();
@@ -157,6 +152,9 @@ module upper_jaw_assembly() {
          
         }
     }
+}
+
+module lower_jaw_assembly() { 
 }
 
 

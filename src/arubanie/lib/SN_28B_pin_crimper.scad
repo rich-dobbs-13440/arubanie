@@ -6,6 +6,8 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 /* [Show] */
 
 show_top_level = false;
+show_standard = true;
+show_development = true;
 delta_ = 10;
 jaw_percent_open = 50; // [0 : 1: 99.99]
 
@@ -61,20 +63,60 @@ module end_of_customization() {}
 
 
 // Usage Demo:
+y_position(1) 
+    // Show default - jaw closed, no attachments
+    articulate_jaws();
 
-y_position(0) articulate_jaws(jaw_angle=12, show_upper_jaw=true, show_upper_jaw_anvil=true);
-y_position(1) articulate_jaws(jaw_percent_open=100, show_upper_jaw=true, show_upper_jaw_anvil=true) {
+y_position(2) 
+    // Show position jaw by angle
+    articulate_jaws(jaw_angle=12);
+
+y_position(3) 
+    // Show jaw position by percent open 
+    articulate_jaws(jaw_percent_open=75);
+
+y_position(4)
+    // Show hiding jaw and anvil
+    articulate_jaws(jaw_percent_open=100, show_fixed_jaw=false, show_moving_jaw_anvil=false);
+
+y_position(5) 
+    // Show attaching children, jaw_clip, and jaw_yoke, and changing jaw position by customization
+    articulate_jaws(jaw_percent_open=jaw_percent_open) {
+        jaw_clip(include_clip_rails=true, dz_rails=10);
+        jaw_yoke();
+    }
+
+y_position(6) 
+    // Show retainer washer
+    articulate_jaws(show_fixed_jaw=false) 
+        retainer_washer(color_name = "Pink", alpha=0.75);
     
-}
-y_position(2) articulate_jaws(jaw_percent_open=jaw_percent_open) {
-    jaw_clip(include_clip_rails=true, dz_rails=10);
-    jaw_yoke();
-}
-y_position(3) articulate_jaws(show_lower_jaw=false) retainer_washer();
+y_position(7)
+    // Show retainer washer on both sides, and dealing with no fixed children.
+    articulate_jaws(show_moving_jaw=false, show_moving_jaw_anvil=false) {
+        union() {
+           // Nothing here! 
+        }
+        center_reflect([0, 1, 0]) retainer_washer(color_name = "Pink", alpha=1);   
+    }
 
-y_position(3) articulate_jaws(jaw_percent_open=jaw_percent_open) jaw_hole_clip();
+y_position(-1) 
+    // Show default jaw_clip
+    articulate_jaws(jaw_percent_open=jaw_percent_open) {
+        union() {
+           // Nothing here! 
+        }
+        jaw_hole_clip();
+    }
 
-
+y_position(-2) 
+    // Show default jaw_clip
+    articulate_jaws(jaw_percent_open=jaw_percent_open) {
+        union() {
+           // Nothing here! 
+        }
+        jaw_hole_clip(do_cap=true);
+    }
 
 
 /* [Jaw Measurements] */
@@ -102,6 +144,16 @@ x axis, with x being positive as you go deeper into the jaw.
     back_jaw_to_pivot = [12.62, 6.26, 20];
     y_pivot = 16.32;
     d_pivot = 7.92;
+    
+    function translation_jaw_to_pivot(fixed) =  
+        let (
+            side = fixed ? -1 : +1
+        )
+        [
+            -(back_jaw_to_pivot.x + x_jaw), 
+            0, 
+            side * dz_between_upper_and_lower_jaw / 2
+        ];    
     
  /* [Anvil Dimensions] */   
     
@@ -135,12 +187,23 @@ x axis, with x being positive as you go deeper into the jaw.
 /* [Jaw Clip Calculations] */
     y_jaw_clip = 2*wall_jaw_clip + jaws_extent.y + 2*clearance_jaw_clip; 
 
+module translation_to_pivot(fixed) {
+    assert(is_bool(fixed));
+    
+    rotation = fixed ? [180, 0, 0] : [0, 0, 0];
+    translate(translation_jaw_to_pivot(fixed=fixed)) rotate(rotation) children();
+}
 
+module translation_from_pivot() {
+    children();
+}
 
 module y_position(idx) {
-    delta = y_pivot + 10;
-    if (show_top_level) {
-        translate([0, delta * idx, 0]) children();
+    if (show_standard && idx > 0) {
+        delta = y_pivot + 10;
+        if (show_top_level) {
+            translate([0, delta * idx, 0]) children();
+        }
     }
 }
 
@@ -148,75 +211,75 @@ module axle(color_name="Gray") {
     color(color_name) 
         rod(d=d_pivot, l=y_pivot, center=SIDEWISE);  
 }
+
+module fixed_assembly(show_jaw=true, show_anvil=true) { 
+    axle();
+    back_jaw(center=BELOW);
+    translation_to_pivot(fixed = true) {  
+        if (show_jaw) {
+            jaw();
+        }  
+        if (show_anvil) {
+            rotate([180, 0, 0]) lower_jaw_anvil();
+        }   
+        children(); 
+    }
+}
+
+module moving_assembly(show_jaw=true, show_anvil=true) {
+    axle();
+    back_jaw(center=ABOVE);
+    translation_to_pivot(fixed = false) {  
+        if (show_jaw) {
+            jaw();
+        }  
+        if (show_anvil) {
+            upper_jaw_anvil();
+        }
+        children(); 
+    }
+}
+
+
  
 module articulate_jaws(
         jaw_angle, 
         jaw_percent_open, 
-        show_lower_jaw = true, 
-        show_lower_jaw_anvil = true, 
-        show_upper_jaw = true, 
-        show_upper_jaw_anvil = true) {
-    
+        show_fixed_jaw = true, 
+        show_fixed_jaw_anvil = true, 
+        show_moving_jaw = true, 
+        show_moving_jaw_anvil = true) {
+            
     angle = 
         !is_undef(jaw_angle) ? jaw_angle :
         !is_undef(jaw_percent_open) ? jaw_percent_open * max_jaw_angle / 100 :
-        0;
-    
-    lower_jaw_child = 0;
-    upper_jaw_child = 1;
-    
-    translation_to_pivot = [-(back_jaw_to_pivot.x + x_jaw), 0, 0];
+        0;  
+   
+    fixed_jaw_child = 0;
+    moving_jaw_child = 1; 
+    assert($children <= 2, "Too many children as attachments! Should be fixed followed by moving."); 
             
-    lower_assembly();
-    upper_assembly(angle);        
-        
-    module lower_assembly() {     
-        rotate([180, 0, 0]) {
-            translate(-translation_to_pivot) back_jaw();
-            translate([0, 0, dz_between_upper_and_lower_jaw/2]) {
-                
-                if (show_lower_jaw) {
-                    jaw();
-                }  
-                if (show_lower_jaw_anvil) {
-                    rotate([180, 0, 0]) lower_jaw_anvil();
-                }   
-                if ($children > lower_jaw_child) {
-                    children(lower_jaw_child); 
-                }
-            }
+    translation_from_pivot() {        
+        fixed_assembly(show_jaw=show_fixed_jaw, show_anvil=show_fixed_jaw_anvil) {
+            if ($children > fixed_jaw_child) {
+                children(fixed_jaw_child);
+            }         
         }
-    }
+         
+        rotate([0, angle, 0]) {
+            moving_assembly(show_jaw=show_moving_jaw, show_anvil=show_moving_jaw_anvil) {
+                if ($children > moving_jaw_child) {
+                    children(moving_jaw_child);
+                }             
+             }
+         }
+     }
+ }
 
-    module upper_assembly(angle) {
-        translate(-translation_to_pivot) { 
-            
-            rotate([0, angle, 0]) {
-                axle();
-                back_jaw();
-                translate(translation_to_pivot) {
-                    translate([0, 0, dz_between_upper_and_lower_jaw/2]) {
-                        if (show_upper_jaw) {
-                            jaw();
-                        }  
-                        if (show_upper_jaw_anvil) {
-                            upper_jaw_anvil();
-                        }
-                        //
-                        if ($children > upper_jaw_child) {
-                            children(upper_jaw_child);
-                        }
-                    }
-                }
-                
-            }
-        }
-    }
-} 
-
-module back_jaw(color_name="SlateGray") {
+module back_jaw(color_name="SlateGray", center) {
+    assert(is_num(center));
     color(color_name) {
-        block(back_jaw_to_pivot, center=BEHIND+ABOVE);
+        block(back_jaw_to_pivot, center=BEHIND+center);
     }
 }
 
@@ -303,10 +366,18 @@ module anvil_retainer() {
     }
 }
 
-module jaw_hole_clearance() {
-    translate([x_lower_jaw_anvil/2, 0, z_axis_ar]) {
-        rotate([90, 0, 0]) translate([0, 0, 25]) hole_through("M4", $fn=13);
-        rotate([90, 0, 0]) translate([0, 1, 25]) hole_through("M4", $fn=13);
+module jaw_hole_clearance(loose=false) {
+    module hole() {
+        translate([x_lower_jaw_anvil/2, 0, z_axis_ar]) {
+            rotate([90, 0, 0]) 
+                translate([0, 0, 25]) hole_through("M4", $fn=13);
+        }
+    }
+    
+    hole();
+    if (loose) {
+        translate([0, 0, 1]) hole(); 
+        translate([0, 0, -1]) hole(); 
     }
 }
 
@@ -318,7 +389,7 @@ module jaw(color_name="SlateGray") {
                     jaw_side();
                 }
             } 
-            jaw_hole_clearance();
+            jaw_hole_clearance(loose=false);
         }
     }
 }
@@ -341,7 +412,7 @@ module y_centered_jaw_side() {
 
 
 
-module jaw_clip(include_clip_rails=false, dz_rails=0) {
+module jaw_clip(include_clip_rails = false, dz_rails = 0, color_name = "Tan") {
      
     module base() {
         resize([0, y_jaw_clip,  0]) {
@@ -407,10 +478,11 @@ module jaw_clip(include_clip_rails=false, dz_rails=0) {
             clip_rails();
         }
     }
- 
-    difference() { 
-        body();
-        jaw_hole_clearance();
+    color(color_name) {
+        difference() { 
+            body();
+            jaw_hole_clearance(loose=true);
+        }
     }
 
 }
@@ -508,53 +580,36 @@ module rail_rider(color_name="NavahoWhite") {
     color(color_name) {
         difference() {
             rider();
-            nutcut();
+            #nutcut();
             
         }
     }
 }
 
 
-
 module jaw_yoke(color_name="SandyBrown") {
     y_total = y_lower_jaw_anvil + 2 * y_jaw_yoke;
     yoke_behind = [x_jaw_yoke_behind, y_total, z_jaw_yoke];
     yoke_front = [x_jaw_yoke_front, y_jaw_yoke, z_jaw_yoke];
-    translation_ht_front = 0.70*yoke_front;
-    translation_ht_behind = [-0.8*yoke_behind.x, 0.4*yoke_behind.y, 10];
+    translation_ht_front = [0.8*yoke_front.x, 0.9*y_jaw_yoke, 25];
+    translation_ht_behind = [-0.8*yoke_behind.x, 0.9*y_jaw_yoke, 25];
     color(color_name) {
         difference() {
-            block(yoke_behind, center=ABOVE+BEHIND);
-            center_reflect([0, 1, 0]) translate(translation_ht_behind) hole_through("M3");
-        }
-
-        center_reflect([0, 1, 0]) {
-            translate([0, y_lower_jaw_anvil/2, 0]) {
-                difference() {
-                    block(yoke_front, center=ABOVE+FRONT+RIGHT);
-                    translate(translation_ht_front) hole_through("M3");
-                }
+            union() {
+                block(yoke_behind, center=ABOVE+BEHIND);
+                center_reflect([0, 1, 0])
+                    translate([0, y_lower_jaw_anvil/2, 0])
+                        block(yoke_front, center=ABOVE+FRONT+RIGHT);
             }
+            center_reflect([0, 1, 0]) translate(translation_ht_behind) hole_through("M3");
+            center_reflect([0, 1, 0]) translate(translation_ht_front) hole_through("M3");
         }
     }
     
 }
 
-//if (show_retainer_washer) {
-//   rotation = 
-//        orient_for_build ? [90, 0, 0] : 
-//        orient == "As designed" ? [0, 0, 0] :
-//        orient == "As assembled" ? [0, 0, 0]: 
-//        assert(false, assert_msg("orient: ", orient));
-//    translation = 
-//        orient_for_build ? [0, 0, 0] :
-//        orient == "As designed" ? [0, 0, 0] :
-//        orient == "As assembled" ? [0, -dy_between_jaw_sides/2, 0]: 
-//        assert(false);    
-//    translate(translation) rotate(rotation) retainer_washer();
-//}
 
-module retainer_washer(color_name = "BlanchedAlmond", lower=true) {
+module retainer_washer(lower=true, color_name = "SaddleBrown", alpha=1) {
     washer = [
         x_anvil_retainer + 2 * padding_retainer_washer, 
         y_retainer_washer, 
@@ -570,7 +625,7 @@ module retainer_washer(color_name = "BlanchedAlmond", lower=true) {
     z_anvil = //washer.z/2
         lower ? 0 : //z_lower_jaw_anvil : 
         asser(false);
-    color(color_name, alpha=0.25) {
+    color(color_name, alpha=alpha) {
         translate([x_jaw/2, y_anvil_retainer/2 + dy_retainer_washer + 0.2, z_anvil]) {
             if (lower) {
                 rotate([180, 0, 0]) washer();
@@ -581,18 +636,24 @@ module retainer_washer(color_name = "BlanchedAlmond", lower=true) {
     }
 }
 
-module jaw_hole_clip(upper=true, wall=2, dx=0) { // dx == dx_pha
+module jaw_hole_clip(upper=true, wall=2, dx=0, do_cap=false) { // dx == dx_pha
     m4_plus_padding_width = 10;
+    z_body = do_cap ? 18 : z_upper_jaw_anvil + m4_plus_padding_width;
     body = [
         m4_plus_padding_width, 
         wall, 
-        z_upper_jaw_anvil + m4_plus_padding_width
+        z_body
     ];
     
     clip = [
         m4_plus_padding_width,
         jaws_extent.y - y_upper_jaw_anvil,
         z_upper_jaw_anvil
+    ];
+    cap = [
+        body.x, 
+        jaws_extent.y + 2*wall, 
+        wall
     ];
     
     translation = [
@@ -601,34 +662,42 @@ module jaw_hole_clip(upper=true, wall=2, dx=0) { // dx == dx_pha
         z_upper_jaw_anvil
     ]; 
     z_anvil = upper? z_upper_jaw_anvil : z_lower_jaw_anvil;
-    #color("Wheat") {
+    module gesses() {
+        translate([jaws_extent.x/2, jaws_extent.y/2, -z_anvil]) {
+            
+        }
+    }
+    module basic() {
         render(convexity=10) difference() {
-            translate([jaws_extent.x/2, jaws_extent.y/2, -z_anvil]) {
+            gesses() {
                 block(body, center=ABOVE+RIGHT);
                 block(clip, center=ABOVE); //, center=FRONT+ABOVE+LEFT);
             }
-            jaw_hole_clearance();
+            jaw_hole_clearance(loose=true);
+        }        
+    }
+    module cap() {
+        gesses() {
+            block(cap);
         }
     }
-    color("hotpink") {
-        upper_jaw_yoke(dx=0);
+    
+    color("Wheat") {
+        if (do_cap) {
+            
+            center_reflect([0, 1, 0]) basic();
+            #cap();
+        }
+        else {
+            basic();
+        }
     }
+//    color("hotpink") {
+//        upper_jaw_yoke(dx=0);
+//    }
 }
 
-module upper_jaw_yoke(color_name="blue", dx=0) { //dx_pha
-    assert(is_num(dx));
-    m4_plus_padding_width = 10;
-    z_yoke = 16.5;
-    joiner =  [m4_plus_padding_width, jaws_extent.y + 2 * w_upper_jaw_yoke, w_upper_jaw_yoke];
-            // [x_body_mpha, jaws_extent.y + 2 * w_upper_jaw_yoke, w_upper_jaw_yoke];
-    side = [m4_plus_padding_width, w_upper_jaw_yoke, z_yoke - m4_plus_padding_width]; //7]; //z_yoke-x_body_mpha
-    color(color_name) {
-        translate([dx, 0, z_yoke]) {
-            block(joiner, center=BELOW+FRONT); 
-            center_reflect([0, 1, 0]) translate([0, jaws_extent.y/2, 0]) block(side, center=BELOW+FRONT+RIGHT); 
-        }
-    }
-}
+
 
 
 
