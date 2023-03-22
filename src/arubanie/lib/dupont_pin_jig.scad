@@ -24,6 +24,7 @@ z_spring_mph = 3.; // [3:0.1:5]
 /* [Show] */
 orient = "As assembled"; //["As designed", "As assembled", "For build"]
 orient_for_build = orient == "For build";
+show_pin_crimper = true;
 show_pin_holder_clip = false;
 show_pin_strip_carriage = false;
 show_pin_strip_breaker = false;
@@ -64,29 +65,34 @@ delta_pin_strip = l_pin_strip / (pin_count -1);
 
 
 
-
-
-
-
-if (show_pin_holder_clip) { 
+if (show_pin_holder_clip) {
     if (orient == "As designed") {
         pin_holder_clip();
     } else if (orient_for_build) {
         translate([100, 0,0])  pin_holder_clip(orient_for_build=true);
-    } else {
+    }
+}
 
-        articulate_jaws(
-                percent_open_jaw*max_jaw_angle/100, 
-                show_fixed_jaw=show_fixed_jaw, 
-                show_fixed_jaw_anvil=show_fixed_jaw_anvil, 
-                show_moving_jaw=show_moving_jaw, 
-                show_moving_jaw_anvil=show_moving_jaw_anvil) {
-                    
-            no_fixed_jaw_attachments(); 
-            union() {    
+
+
+if (show_pin_crimper) { 
+    SN_28B_pin_crimper(
+            percent_open_jaw*max_jaw_angle/100, 
+            show_fixed_jaw=show_fixed_jaw, 
+            show_fixed_jaw_anvil=show_fixed_jaw_anvil, 
+            show_moving_jaw=show_moving_jaw, 
+            show_moving_jaw_anvil=show_moving_jaw_anvil,
+            fixed_screw_name="M4x25") {
+        union() {        
+            M4_rail(orient = LEFT); 
+            M4_rail(orient = RIGHT);
+            jaw_hole_clip(upper=false, x_front=25, do_cap=true);
+        }
+        union() { 
+            if (show_pin_holder_clip) {
                 pin_holder_clip();
-                //positioned_insulator_wrap_prebender();
             }
+            //positioned_insulator_wrap_prebender();
         }
     } 
 }
@@ -132,11 +138,21 @@ module pin_holder_clip(orient_for_build=false) {
 
 
 
-module rail() {
+module M4_rail(orient) {
     thickness = 4; // Large enought to take the head or shaft of an M4 Bolt
     x_behind = 20;
-    size = [jaws_extent.x+x_behind, 8, 8];
-    t_rail(size, thickness);
+    size = [jaws_extent.x + x_behind, 10, 8];
+    translation = 
+        orient == LEFT ? [-x_behind, jaws_extent.y/2, z_axis_ar] :
+        orient == RIGHT ? [-x_behind, -jaws_extent.y/2, z_axis_ar] :
+        assert(false);
+    rotation = 
+        orient == LEFT ? [0, 0, 0] :
+        orient == RIGHT ? [180, 0, 0] :
+        assert(false);
+    translate(translation) 
+        rotate(rotation)
+            t_rail(size, thickness);
 }
 
 

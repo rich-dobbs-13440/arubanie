@@ -540,6 +540,13 @@ module corner_retention_block(wall, overlap, h_clip = 0.5, h_slope = 0.5, h_alig
     }
 }
 
+module t_rail(size, thickness) {
+    web = [size.x, size.y, thickness];
+    flange = [size.x, thickness, size.z]; 
+    block(web, center=RIGHT+FRONT);
+    translate([0, size.y, 0]) block(flange, center=LEFT+FRONT);  
+}
+
 
 module __visual_tests_for_rod_support(d, l, z, bridges, supports, center=0, dy=0) {
     translate([0, dy, 0]) {
