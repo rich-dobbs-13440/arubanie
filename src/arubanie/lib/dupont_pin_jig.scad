@@ -24,9 +24,10 @@ z_spring_mph = 3.; // [3:0.1:5]
 /* [Show] */
 orient = "As assembled"; //["As designed", "As assembled", "For build"]
 orient_for_build = orient == "For build";
-show_pin_holder_clip = true;
+show_pin_holder_clip = false;
 show_pin_strip_carriage = false;
 show_pin_strip_breaker = false;
+show_insulator_wrap_prebender = true;
 
 /* [Show Mocks] */
 percent_open_jaw = 0; // [0:99.9]
@@ -38,6 +39,13 @@ show_fixed_jaw_anvil = true;
 
 show_moving_jaw = true;
 show_moving_jaw_anvil = true;
+
+/* [Prebender Design] */
+x_mold_iwp = 8; // [0:1:20] 
+x_handle_iwp = 8; // [0:1:20] 
+z_upper_mold_iwp = 2;// [0:.1:4]  
+z_lower_mold_iwp = 2;// [0:.1:4] 
+dz_cavity_iwp = 0; // [-2:0.01:+2]
 
 
 module end_of_customization() {}
@@ -52,7 +60,85 @@ dx_pha = dx_025_anvil - 2.54/2;
 // Measure from the holes beneath the pins
 l_pin_strip = 115.1;
 pin_count = 20;
-delta_pin_strip = l_pin_strip / (pin_count -1);    
+delta_pin_strip = l_pin_strip / (pin_count -1);
+
+
+
+
+module insulator_wrap_mold_cavity() {
+    module open_wrap() {
+            male_pin(
+            pin = false, 
+            strike = false,
+            detent = false, 
+            barrel = false,
+            conductor_wrap = false,
+            insulation_wrap = 0, 
+            strip=false); 
+    }
+    module closed_wrap() {
+        male_pin(
+            pin = false, 
+            strike = false,
+            detent = false, 
+            barrel = false,
+            conductor_wrap = false,
+            insulation_wrap = 1, 
+            strip=false); 
+    }
+    module strip_allowance() {
+        male_pin(
+            pin = false, 
+            strike = false,
+            detent = false, 
+            barrel = false,
+            conductor_wrap = false,
+            insulation_wrap = false, 
+            strip=true);     
+    }
+
+    translate([-10, 0, 0]) {    
+        // Squeezing
+        hull() {
+            translate([x_mold_iwp, 0, 0]) open_wrap();
+            translate([x_mold_iwp, 0, +1]) open_wrap();
+            translate([100, 0, 0]) open_wrap();
+            closed_wrap();
+            //translate([0, 0, 1]) closed_wrap();
+        } 
+        // Accommodate strip
+        hull () {
+            translate([0, 0, 0.25]) strip_allowance();
+            translate([0, 0, -0.25]) strip_allowance();
+            translate([100, 0, 0.25]) strip_allowance();
+            translate([100, 0, -0.25]) strip_allowance();
+        }
+    }
+}
+
+if (show_insulator_wrap_prebender) {
+    insulator_wrap_prebender();
+}
+
+module insulator_wrap_prebender() {
+    //rotate([0, 90, 0]) {  
+        render(convexity=10) difference() { 
+            union() {
+                block([x_handle_iwp, y_strip_mp, z_upper_mold_iwp], center=BEHIND+ABOVE);
+                block([x_handle_iwp, y_strip_mp, z_lower_mold_iwp], center=BEHIND+BELOW);
+                block([x_mold_iwp, y_strip_mp, z_upper_mold_iwp], center=FRONT+ABOVE);
+                block([x_mold_iwp, y_strip_mp, z_lower_mold_iwp], center=FRONT+BELOW);
+            }
+            translate([0, 0, dz_cavity_iwp]) insulator_wrap_mold_cavity();
+        }
+    //}
+}
+
+module positioned_insulator_wrap_prebender() {
+    translate([dx_025_anvil, -dx_insulation_wrap_mp, -(dz_025_wire_punch_z + 2.54/2)]) {
+        insulator_wrap_prebender();
+    }
+}
 
 
 if (show_pin_holder_clip) { 
@@ -69,8 +155,11 @@ if (show_pin_holder_clip) {
                 show_moving_jaw=show_moving_jaw, 
                 show_moving_jaw_anvil=show_moving_jaw_anvil) {
                     
-            no_fixed_jaw_attachments();     
-            pin_holder_clip();
+            no_fixed_jaw_attachments(); 
+            union() {    
+                pin_holder_clip();
+                positioned_insulator_wrap_prebender();
+            }
         }
     } 
 }

@@ -64,11 +64,40 @@ x_position(4) dupont_connector(
         housing=DUPONT_STD_HOUSING(),
         has_pin=true);
 
-x_position(-1) rotate([0, 0, 90]) male_pin(); 
-x_position(-2) rotate([0, 0, 90]) male_pin_holder(show_mock=true, z_spring=2);
-x_position(-3) rotate([0, 0, 90]) male_pin_holder();
+x_position(-1) rotate([0, 0, 90]) 
+    male_pin(); 
 
-x_position(-7) male_pin_holder();
+x_position(-2) rotate([0, 0, 90]) 
+    male_pin(
+        pin = false, 
+        strike = false,
+        detent = false, 
+        barrel = false,
+        conductor_wrap = false,
+        insulation_wrap = 0, 
+        strip=false); 
+        
+x_position(-3) rotate([0, 0, 90]) 
+    male_pin(
+        pin = false, 
+        strike = false,
+        detent = false, 
+        barrel = false,
+        conductor_wrap = false,
+        insulation_wrap = 0.5, 
+        strip=false);       
+        
+x_position(-4) rotate([0, 0, 90]) 
+    male_pin(insulation_wrap=0.75);
+    
+x_position(-5) rotate([0, 0, 90]) 
+    male_pin_holder(show_mock=true, z_spring=2);
+    
+x_position(-6) rotate([0, 0, 90]) 
+    male_pin_holder();
+
+x_position(-7) 
+    male_pin_holder();
 
 
 module dupont_connector(
@@ -159,7 +188,15 @@ delta_pin_strip = l_pin_strip / (pin_count -1);
 
 
 
-module male_pin(alpha=1) {
+module male_pin(
+        pin = true, 
+        strike = true,
+        detent = true, 
+        barrel = true,
+        conductor_wrap = 0,
+        insulation_wrap = 0, 
+        strip = true, 
+        alpha=1) {
     // Initially model pin before construction with pin on x_axis,
     // with the pin itself negative, and the parts used in assembly
     // increasing in the x domain.abs
@@ -223,7 +260,7 @@ module male_pin(alpha=1) {
         translate([dx_insulation_wrap_mp, 0, 0]) 
             wing(
                 [x_insulation_wrap_mp, wire_diameter, od_barrel_mp/2], 
-                [0, y_insulation_wrap_mp, z_insulation_wrap_mp - od_barrel_mp/2]);         
+                [0, (1-insulation_wrap)*y_insulation_wrap_mp, z_insulation_wrap_mp - od_barrel_mp/2]);         
     } 
     module strip() {
         translate([dx_strip_mp, 0, -z_insulation_wrap_mp/2+2*z_metal_pin])
@@ -233,13 +270,27 @@ module male_pin(alpha=1) {
             }
     }
     color("silver", alpha=alpha) {
-        rod(d=d_pin, l=x_pin, center=BEHIND);
-        strike();
-        detent();
-        barrel();
-        conductor_wrap();
-        insulation_wrap(); 
-        strip();
+        if (pin) {
+            rod(d=d_pin, l=x_pin, center=BEHIND);
+        }
+        if (strike) {
+            strike();
+        }
+        if (detent) {
+            detent();
+        }
+        if (barrel) {
+            barrel();
+        }
+        if (is_num(conductor_wrap) || (is_bool(conductor_wrap) && conductor_wrap))  {            
+            conductor_wrap();
+        }
+        if (is_num(insulation_wrap) || (is_bool(insulation_wrap) && insulation_wrap))  {             
+            insulation_wrap(); 
+        }
+        if (strip) {
+            strip();
+        }
     }  
 }
 
@@ -297,7 +348,7 @@ module male_pin_holder(
                     block(spring, center=ABOVE+FRONT);
                 
                 translate([0.75*x_strike_mp, 0, 0.75*body.z]) 
-                    #rod(
+                    rod(
                         d=latch_release_diameter, 
                         l = body.y/2 + latch_release_height, 
                         center=SIDEWISE+RIGHT+ABOVE, 
