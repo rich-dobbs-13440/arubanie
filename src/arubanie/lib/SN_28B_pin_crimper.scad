@@ -9,11 +9,21 @@ include <nutsnbolts-master/materials.scad>
 show_top_level = false;
 show_standard = true;
 show_development = true;
-delta_ = 10;
-jaw_percent_open = 50; // [0 : 1: 99.99]
+delta_ = 30;
 
 
-
+/* [Customize] */
+jaw_percent_open_ = 50; // [0 : 1: 99.99]
+show_only_attachments_ = false;
+show_fixed_jaw_ = true; 
+show_fixed_jaw_anvil_ = true; 
+show_fixed_jaw_screw_ = true;
+fixed_jaw_screw_name_ = "M4x8";
+show_moving_jaw_ = true; 
+show_moving_jaw_anvil_ = true;
+show_moving_jaw_screw_ = true;
+moving_jaw_screw_name_ = "M4x8";
+            
 
 /* [Jaw Clip Design] */
 
@@ -116,21 +126,59 @@ y_position(9)
    
 y_position(0) 
     // Show M4 rail
-    SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open) {
+    custom_SN_28B_pin_crimper() {
         union() {
             SN_28B_M4_rail(LEFT, x_behind = 20);
-            SN_28B_jaw_hole_clip(do_cap=true, x_front=0);
+            SN_28B_M4_rail(RIGHT, x_behind = 20);
+            SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);
         }
+        
     }    
+   
+y_position(-1) 
+    // Show M4 rail
+    custom_SN_28B_pin_crimper() {
+        union() {
+            SN_28B_M4_rail(LEFT, x_behind = 20);
+            SN_28B_M4_rail(RIGHT, x_behind = 20);
+            SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);
+            SN_28B_M4_rail_slider(LEFT, l=10, clearance = 0.4);
+        }
+        
+    }   
     
     
 module no_fixed_jaw_attachments() {}
+
+
+module custom_SN_28B_pin_crimper() {
+    //jaw_percent_open=jaw_percent_open, fixed_jaw_screw_name="M4x25"
+    SN_28B_pin_crimper(
+        //jaw_angle, 
+            jaw_percent_open = jaw_percent_open_, 
+            show_only_attachments = show_only_attachments_,
+            show_fixed_jaw = show_fixed_jaw_, 
+            show_fixed_jaw_anvil = show_fixed_jaw_anvil_, 
+            show_fixed_jaw_screw = show_fixed_jaw_screw_,
+            fixed_jaw_screw_name= fixed_jaw_screw_name_,  //"M4x8",
+            show_moving_jaw = show_moving_jaw_, 
+            show_moving_jaw_anvil = show_moving_jaw_anvil_,
+            show_moving_jaw_screw = show_moving_jaw_screw_,
+            moving_jaw_screw_name=moving_jaw_screw_name_) {
+        if ($children > 0) {
+            children(0);
+        }
+        if ($children > 1) {
+            children(1);
+        }
+    }      
+}
     
 module y_position(idx) {
     if (show_top_level) {
         if ((show_standard && idx > 0) || (show_development && idx <= 0)) {
-            delta = y_pivot + 10;
-            translate([0, delta * idx, 0]) children();
+            actual_delta = y_pivot + delta_;
+            translate([0, actual_delta * idx, 0]) children();
         }
     }
 }    
@@ -208,6 +256,7 @@ x axis, with x being positive as you go deeper into the jaw.
 module SN_28B_pin_crimper(
         jaw_angle, 
         jaw_percent_open, 
+        show_only_attachments = false, 
         show_fixed_jaw = true, 
         show_fixed_jaw_anvil = true, 
         show_fixed_jaw_screw = true,
@@ -215,7 +264,8 @@ module SN_28B_pin_crimper(
         show_moving_jaw = true, 
         show_moving_jaw_anvil = true,
         show_moving_jaw_screw = true,
-        moving_jaw_screw_name="M4x8") {
+        moving_jaw_screw_name="M4x8",
+        ) {
             
     angle = 
         !is_undef(jaw_angle) ? jaw_angle :
@@ -226,11 +276,13 @@ module SN_28B_pin_crimper(
     moving_jaw_child = 1; 
     assert($children <= 2, "Too many children as attachments! Should be fixed followed by moving."); 
             
+            
     translation_from_pivot() {        
         fixed_assembly(
-                show_fixed_jaw, 
-                show_fixed_jaw_anvil, 
-                show_fixed_jaw_screw, 
+                !show_only_attachments, 
+                show_fixed_jaw_, 
+                show_fixed_jaw_anvil_, 
+                show_fixed_jaw_screw_, 
                 fixed_jaw_screw_name) {
             if ($children > fixed_jaw_child) {
                 children(fixed_jaw_child);
@@ -239,6 +291,7 @@ module SN_28B_pin_crimper(
          
         rotate([0, angle, 0]) {
             moving_assembly(
+                    !show_only_attachments,
                     show_moving_jaw, 
                     show_moving_jaw_anvil, 
                     show_moving_jaw_screw, 
@@ -250,34 +303,38 @@ module SN_28B_pin_crimper(
          }
      }
      
-    module fixed_assembly(show_jaw, show_anvil, show_screw, screw_name) { 
-        axle();
-        back_jaw(center=BELOW);
+    module fixed_assembly(show_crimper, show_jaw, show_anvil, show_screw, screw_name) {
+        if (show_crimper) { 
+            axle();
+            back_jaw(center=BELOW);
+        }
         translation_to_pivot(fixed = true) {  
-            if (show_jaw) {
+            if (show_jaw && show_crimper) {
                 jaw();
             }  
-            if (show_anvil) {
+            if (show_anvil && show_crimper) {
                 rotate([180, 0, 0]) lower_jaw_anvil();
             }   
-            if (show_screw) {
+            if (show_screw && show_crimper) {
                 SN_28B_positioned_screw(screw_name, fixed=true);
             }
             children(); 
         }
     }
 
-    module moving_assembly(show_jaw, show_anvil, show_screw, screw_name) {
-        axle();
-        back_jaw(center=ABOVE);
+    module moving_assembly(show_crimper, show_jaw, show_anvil, show_screw, screw_name) {
+        if (show_crimper) { 
+            axle();
+            back_jaw(center=ABOVE);
+        }
         translation_to_pivot(fixed = false) {  
-            if (show_jaw) {
+            if (show_jaw && show_crimper) {
                 jaw();
             }  
-            if (show_anvil) {
+            if (show_anvil && show_crimper) {
                 upper_jaw_anvil();
             }
-            if (show_screw) {
+            if (show_screw && show_crimper) {
                 SN_28B_positioned_screw(screw_name, fixed=false);
             }        
             children(); 
@@ -396,12 +453,82 @@ module SN_28B_anvil_retainer() {
             }
         }
     }
-}  
+} 
 
 
-module SN_28B_positioned_screw(screw_name, fixed) {
+module SN_28B_jaw_side() {
+    hull() {
+        translate([0, 0, 0]) block([x_jaw, y_jaw, 0.01], center=ABOVE+RIGHT+FRONT);
+        block([0.01, y_jaw, z_jaw_front], center=ABOVE+RIGHT+FRONT);
+        translate([9, 0, 0]) block([0.01, y_jaw, 12.6], center=ABOVE+RIGHT+FRONT);
+        translate([x_jaw, 0, 0]) block([0.01, y_jaw, z_jaw], center=ABOVE+RIGHT);
+    }
+}
+
+
+module SN_28B_jaw_hole_clearance(loose=false) {
+    module hole() {
+        translate([x_lower_jaw_anvil/2, 0, z_axis_ar]) {
+            rotate([90, 0, 0]) 
+                translate([0, 0, 25]) hole_through("M4", $fn=13);
+        }
+    }
+    hole();
+    if (loose) {
+        translate([0, 0, 1]) hole(); 
+        translate([0, 0, -1]) hole(); 
+    }
+}
+
+module SN_28B_M4_rail_locate(orient, x_behind) {
+    translation = 
+        orient == LEFT ? [-x_behind, jaws_extent.y/2, z_axis_ar] :
+        orient == RIGHT ? [-x_behind, -jaws_extent.y/2, z_axis_ar] :
+        assert(false);
+    rotation = 
+        orient == LEFT ? [0, 0, 0] :
+        orient == RIGHT ? [180, 0, 0] :
+        assert(false);
+
+    difference() {
+        translate(translation) {
+            rotate(rotation) {
+                children();
+            }
+        } 
+        SN_28B_positioned_screw("M4x25", fixed=true, clearance=true); 
+    }
+}
+
+
+module SN_28B_M4_rail(orient, x_behind = 20, color_name="Bisque") {
+    thickness = 6; // Large enough to take the head or shaft of an M4 Bolt
+    size = [jaws_extent.x + x_behind, 12, 10];
+    color(color_name) {
+        SN_28B_M4_rail_locate(orient, x_behind) {
+            t_rail(size, thickness);
+        }
+    }
+}
+
+module SN_28B_M4_rail_slider(orient, l, clearance = 0.4, color_name="Peru") {
+    thickness = 6; // Large enough to take the head or shaft of an M4 Bolt
+    size = [l, 12, 10];
+    clearances = [clearance, clearance, clearance];
+    color(color_name) {
+        SN_28B_M4_rail_locate(orient, x_behind=0) {
+            t_rail_slide(size, thickness, clearances);
+        }
+    }
+}
+
+
+
+
+module SN_28B_positioned_screw(screw_name, fixed, clearance=false) {
     rotation = fixed ? [90, 0, 0] : [-90, 0, 0];
     nut_height = 3.2;
+    head_clearance = 25;
     y_screw = 
         screw_name == "M4x8"? 8/2 :
         screw_name == "M4x10"? (10)/2 :
@@ -415,71 +542,27 @@ module SN_28B_positioned_screw(screw_name, fixed) {
     translation = fixed ? 
         [jaws_extent.x/2, -y_screw, z_axis_ar] : 
         [jaws_extent.x/2, y_screw, z_axis_ar];
-    translate(translation) 
+    translate(translation) {
         rotate(rotation) { 
-            if (screw_name == "M4x8") {
-                iron() screw(screw_name);
+            if (clearance) {
+                translate([0, 0, head_clearance]) 
+                    hole_through("M4", l=100, h=head_clearance, $fn=12);
+                translate([0, 0, -2*y_screw])nutcatch_parallel("M4", clh=10);
             } else {
-                stainless() screw(screw_name);
+                if (screw_name == "M4x8") {
+                    iron() screw(screw_name);
+                } else {
+                    stainless() screw(screw_name);
+                }
             }
         }
-}
-
-
-
-module SN_28B_jaw_hole_clearance(loose=false) {
-    module hole() {
-        translate([x_lower_jaw_anvil/2, 0, z_axis_ar]) {
-            rotate([90, 0, 0]) 
-                translate([0, 0, 25]) hole_through("M4", $fn=13);
-        }
-    }
-    
-    hole();
-    if (loose) {
-        translate([0, 0, 1]) hole(); 
-        translate([0, 0, -1]) hole(); 
     }
 }
 
-
-module SN_28B_jaw_side() {
-    hull() {
-        translate([0, 0, 0]) block([x_jaw, y_jaw, 0.01], center=ABOVE+RIGHT+FRONT);
-        block([0.01, y_jaw, z_jaw_front], center=ABOVE+RIGHT+FRONT);
-        translate([9, 0, 0]) block([0.01, y_jaw, 12.6], center=ABOVE+RIGHT+FRONT);
-        translate([x_jaw, 0, 0]) block([0.01, y_jaw, z_jaw], center=ABOVE+RIGHT);
-    }
-}
 
 module SN_28B_y_centered_jaw_side() {
     translate([0, -y_jaw/2, 0]) SN_28B_jaw_side();
 }
-
-module SN_28B_M4_rail(orient, x_behind = 20) {
-    module nut_clearance() {
-        
-    }
-    thickness = 4; // Large enough to take the head or shaft of an M4 Bolt
-    
-    size = [jaws_extent.x + x_behind, 10, 8];
-    translation = 
-        orient == LEFT ? [-x_behind, jaws_extent.y/2, z_axis_ar] :
-        orient == RIGHT ? [-x_behind, -jaws_extent.y/2, z_axis_ar] :
-        assert(false);
-    rotation = 
-        orient == LEFT ? [0, 0, 0] :
-        orient == RIGHT ? [180, 0, 0] :
-        assert(false);
-    difference() {
-        translate(translation) 
-            rotate(rotation)
-                t_rail(size, thickness);
-        nut_clearance();
-    }
-}
-
-
 
 
 module SN_28B_jaw_clip(include_clip_rails = false, dz_rails = 0, color_name = "Tan") {
@@ -647,7 +730,7 @@ module SN_28B_rail_rider(color_name="NavahoWhite") {
     color(color_name) {
         difference() {
             rider();
-            #nutcut();
+            nutcut();
             
         }
     }

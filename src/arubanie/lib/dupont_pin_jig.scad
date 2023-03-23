@@ -138,22 +138,6 @@ module pin_holder_clip(orient_for_build=false) {
 
 
 
-module M4_rail(orient) {
-    thickness = 4; // Large enought to take the head or shaft of an M4 Bolt
-    x_behind = 20;
-    size = [jaws_extent.x + x_behind, 10, 8];
-    translation = 
-        orient == LEFT ? [-x_behind, jaws_extent.y/2, z_axis_ar] :
-        orient == RIGHT ? [-x_behind, -jaws_extent.y/2, z_axis_ar] :
-        assert(false);
-    rotation = 
-        orient == LEFT ? [0, 0, 0] :
-        orient == RIGHT ? [180, 0, 0] :
-        assert(false);
-    translate(translation) 
-        rotate(rotation)
-            t_rail(size, thickness);
-}
 
 
 

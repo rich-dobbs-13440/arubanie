@@ -547,6 +547,36 @@ module t_rail(size, thickness) {
     translate([0, size.y, 0]) block(flange, center=LEFT+FRONT);  
 }
 
+module t_rail_slide(size, thickness, clearance, cap_m3_attachmment= false) {
+        inner = [
+        size.x + clearance, 
+        size.y - 2*clearance - thickness,  
+        size.z/2 - thickness/2
+    ];
+    outer = [size.x + clearance, thickness, size.z + 2 * clearance]; 
+    top = [size.x + clearance, size.y + thickness,thickness];
+    cap = [thickness, size.y + thickness, size.z + 2 * thickness + 2 * clearance];
+    module body() {
+        center_reflect([0, 0, 1]) {
+            translate([0, clearance, thickness/2 + clearance]) 
+                block(inner, center=RIGHT+FRONT+ABOVE);
+            translate([0, size.y + clearance, 0]) 
+                block(outer, center=RIGHT+FRONT);  
+            translate([0, clearance, size.z/2 + clearance]) 
+                block(top, center=RIGHT+FRONT+ABOVE); 
+        }
+        translate([size.x + clearance, clearance, 0]) block(cap, center=RIGHT+FRONT);
+        if (outer_m3_attachment) {
+            translate([0, size.y + clearance + thickness, 0]) rotate([0, 180, 0]) m3_attachment();
+        }
+        if (cap_m3_attachmment) {
+            translate([size.x + clearance + thickness, 0, 0]) mirror([1, 0, 0]) m3_attachment();
+        }
+    }
+    translate([0, 0, 0]) body();
+}
+
+
 
 module __visual_tests_for_rod_support(d, l, z, bridges, supports, center=0, dy=0) {
     translate([0, dy, 0]) {
