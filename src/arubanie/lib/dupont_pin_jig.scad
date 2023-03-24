@@ -101,9 +101,13 @@ if (show_pin_crimper) {
                 
         union() {        
             SN_28B_M4_rail(LEFT, x_behind = 20);
-            //SN_28B_M4_rail(RIGHT, x_behind = 20);
+            SN_28B_M4_rail(RIGHT, x_behind = 20);
             SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);
-            slider_M4_M3_rotate_or_register(show_registering_fitting=true);
+            
+            
+            //SN_28B_M4_rail_M3_top_attach_slider(orient=LEFT);
+            SN_28B_M4_rail_M3_top_attach_fitting(orient=RIGHT);
+            SN_28B_M4_rail_M3_top_attach_slider(orient=RIGHT);            
             
             //SN_28B_jaw_hole_clip(upper=false, x_front=25, do_cap=true);
         }
@@ -115,14 +119,14 @@ if (show_pin_crimper) {
     } 
 }
 
-if (show_slider_M4_M3_rotate_or_register) {//  && orient_for_build) {
-    SN_28B_M4_rail_M3_top_attach_slider(
-            orient=LEFT, 
-            slider_length = 10, 
-            rail_clearance = 0.2, 
-            color_name = "Orchid", 
-            show_mock = true);
-}
+//if (show_slider_M4_M3_rotate_or_register) {//  && orient_for_build) {
+//    SN_28B_M4_rail_M3_top_attach_slider(
+//            orient=LEFT, 
+//            slider_length = 10, 
+//            rail_clearance = 0.2, 
+//            color_name = "Orchid", 
+//            show_mock = true);
+//}
 //slider_M4_M3_rotate_or_register(show_registering_fitting=true, show_slider=false);
 
 
@@ -131,7 +135,7 @@ if (show_slider_M4_M3_rotate_or_register) {//  && orient_for_build) {
 
 
 
-// pin_holders(orient_for_build);
+pin_holders(orient_for_build);
 
 module pin_holders(orient_for_build) {
     

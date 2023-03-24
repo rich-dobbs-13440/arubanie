@@ -71,8 +71,12 @@ w_upper_SN_28B_jaw_yoke = 2;
 /* [Rail Clip Design] */
 x_rail_clip = 14; // [ 0:0.5:30]
 
-/* [Hole Through] */
-hole_through_head = 0; // [0: 1: 99.9]
+/* [Top Attach Slider Development] */
+
+show_slider_tas = true;
+show_attachment_tas = true;
+orient_tas_as_text = "RIGHT"; // [RIGHT, LEFT]
+orient_tas = center_str_to_center(orient_tas_as_text);
 
 module end_of_customization() {}
 
@@ -152,17 +156,17 @@ y_position(10)
     } 
     
 y_position(0) {
-    
-    
-    
-    SN_28B_M4_rail_M3_top_attach_slider(
-        orient=LEFT, 
-        slider_length = 10, 
-        rail_clearance = 0.2, 
-        color_name = "Orchid", 
-        alpha = 1,
-        show_mock = true);
-    SN_28B_M4_rail_M3_top_attach_fitting(
+    if (show_slider_tas) {
+        SN_28B_M4_rail_M3_top_attach_slider(
+            orient=orient_tas, 
+            slider_length = 10, 
+            rail_clearance = 0.2, 
+            color_name = "Orchid", 
+            alpha = 1,
+            show_mock = true);
+    }
+    if (show_attachment_tas) {
+        SN_28B_M4_rail_M3_top_attach_fitting(
             orient=LEFT,
             size = [10, 10, 7],
             registration_clearance=0.2,
@@ -170,6 +174,7 @@ y_position(0) {
             color_name = "Plum",
             alpha = 1,
             show_mock = true);
+    }
 }
    
 //y_position(0) 
@@ -528,14 +533,14 @@ module SN_28B_M4_rail_M3_top_attach_slider(
         difference() {
             union() {
                 SN_28B_M4_rail_slider(orient, slider_length, clearance = rail_clearance);
-                SN_28B_M4_rail_M3_registration(slider_length=slider_length, registration_clearance=0);
+                SN_28B_M4_rail_M3_registration(orient=orient, slider_length=slider_length, registration_clearance=0);
             }
-            SN_28B_M4_rail_M3_screws_and_nuts(screw_name=undef);
+            SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name=undef);
         }
     } 
     
     if (show_mock) { 
-        SN_28B_M4_rail_M3_screws_and_nuts(just_nut = true);
+        SN_28B_M4_rail_M3_screws_and_nuts(orient, just_nut = true);
     }
 }
 
@@ -558,28 +563,34 @@ module SN_28B_M4_rail_M3_top_attach_fitting(
                 }
             }
             SN_28B_M4_rail_M3_registration(slider_length=size.x, registration_clearance=registration_clearance);
-            SN_28B_M4_rail_M3_screws_and_nuts(screw_name=screw_name, as_clearance=true);
+            SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name=screw_name, as_clearance=true);
         }
     }
     if (show_mock) {
-        SN_28B_M4_rail_M3_screws_and_nuts(screw_name=screw_name, just_screw=true);
+        SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name=screw_name, just_screw=true);
     }
 }
 
 
-module SN_28B_M4_rail_position_for_rotation() {
-    translate([0, 14, -3.5])  children();
+module SN_28B_M4_rail_position_for_rotation(orient) {
+    if (orient == LEFT) {
+        translate([0, 14, -3.5])  children();
+    } else if (orient == RIGHT) {
+        mirror([0, 1, 0]) translate([0, 14, -3.5])  children();
+    } else {
+        assert(false);
+    }
 }
 
 module SN_28B_M4_rail_position_for_edge() {
     translate([0, 9, -3])  children();
 }
 
-module SN_28B_M4_rail_M3_registration(slider_length, registration_clearance) {
+module SN_28B_M4_rail_M3_registration(orient, slider_length, registration_clearance) {
     function swell(dimension) = dimension + 2*registration_clearance;
     d = swell(8);
     h = swell(4);    
-    SN_28B_M4_rail_position_for_rotation() {
+    SN_28B_M4_rail_position_for_rotation(orient=orient) {
         can(d=d, h=2, center=ABOVE);
         can(d=d, h=h, center=BELOW);
         block([swell(slider_length), swell(4), swell(2)], center=ABOVE);
@@ -592,7 +603,7 @@ module SN_28B_M4_rail_M3_registration(slider_length, registration_clearance) {
 
 
 
-module SN_28B_M4_rail_M3_screws_and_nuts(screw_name, just_nut=false, just_screw=false, as_clearance=false) {
+module SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name, just_nut=false, just_screw=false, as_clearance=false) {
     module attachment_screw(as_clearance) {
         translation = 
             screw_name == "M3x8" ? [0, 0, -5] :
@@ -605,7 +616,7 @@ module SN_28B_M4_rail_M3_screws_and_nuts(screw_name, just_nut=false, just_screw=
             color("Silver") translate(translation) rotate([180, 0, 0]) screw(screw_name, $fn=12);
         }
     }    
-    SN_28B_M4_rail_position_for_rotation() {
+    SN_28B_M4_rail_position_for_rotation(orient) {
 
         echo("just_nut", just_nut);
         if (just_nut) {
