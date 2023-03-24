@@ -12,6 +12,7 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 orient = "As assembled"; //["As designed", "As assembled", "For build"]
 orient_for_build = orient == "For build";
 
+show_pin_holders_attachment = false;
 show_pin_holder_clip = false;
 show_pin_strip_carriage = false;
 show_pin_strip_breaker = false;
@@ -85,7 +86,13 @@ if (show_pin_holder_clip) {
         translate([100, 0,0])  pin_holder_clip(orient_for_build=true);
     }
 }
-
+if (show_pin_holders_attachment) {
+    if (orient == "As designed") {
+        pin_holders_attachment(orient=RIGHT, orient_for_build=false);
+    } else if (orient_for_build) {
+        pin_holders_attachment(orient=LEFT, orient_for_build=true);
+    }
+}
 
 
 if (show_pin_crimper) { 
@@ -105,9 +112,11 @@ if (show_pin_crimper) {
             SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);
             
             
-            //SN_28B_M4_rail_M3_top_attach_slider(orient=LEFT);
-            SN_28B_M4_rail_M3_top_attach_fitting(orient=RIGHT);
-            SN_28B_M4_rail_M3_top_attach_slider(orient=RIGHT);            
+            SN_28B_M4_rail_M3_top_attach_slider(orient=LEFT);
+            //SN_28B_M4_rail_M3_top_attach_fitting(orient=RIGHT);
+            //SN_28B_M4_rail_M3_top_attach_slider(orient=RIGHT);  
+  
+            pin_holders_attachment(orient=LEFT);
             
             //SN_28B_jaw_hole_clip(upper=false, x_front=25, do_cap=true);
         }
@@ -119,87 +128,34 @@ if (show_pin_crimper) {
     } 
 }
 
-//if (show_slider_M4_M3_rotate_or_register) {//  && orient_for_build) {
-//    SN_28B_M4_rail_M3_top_attach_slider(
-//            orient=LEFT, 
-//            slider_length = 10, 
-//            rail_clearance = 0.2, 
-//            color_name = "Orchid", 
-//            show_mock = true);
-//}
-//slider_M4_M3_rotate_or_register(show_registering_fitting=true, show_slider=false);
 
 
-
-//slider_M4_M3_rotate_or_register(show_registering_fitting=false, show_slider=true);
-
-
-
-pin_holders(orient_for_build);
-
-module pin_holders(orient_for_build) {
-    
-    post_od = 10;
-    clearance = 0.2;
-    id = post_od + 2 * clearance;
-    wall = 2;
-    od = id + 2 * wall;
-    dx_pin_holders = 4; // [0: 0.01: 7]
-    dy_pin_holders = 10;
-    z_body = 2 * 2.54;
-    
-    
-    module body(orient_for_build) {
-        rotation = orient_for_build ? [180, 0, 0] : [0, 0, 0];
-        translation = orient_for_build ? [0, 0, z_body] : [0, 0, 0];
-        translate(translation) { 
-            rotate(rotation) {
-                render() difference() {
-                    union() {
-                        can(d = od, h = z_body, center=ABOVE);
-                        block([4, 20 + 2*2.54 + 2*wall , z_body], center=ABOVE, rank=5);
+module pin_holders_attachment(orient=RIGHT, orient_for_build=false, color_name="Thistle") {
+    show_mock = orient_for_build ? false : true;
+    SN_28B_M4_rail_M3_top_attach_fitting(
+            orient=orient, 
+            child_position="relative_to_jaw", 
+            show_mock=show_mock) {
+        
+        color(color_name) {        
+            orient_to_anvil(orient) { 
+                center_reflect([0, 1, 0]) translate([0, -5, 0]) { 
+                    difference() {
+                        block([12, 5-2.54/2, 1.5*2.54], center=BELOW+BEHIND+LEFT);
+                        pin_holder_screws(as_clearance=true, $fn=12);
                     }
-                    center_reflect([0, 0, 1]) hole_through("M3", $fn=12);
-                    can(d = id, h = z_body-1, center=ABOVE, rank=10);
-                    center_reflect([0, 1, 0]) 
-                        translate([0, dy_pin_holders, 2.54]) 
-                        block([20, 2.54, 10], center=ABOVE, rank=5);
-                }
+                } 
             }
         }
-    } 
-    body(orient_for_build);    
-   
-    module modified_pin(show_mock) {
-        clearance_fraction_male_pin_holder = 0.1;
-        translation = [dx_pin_holders, dy_pin_holders, 1.5*2.54];
-        difference() {
-            translate(translation) { 
-                male_pin_holder(
-                    z_spring = z_spring_mph,
-                    clearance_fraction = clearance_fraction_male_pin_holder, 
-                    x_stop = dx_insulation_wrap_mp -y_upper_jaw_anvil/2,
-                    show_mock=show_mock);
-            }
-            body(orient_for_build=false);
+        if (!orient_for_build) {
+            translate([10, 0, 0])  oriented_pin_holder(orient=orient);
         }
-    }
-    if (orient_for_build) {
-        translate([0, 30, -dy_pin_holders+2.54/2]) rotate([90, 0, 0]) modified_pin(show_mock = false);
-        translate([0, 50, -dy_pin_holders+2.54/2]) rotate([90, 0, 0]) modified_pin(show_mock = false);
-    } else {
-        modified_pin(show_mock = true);
-        rotate([0, 0, 180]) modified_pin(show_mock = true);
-    }
-    
+
+    }   
 }
 
 
-
-
-
-module oriented_pin_holder(orient) {
-    clearance_fraction_male_pin_holder = 0.1; //[0: 0.01: 0.20]
+module orient_to_anvil(orient) {
     dz = dz_025_wire_punch_z + z_conductor_wrap_mp/2; 
     rotation = 
         orient == RIGHT ? [0, 180, -90] : 
@@ -211,12 +167,21 @@ module oriented_pin_holder(orient) {
         assert(false);
     translate(translation) {
         rotate(rotation) {
-            male_pin_holder(
-                z_spring = z_spring_mph,
-                clearance_fraction = clearance_fraction_male_pin_holder, 
-                x_stop = dx_insulation_wrap_mp -y_upper_jaw_anvil/2,
-                show_mock=show_male_pin_ && !orient_for_build);
+            children();
         }
+    }     
+}
+
+
+module oriented_pin_holder(orient) {
+    clearance_fraction_male_pin_holder = 0.1; //[0: 0.01: 0.20]
+    orient_to_anvil(orient) {
+        male_pin_holder(
+            z_spring = z_spring_mph,
+            clearance_fraction = clearance_fraction_male_pin_holder, 
+            x_stop = dx_insulation_wrap_mp -y_upper_jaw_anvil/2,
+            show_mock=show_male_pin_ && !orient_for_build);
+        
     }        
 }
 
@@ -248,13 +213,10 @@ module pin_holder_clip(orient_for_build=false) {
 }
 
 
-
-
-
-
 if (show_pin_strip_breaker) {
     pin_strip_breaker();
 }
+
 
 module pin_strip_breaker() {
     pins = 5;

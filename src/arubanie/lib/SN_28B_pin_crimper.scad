@@ -74,9 +74,17 @@ x_rail_clip = 14; // [ 0:0.5:30]
 /* [Top Attach Slider Development] */
 
 show_slider_tas = true;
+show_slider_mock_tas = true;
+orient_slider_tas_ = "RIGHT"; // [RIGHT, LEFT]
+orient_slider_tas = center_str_to_center(orient_slider_tas_);
+
+/* [Top Attach Attachment Development] */
+
 show_attachment_tas = true;
-orient_tas_as_text = "RIGHT"; // [RIGHT, LEFT]
-orient_tas = center_str_to_center(orient_tas_as_text);
+show_attachment_mock_tas = true;
+orient_attachment_tas_ = "RIGHT"; // [RIGHT, LEFT]
+orient_attachment_tas = center_str_to_center(orient_attachment_tas_);
+
 
 module end_of_customization() {}
 
@@ -158,22 +166,22 @@ y_position(10)
 y_position(0) {
     if (show_slider_tas) {
         SN_28B_M4_rail_M3_top_attach_slider(
-            orient=orient_tas, 
+            orient=orient_slider_tas, 
             slider_length = 10, 
             rail_clearance = 0.2, 
             color_name = "Orchid", 
             alpha = 1,
-            show_mock = true);
+            show_mock = show_slider_mock_tas);
     }
     if (show_attachment_tas) {
         SN_28B_M4_rail_M3_top_attach_fitting(
-            orient=LEFT,
+            orient=orient_attachment_tas,
             size = [10, 10, 7],
             registration_clearance=0.2,
             screw_name = "M3x8",
             color_name = "Plum",
             alpha = 1,
-            show_mock = true);
+            show_mock = show_attachment_mock_tas);
     }
 }
    
@@ -490,6 +498,7 @@ module SN_28B_M4_rail_locate(orient, x_behind) {
 
 
 module SN_28B_M4_rail(orient, x_behind = 20, color_name="Bisque") {
+    assert(is_num(orient), assert_msg("orient: ", str(orient)));
     thickness = 6; // Large enough to take the head or shaft of an M4 Bolt
     size = [jaws_extent.x + x_behind, 12, 10];
     color(color_name) {
@@ -501,6 +510,8 @@ module SN_28B_M4_rail(orient, x_behind = 20, color_name="Bisque") {
 
 
 module SN_28B_M4_rail_slider(orient, slider_length, clearance = 0.2, color_name="Peru", rail_mounting_y = 2) {
+    assert(is_num(orient), assert_msg("orient: ", str(orient)));
+    assert(is_num(slider_length), assert_msg("slider_length: ", str(slider_length)));
     rail_thickness = 6; // Large enough to take the head or shaft of an M4 Bolt
     slide_thickness = 2; //enough for structural purposes
     size = [slider_length, 12, 10];
@@ -516,14 +527,9 @@ module SN_28B_M4_rail_slider(orient, slider_length, clearance = 0.2, color_name=
     }
 }
 
-//SN_28B_M4_rail_M3_top_attach_slider(orient=LEFT, show_mock=true, alpha=.25);
-//SN_28B_M4_rail_M3_top_attach_fitting(orient=LEFT, show_mock=true, alpha=.25);
-//SN_28B_M4_rail_M3_top_attach_fitting(orient=LEFT, size=[50, 50, 50], screw_name = "M3x10", show_mock=false, alpha=1);
-//SN_28B_M4_rail_M3_screws_and_nuts(screw_name = "M3x10", just_nut = false, just_screw =false, as_clearance=true);
-
 
 module SN_28B_M4_rail_M3_top_attach_slider(
-        orient, 
+        orient = RIGHT, 
         slider_length = 10, 
         rail_clearance = 0.2, 
         color_name = "Orchid", 
@@ -532,39 +538,70 @@ module SN_28B_M4_rail_M3_top_attach_slider(
     color(color_name, alpha=alpha) {
         difference() {
             union() {
-                SN_28B_M4_rail_slider(orient, slider_length, clearance = rail_clearance);
+                SN_28B_M4_rail_slider(orient=orient, slider_length=slider_length, clearance = rail_clearance);
                 SN_28B_M4_rail_M3_registration(orient=orient, slider_length=slider_length, registration_clearance=0);
             }
-            SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name=undef);
+            SN_28B_M4_rail_M3_screws_and_nuts(orient=orient, screw_name=undef, as_clearance=true);
         }
-    } 
+    }
     
     if (show_mock) { 
-        SN_28B_M4_rail_M3_screws_and_nuts(orient, just_nut = true);
+        SN_28B_M4_rail_M3_screws_and_nuts(orient=orient, just_nut = true);
+    }
+}
+
+module SN_28B_M4_rail_position(orient, child_position) {
+
+    if (child_position == "relative_to_rotation") {
+        SN_28B_M4_rail_position_for_rotation(orient=orient) children();
+    } else if (child_position == "relative_to_edge") {
+        SN_28B_M4_rail_position_for_edge(orient=orient) children();
+    } else if (child_position == "relative_to_jaw") {
+        SN_28B_M4_rail_position_for_jaw(orient=orient) children();
+    } else {
+        assert(false, assert_msg("Don't know how to handle child_position: ", str(child_position)));
     }
 }
 
 module SN_28B_M4_rail_M3_top_attach_fitting(
-        orient,
+        orient = RIGHT,
+        child_position="relative_to_jaw",
         size = [10, 10, 7],
         registration_clearance=0.2,
         screw_name = "M3x8",
         color_name = "Plum",
         alpha = 1,
         show_mock = true) {
-    color(color_name, alpha) {
-        render(convexity=10) difference() {
-            union() {
-                SN_28B_M4_rail_position_for_edge() {
+    assert(is_num(orient), assert_msg("orient: ", str(orient)));
+    
+    difference() {
+        union() {
+            color(color_name, alpha) {
+                SN_28B_M4_rail_position_for_edge(orient=orient) {
                     block(size, center=BELOW+RIGHT);
                 }
-                SN_28B_M4_rail_position_for_rotation() {
-                    children();
-                }
             }
-            SN_28B_M4_rail_M3_registration(slider_length=size.x, registration_clearance=registration_clearance);
-            SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name=screw_name, as_clearance=true);
+            if (is_list(child_position)) {
+                if ($children > 0 && len(child_position) > 0) {
+                    SN_28B_M4_rail_position(orient, child_position[0]) children(0);
+                } 
+                if ($children > 1 && len(child_position) > 1) {
+                    SN_28B_M4_rail_position(orient, child_position[1]) children(1);
+                }   
+                if ($children > 2 && len(child_position) > 2) {
+                    SN_28B_M4_rail_position(orient, child_position[2]) children(2);
+                }    
+                if ($children > 3 && len(child_position) > 3) {
+                    SN_28B_M4_rail_position(orient, child_position[3]) children(3);
+                }
+            } else if (is_string(child_position)) {
+               SN_28B_M4_rail_position(orient, child_position) children();
+            } else {
+               assert(false, assert_msg("Don't know how to handle child_position: ", str(child_position)));
+            }
         }
+        SN_28B_M4_rail_M3_registration(orient=orient, slider_length=size.x, registration_clearance=registration_clearance);
+        SN_28B_M4_rail_M3_screws_and_nuts(orient=orient, screw_name=screw_name, as_clearance=true);
     }
     if (show_mock) {
         SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name=screw_name, just_screw=true);
@@ -578,15 +615,35 @@ module SN_28B_M4_rail_position_for_rotation(orient) {
     } else if (orient == RIGHT) {
         mirror([0, 1, 0]) translate([0, 14, -3.5])  children();
     } else {
+        assert(is_num(orient), assert_msg("orient: ", str(orient)));
         assert(false);
     }
 }
 
-module SN_28B_M4_rail_position_for_edge() {
-    translate([0, 9, -3])  children();
+module SN_28B_M4_rail_position_for_edge(orient) {
+    if (orient == LEFT) {
+        translate([0, 9, -3])  children();
+    } else if (orient == RIGHT) {
+        mirror([0, 1, 0]) translate([0, 9, -3])  children();
+    } else {
+        assert(is_num(orient), assert_msg("orient: ", str(orient)));
+        assert(false, assert_msg("Orient should be either RIGHT or LEFT but was : ", str(orient)));
+    }        
+}
+
+module SN_28B_M4_rail_position_for_jaw(orient) {
+    if (orient == LEFT) {
+        translate([0, 0, 0])  children();
+    } else if (orient == RIGHT) {
+        mirror([0, 1, 0]) translate([0, 0, 0])  children();
+    } else {
+        assert(is_num(orient), assert_msg("orient: ", str(orient)));
+        assert(false, assert_msg("Orient should be either RIGHT or LEFT but was : ", str(orient)));
+    }      
 }
 
 module SN_28B_M4_rail_M3_registration(orient, slider_length, registration_clearance) {
+    assert(is_num(orient), assert_msg("orient: ", str(orient)));
     function swell(dimension) = dimension + 2*registration_clearance;
     d = swell(8);
     h = swell(4);    
@@ -618,7 +675,6 @@ module SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name, just_nut=false, jus
     }    
     SN_28B_M4_rail_position_for_rotation(orient) {
 
-        echo("just_nut", just_nut);
         if (just_nut) {
             stainless() rotate([180, 0, 0]) nut("M3", $fn=12);
         } else if (just_screw) {
@@ -628,7 +684,7 @@ module SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name, just_nut=false, jus
             if (!is_undef(screw_name)) {
                 attachment_screw(as_clearance=true);
             }   else {
-                center_reflect([0, 0, 1]) hole_through("M3", cld, $fn=12);
+                center_reflect([0, 0, 1]) hole_through("M3", cld=0.4, $fn=12);
             }
         } 
     }     

@@ -23,13 +23,14 @@ dupont_connector(
 include <centerable.scad>
 use <shapes.scad>
 
+
 /* [Housing Length] */
 
 housing_ = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Short + Header", 16.7:"Standard + Header"]
 
 /* [Show] */
 show_top_level = false;
-delta_ = 7;
+delta_ = 10;
 
 module end_customization() {}
 
@@ -96,8 +97,11 @@ x_position(-5) rotate([0, 0, 90])
 x_position(-6) rotate([0, 0, 90]) 
     male_pin_holder();
 
-x_position(-7) 
-    male_pin_holder();
+x_position(-7) rotate([0, 0, 90])
+    male_pin_holder(show_mock=false);
+    
+x_position(-9) 
+    male_pin_holder();    
 
 
 module dupont_connector(
@@ -295,6 +299,23 @@ module male_pin(
 }
 
 
+module pin_holder_screws(as_clearance=false) {
+    if (as_clearance) {
+        translate([-2, -2.54/2, -2]) rotate([90, 0, 0]) translate([0, 0, 12.5]) hole_threaded("M2");
+        translate([-6, -2.54/2, -2]) rotate([90, 0, 0]) translate([0, 0, 12.5]) hole_threaded("M2");
+        translate([-10, -2.54/2, -2]) rotate([90, 0, 0]) translate([0, 0, 12.5]) hole_threaded("M2");
+        translate([-14, -2.54/2, -2]) rotate([90, 0, 0]) translate([0, 0, 12.5]) hole_threaded("M2");
+    }
+    else {
+        stainless() {
+            translate([-2, -2.54/2, -2]) rotate([90, 0, 0]) screw("M2x4");
+            translate([-6, -2.54/2, -2]) rotate([90, 0, 0]) screw("M2x4");
+            translate([-10, -2.54/2, -2]) rotate([90, 0, 0]) screw("M2x4");
+            translate([-14, -2.54/2, -2]) rotate([90, 0, 0]) screw("M2x4");
+        }
+    }
+}
+
 module male_pin_holder(
         show_mock=true, 
         z_spring = 2.54, 
@@ -313,7 +334,7 @@ module male_pin_holder(
     assert(!is_undef(z_spring));
     assert(!is_undef(show_mock));
     
-    body = [14, 2.54, 2.54];
+    body = [16, 2.54, 2.54];
     x_split = 7;
     z_split = 0.5;
 
@@ -324,11 +345,12 @@ module male_pin_holder(
         body.x + x_strike_mp + x_detent_mp,
         body.y,
         z_spring];
-    
-    lower_body = [body.x + x_stop, body.y, body.z];
-
+            
     split = [x_split, 10, z_split];
     split_front = [1, 10, body.z/2 + z_split];
+    
+    stop_body = [x_stop, body.y, body.z];
+    screw_body = [body.x, body.y, 2*body.z]; 
     column = [body.y, body.y, z_column];
     
     
@@ -341,8 +363,7 @@ module male_pin_holder(
             union() {
                 block(body, center=BEHIND);
                 
-                translate([-body.x, 0, -body.z/2]) 
-                    block(lower_body, center=BELOW+FRONT);                
+               
                 
                 translate([-body.x, 0, body.z/2]) 
                     block(spring, center=ABOVE+FRONT);
@@ -357,8 +378,16 @@ module male_pin_holder(
                 translate([x_strike_mp + latch_dx, 0, 0]) 
                     block(latch, center=ABOVE+FRONT);
                 
+                 
+                block(screw_body, center=BELOW+BEHIND);
+                
+                translate([0, 0, -body.z/2]) 
+                    block(stop_body, center=BELOW+FRONT);                 
+                
                 translate([dx_column, -body.y/2, -body.z/2]) 
                     block(column, center=RIGHT+FRONT+BELOW);
+                
+                
             }
             pin_clearance();
             
@@ -367,10 +396,14 @@ module male_pin_holder(
             
             translate([1, 0, 2]) block(split, center=BEHIND+BELOW);
             block(split_front, center=FRONT+ABOVE);
+            
+            pin_holder_screws(as_clearance=false);
         }
+
     }
     if (show_mock) {
         male_pin();
+        pin_holder_screws();
     }
 }
 
