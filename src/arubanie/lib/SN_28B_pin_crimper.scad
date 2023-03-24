@@ -3,6 +3,7 @@ include <centerable.scad>
 use <shapes.scad>
 include <nutsnbolts-master/cyl_head_bolt.scad>
 include <nutsnbolts-master/materials.scad>
+include <SN_28B_measurements.scad>
 
 /* [Show] */
 
@@ -70,6 +71,9 @@ w_upper_SN_28B_jaw_yoke = 2;
 /* [Rail Clip Design] */
 x_rail_clip = 14; // [ 0:0.5:30]
 
+/* [Hole Through] */
+hole_through_head = 0; // [0: 1: 99.9]
+
 module end_of_customization() {}
 
 
@@ -93,7 +97,7 @@ y_position(4)
 
 y_position(5) 
     // Show attaching children, jaw_clip, and SN_28B_jaw_yoke, and changing jaw position by customization
-    SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open, fixed_jaw_screw_name="M4x16") {
+    SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open_, fixed_jaw_screw_name="M4x16") {
         SN_28B_jaw_clip(include_clip_rails=true, dz_rails=10);
         SN_28B_jaw_yoke();
     }
@@ -112,40 +116,84 @@ y_position(7)
 
 y_position(8) 
     // Show rotation from one jaw to another
-    SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open, fixed_jaw_screw_name="M4x16", moving_jaw_screw_name="M4x16") {
+    SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open_, fixed_jaw_screw_name="M4x16", moving_jaw_screw_name="M4x16") {
         SN_28B_jaw_hole_clip(x_front=0);
         SN_28B_jaw_hole_clip(x_front=0);
     }
 
 y_position(9) 
     // Show default jaw_clip
-    SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open) {
+    SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open_) {
         no_fixed_jaw_attachments();
         SN_28B_jaw_hole_clip(do_cap=true, x_front=2);
     }
-   
-y_position(0) 
-    // Show M4 rail
-    custom_SN_28B_pin_crimper() {
+    
+y_position(10) 
+    // Show default jaw_clip
+    SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open_) {
         union() {
             SN_28B_M4_rail(LEFT, x_behind = 20);
-            SN_28B_M4_rail(RIGHT, x_behind = 20);
-            SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);
+            SN_28B_M4_rail_M3_top_attach_slider(
+                orient=LEFT, 
+                slider_length = 10, 
+                rail_clearance = 0.2, 
+                color_name = "Orchid", 
+                alpha = 1,
+                show_mock = true);
+            SN_28B_M4_rail_M3_top_attach_fitting(
+                    orient=LEFT,
+                    size = [10, 10, 7],
+                    registration_clearance=0.2,
+                    screw_name = "M3x8",
+                    color_name = "Plum",
+                    alpha = 1,
+                    show_mock = true);
         }
-        
-    }    
+    } 
+    
+y_position(0) {
+    
+    
+    
+    SN_28B_M4_rail_M3_top_attach_slider(
+        orient=LEFT, 
+        slider_length = 10, 
+        rail_clearance = 0.2, 
+        color_name = "Orchid", 
+        alpha = 1,
+        show_mock = true);
+    SN_28B_M4_rail_M3_top_attach_fitting(
+            orient=LEFT,
+            size = [10, 10, 7],
+            registration_clearance=0.2,
+            screw_name = "M3x8",
+            color_name = "Plum",
+            alpha = 1,
+            show_mock = true);
+}
    
-y_position(-1) 
-    // Show M4 rail
-    custom_SN_28B_pin_crimper() {
-        union() {
-            SN_28B_M4_rail(LEFT, x_behind = 20);
-            SN_28B_M4_rail(RIGHT, x_behind = 20);
-            SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);
-            SN_28B_M4_rail_slider(LEFT, l=10, clearance = 0.4);
-        }
-        
-    }   
+//y_position(0) 
+//    // Show M4 rail
+//    custom_SN_28B_pin_crimper() {
+//        union() {
+//            SN_28B_M4_rail(LEFT, x_behind = 20);
+//            SN_28B_M4_rail(RIGHT, x_behind = 20);
+//            SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);
+//        }
+//        
+//    }    
+   
+//y_position(-1) 
+//    // Show M4 rail
+//    custom_SN_28B_pin_crimper() {
+//        union() {
+//            //SN_28B_M4_rail(LEFT, x_behind = 20);
+//            //SN_28B_M4_rail(RIGHT, x_behind = 20);
+//            //SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);
+//            SN_28B_M4_rail_slider(LEFT, l=25, clearance = 0.2);
+//        }
+//        
+//    }   
     
     
 module no_fixed_jaw_attachments() {}
@@ -184,74 +232,9 @@ module y_position(idx) {
 }    
 
 
-/* [Jaw Measurements] */
- 
 
-/* 
-
-Origin will be at center_line of jaw at the front, with jaw being on the 
-x axis, with x being positive as you go deeper into the jaw.
-*/
-    dy_between_jaw_sides = 4.6;
-    dz_between_upper_and_lower_jaw = 10.16;
-    x_jaw = 24;
-    y_jaw = 2.5;
-    z_jaw = 15.26;
-    jaws_extent = [x_jaw, 2*y_jaw + dy_between_jaw_sides, z_jaw];
-    z_jaw_front = 7.3;
-    max_jaw_angle = 26;
-
-    front_to_front_of_25 = 3.42;
-    front_to_back_of_25 = 5.24;
-    lower_jaw_height = 1.81;
-    
-    
-    back_jaw_to_pivot = [12.62, 6.26, 20];
-    y_pivot = 16.32;
-    d_pivot = 7.92;
-    
-    function translation_jaw_to_pivot(fixed) =  
-        let (
-            side = fixed ? -1 : +1
-        )
-        [
-            -(back_jaw_to_pivot.x + x_jaw), 
-            0, 
-            side * dz_between_upper_and_lower_jaw / 2
-        ];    
-    
- /* [Anvil Dimensions] */   
-    
-    x_lower_jaw_anvil = 23.4;
-    y_lower_jaw_anvil =7.21;
-    z_lower_jaw_anvil = 7.05;   
-    lower_jaw_anvil_blank = [x_lower_jaw_anvil, y_lower_jaw_anvil, z_lower_jaw_anvil]; 
-    dx_025_anvil = 3.63;
-    dz_025_pin_punch_z = 5.78;
-    dz_025_wire_punch_z = 5.89;     
-    
-    x_upper_jaw_anvil = 23.8;
-    y_upper_jaw_anvil =7.13;
-    z_upper_jaw_anvil = 3.06;
-    upper_jaw_anvil_blank = [x_upper_jaw_anvil, y_upper_jaw_anvil, z_upper_jaw_anvil]; 
-   
-
-/* [Anvil Retainer Dimensions] */
-    x_anvil_retainer = 17.09;
-    y_anvil_retainer = 4.18;
-    z_anvil_retainer = 9.6;
-    anvil_retainer_extent = [x_anvil_retainer, y_anvil_retainer, z_anvil_retainer];
-    w_rim_ar = 2.28; 
-    d_screw_hole_ar = 5.12;
-    d_rim_ar = d_screw_hole_ar + 2*w_rim_ar;
-    z_axis_ar = z_anvil_retainer - w_rim_ar - d_screw_hole_ar/2;
-    y_web_ar = 2.69;
-    x_inset_ar = 10.88;
-    y_inset_ar = (y_anvil_retainer - y_web_ar) / 2;
-    
 /* [Jaw Clip Calculations] */
-    y_jaw_clip = 2*wall_jaw_clip + jaws_extent.y + 2*clearance_jaw_clip; 
-    
+    y_jaw_clip = 2*wall_jaw_clip + jaws_extent.y + 2*clearance_jaw_clip;     
     
 module SN_28B_pin_crimper(
         jaw_angle, 
@@ -511,16 +494,135 @@ module SN_28B_M4_rail(orient, x_behind = 20, color_name="Bisque") {
     }
 }
 
-module SN_28B_M4_rail_slider(orient, l, clearance = 0.4, color_name="Peru") {
-    thickness = 6; // Large enough to take the head or shaft of an M4 Bolt
-    size = [l, 12, 10];
-    clearances = [clearance, clearance, clearance];
+
+module SN_28B_M4_rail_slider(orient, slider_length, clearance = 0.2, color_name="Peru", rail_mounting_y = 2) {
+    rail_thickness = 6; // Large enough to take the head or shaft of an M4 Bolt
+    slide_thickness = 2; //enough for structural purposes
+    size = [slider_length, 12, 10];
     color(color_name) {
-        SN_28B_M4_rail_locate(orient, x_behind=0) {
-            t_rail_slide(size, thickness, clearances);
+        translate([slider_length/2, 0, 0]) SN_28B_M4_rail_locate(orient, x_behind = slider_length) {
+            t_rail_slide(
+                rail_size = size, 
+                rail_thickness = rail_thickness, 
+                rail_mounting_y = rail_mounting_y, 
+                clearance = clearance, 
+                slide_thickness=slide_thickness);
         }
     }
 }
+
+//SN_28B_M4_rail_M3_top_attach_slider(orient=LEFT, show_mock=true, alpha=.25);
+//SN_28B_M4_rail_M3_top_attach_fitting(orient=LEFT, show_mock=true, alpha=.25);
+//SN_28B_M4_rail_M3_top_attach_fitting(orient=LEFT, size=[50, 50, 50], screw_name = "M3x10", show_mock=false, alpha=1);
+//SN_28B_M4_rail_M3_screws_and_nuts(screw_name = "M3x10", just_nut = false, just_screw =false, as_clearance=true);
+
+
+module SN_28B_M4_rail_M3_top_attach_slider(
+        orient, 
+        slider_length = 10, 
+        rail_clearance = 0.2, 
+        color_name = "Orchid", 
+        alpha = 1,
+        show_mock = true) {
+    color(color_name, alpha=alpha) {
+        difference() {
+            union() {
+                SN_28B_M4_rail_slider(orient, slider_length, clearance = rail_clearance);
+                SN_28B_M4_rail_M3_registration(slider_length=slider_length, registration_clearance=0);
+            }
+            SN_28B_M4_rail_M3_screws_and_nuts(screw_name=undef);
+        }
+    } 
+    
+    if (show_mock) { 
+        SN_28B_M4_rail_M3_screws_and_nuts(just_nut = true);
+    }
+}
+
+module SN_28B_M4_rail_M3_top_attach_fitting(
+        orient,
+        size = [10, 10, 7],
+        registration_clearance=0.2,
+        screw_name = "M3x8",
+        color_name = "Plum",
+        alpha = 1,
+        show_mock = true) {
+    color(color_name, alpha) {
+        render(convexity=10) difference() {
+            union() {
+                SN_28B_M4_rail_position_for_edge() {
+                    block(size, center=BELOW+RIGHT);
+                }
+                SN_28B_M4_rail_position_for_rotation() {
+                    children();
+                }
+            }
+            SN_28B_M4_rail_M3_registration(slider_length=size.x, registration_clearance=registration_clearance);
+            SN_28B_M4_rail_M3_screws_and_nuts(screw_name=screw_name, as_clearance=true);
+        }
+    }
+    if (show_mock) {
+        SN_28B_M4_rail_M3_screws_and_nuts(screw_name=screw_name, just_screw=true);
+    }
+}
+
+
+module SN_28B_M4_rail_position_for_rotation() {
+    translate([0, 14, -3.5])  children();
+}
+
+module SN_28B_M4_rail_position_for_edge() {
+    translate([0, 9, -3])  children();
+}
+
+module SN_28B_M4_rail_M3_registration(slider_length, registration_clearance) {
+    function swell(dimension) = dimension + 2*registration_clearance;
+    d = swell(8);
+    h = swell(4);    
+    SN_28B_M4_rail_position_for_rotation() {
+        can(d=d, h=2, center=ABOVE);
+        can(d=d, h=h, center=BELOW);
+        block([swell(slider_length), swell(4), swell(2)], center=ABOVE);
+        block([swell(slider_length), swell(4), swell(2)], center=BELOW);
+        children();
+    }   
+}
+
+
+
+
+
+module SN_28B_M4_rail_M3_screws_and_nuts(screw_name, just_nut=false, just_screw=false, as_clearance=false) {
+    module attachment_screw(as_clearance) {
+        translation = 
+            screw_name == "M3x8" ? [0, 0, -5] :
+            screw_name == "M3x10" ? [0, 0, -7] :
+            assert(false);
+        if (as_clearance) {
+            alot = 100;
+            translate(translation) translate([0, 0, -alot]) rotate([180, 0, 0])  hole_through("M3", h=alot, l=alot, $fn=12);  //l=200, h=100,   
+        } else {
+            color("Silver") translate(translation) rotate([180, 0, 0]) screw(screw_name, $fn=12);
+        }
+    }    
+    SN_28B_M4_rail_position_for_rotation() {
+
+        echo("just_nut", just_nut);
+        if (just_nut) {
+            stainless() rotate([180, 0, 0]) nut("M3", $fn=12);
+        } else if (just_screw) {
+            attachment_screw();
+        } else if (as_clearance) {
+            rotate([180, 0, 0]) nutcatch_parallel("M3", clh=5);
+            if (!is_undef(screw_name)) {
+                attachment_screw(as_clearance=true);
+            }   else {
+                center_reflect([0, 0, 1]) hole_through("M3", cld, $fn=12);
+            }
+        } 
+    }     
+}
+
 
 
 

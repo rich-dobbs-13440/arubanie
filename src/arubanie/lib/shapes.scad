@@ -361,12 +361,12 @@ function support_locations_for_segment(
         bridge = (segment_length - n_supports*support_length)/n_bridges,
         last = undef
     )
-    echo("segment_length", segment_length)
-    echo("n_end_bridges", n_end_bridges)
-    echo("n_supports_fractional", n_supports_fractional)
-    echo("n_supports", n_supports)
-    echo("n_bridges", n_bridges)
-    echo("bridge", bridge)
+//    echo("segment_length", segment_length)
+//    echo("n_end_bridges", n_end_bridges)
+//    echo("n_supports_fractional", n_supports_fractional)
+//    echo("n_supports", n_supports)
+//    echo("n_bridges", n_bridges)
+//    echo("bridge", bridge)
     assert(bridge <= max_bridge)
     [
         for (i = [0 : 1 : n_supports-1])  
@@ -396,18 +396,26 @@ function segment_difference(seg_0, seg_1) =
         end_overlap = (x_1_s <= x_0_e) && (x_0_e <= x_1_e),
         last = undef
     )
-    echo("x_0_s", x_0_s)
-    echo("x_0_e", x_0_e)
-    echo("x_1_s", x_1_s)
-    echo("x_1_e", x_1_e)
-    echo("no_overlap", no_overlap)
+//    echo("x_0_s", x_0_s)
+//    echo("x_0_e", x_0_e)
+//    echo("x_1_s", x_1_s)
+//    echo("x_1_e", x_1_e)
+//    echo("no_overlap", no_overlap)
 
     [ for (i = [0, 1]) 
         if (i == 0 && no_overlap) seg_0 
-        else if (i == 0 && contained_overlap) echo("case1")  segment(p_0_s, p_1_s) 
-        else if (i == 1 && contained_overlap) echo("case2") segment(p_1_e, p_0_e)    
-        else if (i == 0 && start_overlap && !end_overlap) echo("case3") segment(p_1_e, p_0_e)
-        else if (i == 0 && end_overlap && !start_overlap) echo("case4") segment(p_0_s, p_1_s)
+        else if (i == 0 && contained_overlap) 
+                //echo("case1")  
+                segment(p_0_s, p_1_s) 
+        else if (i == 1 && contained_overlap) 
+                //echo("case2") 
+                segment(p_1_e, p_0_e)    
+        else if (i == 0 && start_overlap && !end_overlap) 
+                //echo("case3") 
+                segment(p_1_e, p_0_e)
+        else if (i == 0 && end_overlap && !start_overlap) 
+                //echo("case4") 
+                segment(p_0_s, p_1_s)
     ];
         
 function flatten(l) = [ for (a = l) for (b = a) b ] ;
@@ -465,7 +473,7 @@ module support_rod(d, l, z, bridges, supports, center=0) {
 
     for (segment = segments_to_support) {
         support_locations = support_locations_for_segment(segment);
-        echo("support_locations", support_locations);
+        //echo("support_locations", support_locations);
         tearaway(
             support_locations, 
             d, 
@@ -547,33 +555,32 @@ module t_rail(size, thickness) {
     translate([0, size.y, 0]) block(flange, center=LEFT+FRONT);  
 }
 
-module t_rail_slide(size, thickness, clearance, cap_m3_attachmment= false) {
-        inner = [
-        size.x + clearance, 
-        size.y - 2*clearance - thickness,  
-        size.z/2 - thickness/2
+size = [20, 10, 12];
+thickness = 2;
+clearance = 1;
+
+t_rail_slide(size, thickness, clearance);
+
+module t_rail_slide(rail_size, rail_thickness, rail_mounting_y, clearance, slide_thickness) {
+    inner = [
+        rail_size.x, 
+        rail_size.y - 2*clearance - rail_thickness - rail_mounting_y,  
+        rail_size.z/2 - rail_thickness/2
     ];
-    outer = [size.x + clearance, thickness, size.z + 2 * clearance]; 
-    top = [size.x + clearance, size.y + thickness,thickness];
-    cap = [thickness, size.y + thickness, size.z + 2 * thickness + 2 * clearance];
+    outer = [rail_size.x, slide_thickness, rail_size.z + 2 * clearance]; 
+    top = [rail_size.x, rail_size.y + slide_thickness - rail_mounting_y, slide_thickness];
+    //cap = [rail_thickness, rail_size.y + slide_thickness, rail_size.z + 2 * slide_thickness + 2 * clearance];
     module body() {
         center_reflect([0, 0, 1]) {
-            translate([0, clearance, thickness/2 + clearance]) 
+            translate([0, rail_mounting_y + clearance, rail_thickness/2 + clearance]) 
                 block(inner, center=RIGHT+FRONT+ABOVE);
-            translate([0, size.y + clearance, 0]) 
+            translate([0, rail_size.y + clearance, 0]) 
                 block(outer, center=RIGHT+FRONT);  
-            translate([0, clearance, size.z/2 + clearance]) 
+            translate([0, rail_mounting_y + clearance, rail_size.z/2 + clearance]) 
                 block(top, center=RIGHT+FRONT+ABOVE); 
         }
-        translate([size.x + clearance, clearance, 0]) block(cap, center=RIGHT+FRONT);
-        if (outer_m3_attachment) {
-            translate([0, size.y + clearance + thickness, 0]) rotate([0, 180, 0]) m3_attachment();
-        }
-        if (cap_m3_attachmment) {
-            translate([size.x + clearance + thickness, 0, 0]) mirror([1, 0, 0]) m3_attachment();
-        }
     }
-    translate([0, 0, 0]) body();
+    body();
 }
 
 
