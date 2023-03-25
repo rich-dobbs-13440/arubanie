@@ -139,10 +139,15 @@ module pin_holders_attachment(orient=RIGHT, orient_for_build=false, color_name="
         
         color(color_name) {        
             orient_to_anvil(orient) { 
-                center_reflect([0, 1, 0]) translate([0, -5, 0]) { 
-                    difference() {
-                        block([12, 5-2.54/2, 1.5*2.54], center=BELOW+BEHIND+LEFT);
-                        pin_holder_screws(as_clearance=true, $fn=12);
+                center_reflect([0, 1, 0]) {
+                    translate([0, -5, 0]) { 
+                        difference() {
+                            union() {
+                                //block([12, 5-2.54/2, 2*2.54], center=BELOW+BEHIND);
+                                translate([1.6, 0, 0]) block([10, 5-2.54/2, 2*2.54], center=BELOW+BEHIND+LEFT);
+                            }
+                            pin_holder_screws(as_hole_threaded=true, $fn=12);
+                        }
                     }
                 } 
             }
