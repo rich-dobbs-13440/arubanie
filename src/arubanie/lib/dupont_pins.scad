@@ -36,38 +36,27 @@ one_to_show = -10; // [-10: "Customized pin holder", -9:"9 as designed", -8, -7:
 delta_ = 10;
 
 /* [Pin Holder Customization] */
+use_default_values = false;
 
-use_default_integral_female_cph = false;
-integral_female_cph_ = false; 
-
-use_default_integral_male_cph = false;
-integral_male_cph_ = false;
-
-use_default_show_mock_cph = false;
-show_mock_cph_ = true;
-
-use_default_x_spring_cph = false;
 x_spring_cph_ = 8; // [0:1:10]
-
-use_default_z_spring_cph = false;
-z_spring_cph_ = 1.5; // [0: 0.01 : 2.54]
-
-use_default_x_stop_cph = false;
-x_stop_cph_ = 0;
-
-use_default_d_pin_dpm_clearance_cph = false;
-d_pin_dpm_clearance_cph_ = 0.4; 
-
-use_default_clearance_fraction_cph = false;
-clearance_fraction_cph_ = 0.1;
+z_spring_cph_ = 1.5; // [0: 0.01 : 3]
+z_housing_catch_cph_ = 0.1; // [0: 0.01 : .2]
+show_part_colors_cph_ = false;
+show_mock_cph_ = true;
+mock_is_male_cph_ = true;
+color_name_cph_ = "orange";  
+alpha_cph_ = 1; // [0:0.1:1]
 
 
 
-use_default_color_name_cph = false;
-color_name_cph_  = "orange";
-
-use_default_alpha_cph  = false;;
-alpha_cph_  = 1; 
+use_default_x_spring_cph = use_default_values;
+use_default_z_spring_cph = use_default_values; 
+use_default_z_housing_catch_cph = use_default_values;
+use_default_show_part_colors_cph = use_default_values;
+use_default_show_mock_cph = use_default_values;
+use_default_mock_is_male_cph = use_default_values;
+use_default_color_name_cph = use_default_values;  
+use_default_alpha_cph = use_default_values;
 
 module end_customization() {}
 
@@ -153,18 +142,10 @@ x_position(-9)
     male_pin_holder();
 
 x_position(-10) 
-    // Customized pin holder
-    pin_holder(
-        integral_female = integral_female_cph,
-        integral_male = integral_male_cph,
-        show_mock = show_mock_cph,
-        x_spring = x_spring_cph, 
-        z_spring = z_spring_cph, 
-        x_stop = x_stop_cph, 
-        d_pin_dpm_clearance = d_pin_dpm_clearance_cph, 
-        clearance_fraction = clearance_fraction_cph,
-        color_name = color_name_cph, 
-        alpha = alpha_cph);    
+    customized_pin_holder();
+
+    
+
 
 
 
@@ -262,7 +243,7 @@ module dupont_connector(
                 }
                 if (!has_pin) {
                     can(d=DUPONT_PIN_SIZE() + 0.5, h = 0.1, taper=DUPONT_PIN_SIZE(), center=ABOVE, rank = 15);
-                    can(d=d_pin_dpm + 0.3, h = x_pin + 1);
+                    can(d=d_pin_dpm + 0.3, h = x_pin_dpm + 1);
                     translate([0, 0, d_pin_dpm]) block(pin_cavity, center=ABOVE);
                 }
                 
@@ -452,28 +433,54 @@ module pin_holder_screws(as_screw=false, as_hole_threaded=false, as_hole_through
     }
 }
 
-integral_female_default_cph = false;
-integral_male_default_cph  = false;
-show_mock_default_cph = true; 
-x_spring_default_cph  = 5; 
-z_spring_default_cph  = 1; 
-x_stop_default_cph  = dx_barrel_dpgn;
-d_pin_dpm_clearance_default_cph  = 0.4; 
-clearance_fraction_default_cph = .1; 
-color_name_default_cph = "orange"; 
-alpha_default_cph  = 1;
 
-integral_female_cph = use_default_integral_female_cph ? integral_female_default_cph : integral_female_cph_;
-integral_male_cph = use_default_integral_male_cph ? integral_male_default_cph : integral_male_cph_;
-show_mock_cph = use_default_show_mock_cph ? integral_female_default_cph : show_mock_cph_;
-x_spring_cph = use_default_x_spring_cph  ?  x_spring_default_cph :  x_spring_cph_;
-z_spring_cph = use_default_z_spring_cph  ?  z_spring_default_cph :  z_spring_cph_;
-x_stop_cph = use_default_x_stop_cph  ?  x_stop_default_cph :  x_stop_cph_;
-d_pin_dpm_clearance_cph = use_default_d_pin_dpm_clearance_cph  ?  d_pin_dpm_clearance_default_cph :  d_pin_dpm_clearance_cph_;
-clearance_fraction_cph = use_default_clearance_fraction_cph  ?  clearance_fraction_default_cph :  clearance_fraction_cph_;
 
-color_name_cph = use_default_color_name_cph  ?  color_name_default_cph :  color_name_cph_;
-alpha_cph = use_default_alpha_cph  ?  alpha_default_cph :  alpha_cph_;
+
+default_x_spring_cph = 8;
+default_z_spring_cph = 1.5; 
+default_z_housing_catch_cph = 0.1;
+default_show_part_colors_cph = false;
+default_show_mock_cph = true;
+default_mock_is_male_cph = true;
+default_color_name_cph = "orange";  
+default_alpha_cph = 1;
+
+
+
+module customized_pin_holder() {
+    x_spring_cph = use_default_x_spring_cph  ?  default_x_spring_cph :  x_spring_cph_;
+    z_spring_cph = use_default_z_spring_cph  ?  default_z_spring_cph :  z_spring_cph_;
+    z_housing_catch_cph = use_default_z_housing_catch_cph ? default_z_housing_catch_cph : z_housing_catch_cph_;
+    show_part_colors_cph = use_default_show_part_colors_cph ? default_show_part_colors_cph : show_part_colors_cph_;
+    show_mock_cph = use_default_show_mock_cph ? default_show_mock_cph : show_mock_cph_;
+    mock_is_male_cph = use_default_mock_is_male_cph ? default_mock_is_male_cph : mock_is_male_cph_;
+    color_name_cph = use_default_color_name_cph ? default_color_name_cph : color_name_cph_;
+    alpha_cph = use_default_alpha_cph ? default_alpha_cph : alpha_cph_;    
+    
+    pin_holder(
+        x_spring = x_spring_cph, 
+        z_spring = z_spring_cph, 
+        z_housing_catch = z_housing_catch_cph,
+        show_part_colors = show_part_colors_cph,
+        show_mock = show_mock_cph,
+        mock_is_male = mock_is_male_cph,
+        color_name = color_name_cph, 
+        alpha = alpha_cph);
+}
+
+// x = use_default_ x ? default_ : x _;
+
+//integral_female_cph = use_default_integral_female_cph ? integral_female_default_cph : integral_female_cph_;
+//integral_male_cph = use_default_integral_male_cph ? integral_male_default_cph : integral_male_cph_;
+//show_mock_cph = use_default_show_mock_cph ? integral_female_default_cph : show_mock_cph_;
+//mock_is_male_cph = use_default_mock_is_male_cph ? default_mock_is_male_cph : mock_is_male_cph_;
+//
+//x_stop_cph = use_default_x_stop_cph  ?  x_stop_default_cph :  x_stop_cph_;
+//d_pin_dpm_clearance_cph = use_default_d_pin_dpm_clearance_cph  ?  d_pin_dpm_clearance_default_cph :  d_pin_dpm_clearance_cph_;
+//clearance_fraction_cph = use_default_clearance_fraction_cph  ?  clearance_fraction_default_cph :  clearance_fraction_cph_;
+//
+//color_name_cph = use_default_color_name_cph  ?  color_name_default_cph :  color_name_cph_;
+//alpha_cph = use_default_alpha_cph  ?  alpha_default_cph :  alpha_cph_;
 
 
 module pin_latch(
@@ -499,7 +506,6 @@ module pin_latch(
             // bevel to make it easier for pin to enter
             translate([dx, 0, 0]) rod(d=d_pin_dpm+0.5, taper=d_pin_dpm+1.5, l=1, $fn=12, center=CENTER);
         }
-
     }
     if (show_mock) { 
         if (mock_is_male) {
@@ -514,63 +520,105 @@ module pin_latch(
     
 
 module pin_holder(
-        integral_female = integral_female_default_cph,
-        integral_male = integral_male_default_cph,
-        show_mock = show_mock_default_cph,
-        mock_is_male=true,
-        x_spring = x_spring_default_cph, 
-        z_spring = z_spring_default_cph, 
-        z_pin_catch = 0.2,
-        x_stop = x_stop_default_cph, 
-        d_pin_dpm_clearance, 
-        clearance_fraction = d_pin_dpm_clearance_default_cph, 
-        color_name = color_name_cph, 
-        alpha = alpha_default_cph) { 
+        x_spring = default_x_spring_cph, 
+        z_spring = default_z_spring_cph, 
+        z_housing_catch = default_z_housing_catch_cph,
+        show_part_colors = default_show_part_colors_cph,
+        show_mock = default_show_mock_cph,
+        mock_is_male = default_mock_is_male_cph,
+        color_name = default_color_name_cph, 
+        alpha = default_alpha_cph) { 
             
-    if (show_mock) {
-        dupont_connector(center=BEHIND, has_pin=true);
-    }     
-    
     s = DUPONT_HOUSING_WIDTH(); 
     hsg_l = DUPONT_STD_HOUSING();
-    wall = 1;    
-    width = s + wall;     
-    
+            
+    alot = 10;            
+    wall = 1; 
+    spring_gap = 1;          
+    width = s + wall;
+            
     housing_std_dpg = [hsg_l, s, s];
     walls = 2*[wall, wall, wall];
     housing_clearance = 0.2;
     housing_clearances = 2*[housing_clearance, housing_clearance, housing_clearance];
     body = housing_std_dpg + housing_clearances + walls; 
-    alot = 10;
-    d_pin_catch = wall + z_pin_catch;
             
-    spring = [x_spring, body.y, z_spring];
+    z_clearance = body.z/2 - s/2 + spring_gap;
             
-    spring_gap = 1;        
-    pin_latch(width = body.y, z_clearance = body.z/2 - s/2 + spring_gap, show_mock = false, mock_is_male=mock_is_male);
+    d_housing_catch = wall + z_housing_catch;
             
-    color("green") translate([0, 0, body.z/2 + spring_gap])  block(spring, center=ABOVE+BEHIND);  
-    color("blue") translate([-x_spring, 0, body.z/2])  block([2, spring.y, spring.z+spring_gap], center=ABOVE+BEHIND);      
-    difference() {
-        color("yellow", alpha=0.25) { 
-            translate([wall, 0, 0]) block(body, center = BEHIND);  
-        }
-        block(housing_std_dpg + housing_clearances + [alot, 0, 0], center = BEHIND);
-        block(.9*housing_std_dpg);
-    }
-    
-    translate([-hsg_l - 2*housing_clearance, 0, s/2 + housing_clearance]) { // s/2 - wall]
-        difference() {
-            color("pink") rod(d=d_pin_catch, l=body.y, center=SIDEWISE, rank=5);
-            plane_clearance(FRONT+BELOW);
-        }
-    }
-    
+    spring = [x_spring, body.y, z_spring];       
 
+    shelf = [dx_barrel_dpgn, body.y, body.z/2-od_barrel_dpgn/2];
+    
+    if (show_mock) {
         
-
-
+    if (show_mock) { 
+        if (mock_is_male) {
+            dupont_connector(center=BEHIND, has_pin=false);
+            color("silver", alpha=0.5) male_pin();
+        } else {
+            dupont_connector(center=BEHIND, has_pin=true);
+            color("silver", alpha=0.25) female_pin();
+            
+        }
+    }        
+    } 
+    colorize(show_part_colors=show_part_colors) {
+        body(); 
+        housing_latch();        
+        sized_pin_latch();
+        spring();
+        shelf();
+    }
     
+    module sized_pin_latch() {
+        
+        pin_latch(width = body.y, z_clearance, show_mock = false, mock_is_male=mock_is_male);
+    }
+   
+    module housing_latch() {
+        translate([-hsg_l - 2*housing_clearance, 0, s/2 + housing_clearance]) {  
+            difference() {
+                color("pink") rod(d=d_housing_catch, l=body.y, center=SIDEWISE, rank=5);
+                plane_clearance(FRONT+BELOW);
+            }
+        }        
+    } 
+    
+    module body() {
+        difference() {
+            color("yellow") { 
+                translate([wall, 0, 0]) block(body, center = BEHIND);  
+            }
+            block(housing_std_dpg + housing_clearances + [alot, 0, 0], center = BEHIND);
+            block(.9*housing_std_dpg);
+        }        
+    }
+    
+    module spring() {
+        color("green") {
+            translate([0, 0, body.z/2 + spring_gap])  block(spring, center=ABOVE+BEHIND);
+            translate([-x_spring, 0, body.z/2])  block([2, spring.y, spring.z+spring_gap], center=ABOVE+BEHIND); 
+        } 
+    }
+    
+    module shelf() {
+        color("violet")
+            translate([0, 0, -body.z/2]) 
+                block(shelf, center=ABOVE+FRONT);          
+    }
+    
+    
+    module colorize(show_part_colors) {
+        if (show_part_colors) {
+            children();
+        } else {
+            color(color_name, alpha) {
+                children();
+            }
+        }
+    }
 }
 
 
@@ -617,15 +665,7 @@ module old_pin_dpm_holder(
 //    }
 //    
 //
-//    module colorize(detailed=true) {
-//        if (detailed) {
-//            children();
-//        } else {
-//            color(color_name, alpha) {
-//                children();
-//            }
-//        }
-//    }
+
 //
 //    colorize() {
 //        difference() {
