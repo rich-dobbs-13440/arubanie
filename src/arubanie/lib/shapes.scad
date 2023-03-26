@@ -91,6 +91,8 @@ module nutcatch(screw_axis, cut_axis, center=BELOW, nut_family="M3") {
     block(size, center=ABOVE+FRONT+LEFT); // One corner is at origin
     
 */
+
+
 module block(size, center=0, rank=1) { 
     assert(is_list(size), str("In module '", parent_module(0), "' size should be [x, y, z].  Did you forget the []?"));
     assert(len(size)==3, str("In module '", parent_module(0), "' size should be [x, y, z], but it is ", str(size)));

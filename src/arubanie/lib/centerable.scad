@@ -1,6 +1,9 @@
 use <vector_operations.scad>
 
 
+echo("Template: \n translate([0, 0, 0]) \n  block([x, y, z], \n   center=ABOVE+FRONT+RIGHT     center=BELOW+BEHIND+LEFT );\n");
+
+
 function bw_lshift(number, places) = 
     number * pow(2, places);
     
