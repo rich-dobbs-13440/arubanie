@@ -38,14 +38,14 @@ delta_ = 10;
 /* [Pin Holder Customization] */
 use_default_values = false;
 
-x_spring_cph_ = 8; // [0:1:10]
-z_spring_cph_ = 1.5; // [0: 0.01 : 3]
-z_housing_catch_cph_ = 0.1; // [0: 0.01 : .2]
-show_part_colors_cph_ = false;
-show_mock_cph_ = true;
-mock_is_male_cph_ = true;
-color_name_cph_ = "orange";  
-alpha_cph_ = 1; // [0:0.1:1]
+x_spring_cph = 8; // [0:1:10]
+z_spring_cph = 1.5; // [0: 0.01 : 3]
+z_housing_catch_cph = 0.1; // [0: 0.01 : .2]
+show_part_colors_cph = false;
+show_mock_cph = true;
+mock_is_male_cph = true;
+color_name_cph = "orange";  
+color_alpha_cph = 1; // [0:0.1:1]
 
 
 
@@ -62,9 +62,6 @@ module end_customization() {}
 
 
 
-
-
-
 function DUPONT_HOUSING_WIDTH() = 2.54; // Tenth of an inch
 function DUPONT_HOUSING_WALL() = 0.3;
 function DUPONT_STD_HOUSING() = 14.0; //mm
@@ -74,7 +71,6 @@ function DUPONT_HEADER_CLEARANCE() = 0.2; // mm
 function DUPONT_PIN_LENGTH() = 7.8; // mm
 function DUPONT_PIN_SIZE() = 0.7; // mm
 function DUPONT_WIRE_DIAMETER() = 1.0; // mm
-
 
 
 
@@ -144,19 +140,13 @@ x_position(-9)
 x_position(-10) 
     customized_pin_holder();
 
-    
-
-
-
-
-
 
 /* [Pin Strip Measurements] */    
 
 // Measure from the holes beneath the pins
-l_pin_strip = 115.1;
-pin_count = 20;
-delta_pin_strip = l_pin_strip / (pin_count -1);    
+    l_pin_strip = 115.1;
+    pin_count = 20;
+    delta_pin_strip = l_pin_strip / (pin_count -1);    
 
 /* [Pin Measurements] */
 
@@ -308,8 +298,6 @@ module _generic_pin_dp(
         insulation_wrap, 
         strip, 
         alpha) {
-                
-            
 
     // Initially model pin before construction with pin on x_axis,
     // with the pin itself negative, and the parts used in assembly
@@ -434,57 +422,13 @@ module pin_holder_screws(as_screw=false, as_hole_threaded=false, as_hole_through
 }
 
 
-
-
-default_x_spring_cph = 8;
-default_z_spring_cph = 1.5; 
-default_z_housing_catch_cph = 0.1;
-default_show_part_colors_cph = false;
-default_show_mock_cph = true;
-default_mock_is_male_cph = true;
-default_color_name_cph = "orange";  
-default_alpha_cph = 1;
-
-
-
-module customized_pin_holder() {
-    x_spring_cph = use_default_x_spring_cph  ?  default_x_spring_cph :  x_spring_cph_;
-    z_spring_cph = use_default_z_spring_cph  ?  default_z_spring_cph :  z_spring_cph_;
-    z_housing_catch_cph = use_default_z_housing_catch_cph ? default_z_housing_catch_cph : z_housing_catch_cph_;
-    show_part_colors_cph = use_default_show_part_colors_cph ? default_show_part_colors_cph : show_part_colors_cph_;
-    show_mock_cph = use_default_show_mock_cph ? default_show_mock_cph : show_mock_cph_;
-    mock_is_male_cph = use_default_mock_is_male_cph ? default_mock_is_male_cph : mock_is_male_cph_;
-    color_name_cph = use_default_color_name_cph ? default_color_name_cph : color_name_cph_;
-    alpha_cph = use_default_alpha_cph ? default_alpha_cph : alpha_cph_;    
-    
-    pin_holder(
-        x_spring = x_spring_cph, 
-        z_spring = z_spring_cph, 
-        z_housing_catch = z_housing_catch_cph,
-        show_part_colors = show_part_colors_cph,
-        show_mock = show_mock_cph,
-        mock_is_male = mock_is_male_cph,
-        color_name = color_name_cph, 
-        alpha = alpha_cph);
-}
-
-// x = use_default_ x ? default_ : x _;
-
-//integral_female_cph = use_default_integral_female_cph ? integral_female_default_cph : integral_female_cph_;
-//integral_male_cph = use_default_integral_male_cph ? integral_male_default_cph : integral_male_cph_;
-//show_mock_cph = use_default_show_mock_cph ? integral_female_default_cph : show_mock_cph_;
-//mock_is_male_cph = use_default_mock_is_male_cph ? default_mock_is_male_cph : mock_is_male_cph_;
-//
-//x_stop_cph = use_default_x_stop_cph  ?  x_stop_default_cph :  x_stop_cph_;
-//d_pin_dpm_clearance_cph = use_default_d_pin_dpm_clearance_cph  ?  d_pin_dpm_clearance_default_cph :  d_pin_dpm_clearance_cph_;
-//clearance_fraction_cph = use_default_clearance_fraction_cph  ?  clearance_fraction_default_cph :  clearance_fraction_cph_;
-//
-//color_name_cph = use_default_color_name_cph  ?  color_name_default_cph :  color_name_cph_;
-//alpha_cph = use_default_alpha_cph  ?  alpha_default_cph :  alpha_cph_;
-
-
 module pin_latch(
-        width, z_clearance = 1, color_name = "FireBrick", color_alpha = 1, show_mock = true, mock_is_male = true) {
+        width, 
+        z_clearance = 1, 
+        color_name = "FireBrick", 
+        color_alpha = 1, 
+        show_mock = true, 
+        mock_is_male = true,) {
             
             
     s = DUPONT_HOUSING_WIDTH(); 
@@ -517,7 +461,27 @@ module pin_latch(
 }    
     
 
-    
+module customized_pin_holder() {
+
+    pin_holder(
+        x_spring = use_default_x_spring_cph  ?  default_x_spring_cph :  x_spring_cph,
+        z_spring = use_default_z_spring_cph  ?  default_z_spring_cph :  z_spring_cph,
+        z_housing_catch = use_default_z_housing_catch_cph ? default_z_housing_catch_cph : z_housing_catch_cph,
+        show_part_colors = use_default_show_part_colors_cph ? default_show_part_colors_cph : show_part_colors_cph,
+        show_mock = use_default_show_mock_cph ? default_show_mock_cph : show_mock_cph,
+        mock_is_male = use_default_mock_is_male_cph ? default_mock_is_male_cph : mock_is_male_cph,
+        color_name = use_default_color_name_cph ? default_color_name_cph : color_name_cph,
+        color_alpha = use_default_alpha_cph ? default_alpha_cph : color_alpha_cph);  
+}
+
+default_x_spring_cph = 8;
+default_z_spring_cph = 1.5; 
+default_z_housing_catch_cph = 0.1;
+default_show_part_colors_cph = false;
+default_show_mock_cph = true;
+default_mock_is_male_cph = true;
+default_color_name_cph = "orange";  
+default_color_alpha_cph = 1;    
 
 module pin_holder(
         x_spring = default_x_spring_cph, 
@@ -527,7 +491,7 @@ module pin_holder(
         show_mock = default_show_mock_cph,
         mock_is_male = default_mock_is_male_cph,
         color_name = default_color_name_cph, 
-        alpha = default_alpha_cph) { 
+        color_alpha = default_color_alpha_cph) { 
             
     s = DUPONT_HOUSING_WIDTH(); 
     hsg_l = DUPONT_STD_HOUSING();
@@ -573,14 +537,18 @@ module pin_holder(
     }
     
     module sized_pin_latch() {
-        
-        pin_latch(width = body.y, z_clearance, show_mock = false, mock_is_male=mock_is_male);
+        pin_latch(
+            width = body.y, 
+            z_clearance= z_clearance, 
+            show_mock = false, 
+            mock_is_male = mock_is_male, 
+            color_alpha = color_alpha);
     }
    
     module housing_latch() {
         translate([-hsg_l - 2*housing_clearance, 0, s/2 + housing_clearance]) {  
             difference() {
-                color("pink") rod(d=d_housing_catch, l=body.y, center=SIDEWISE, rank=5);
+                color("pink", color_alpha) rod(d=d_housing_catch, l=body.y, center=SIDEWISE, rank=5);
                 plane_clearance(FRONT+BELOW);
             }
         }        
@@ -588,7 +556,7 @@ module pin_holder(
     
     module body() {
         difference() {
-            color("yellow") { 
+            color("yellow", color_alpha) { 
                 translate([wall, 0, 0]) block(body, center = BEHIND);  
             }
             block(housing_std_dpg + housing_clearances + [alot, 0, 0], center = BEHIND);
@@ -597,14 +565,14 @@ module pin_holder(
     }
     
     module spring() {
-        color("green") {
+        color("green", color_alpha) {
             translate([0, 0, body.z/2 + spring_gap])  block(spring, center=ABOVE+BEHIND);
             translate([-x_spring, 0, body.z/2])  block([2, spring.y, spring.z+spring_gap], center=ABOVE+BEHIND); 
         } 
     }
     
     module shelf() {
-        color("violet")
+        color("violet", color_alpha)
             translate([0, 0, -body.z/2]) 
                 block(shelf, center=ABOVE+FRONT);          
     }
@@ -614,224 +582,9 @@ module pin_holder(
         if (show_part_colors) {
             children();
         } else {
-            color(color_name, alpha) {
+            color(color_name, color_alpha) {
                 children();
             }
         }
     }
 }
-
-
-module old_pin_dpm_holder(
-        integral_female = integral_female_default_cph,
-        integral_male = integral_male_default_cph,
-        show_mock = show_mock_default_cph,
-        x_spring = z_spring_default_cph, 
-        z_spring = z_spring_default_cph, 
-        x_stop = x_stop_default_cph, 
-        d_pin_dpm_clearance = d_pin_dpm_clearance_default_cph, 
-        clearance_fraction = d_pin_dpm_clearance_default_cph, 
-        color_name = color_name_cph, 
-        alpha = alpha_default_cph) {
-    
-//    assert(!is_undef(x_stop));
-//    assert(!is_undef(z_spring));
-//    assert(!is_undef(show_mock));
-//            
-//    external_pin = !integral_female && !integral_male;
-//    assert(!(integral_female && integral_male), 
-//            assert_msg(
-//                "Can't be both male and female at the same time.", 
-//                " integral_female: ", str(integral_female), 
-//                " integral_male: ", str(integral_male)));
-//    
-//    wall = 1;
-//    housing_clearance = external_pin ? 0.2 : 0;     
-//    body_x = external_pin ? 18: DUPONT_SHORT_HOUSING();
-//    body_y = DUPONT_HOUSING_WIDTH() + (external_pin ? 2*wall + 2* housing_clearance : 0);
-//    body_z =  DUPONT_HOUSING_WIDTH();
-//    body = [body_x, body_y, body_z];
-//    spring = [x_spring, body.y, z_spring];
-//    translation_spring = [0, 0, body.z/2+0.5];
-//    stop_body = [x_stop, body.y, body.z];
-//    
-//    screw_body = [body.x, body.y, 1.5*body.z - housing_clearance]; 
-//    
-//    shelf = [x_strike_dpf, body.y, body.z/2 - od_barrel_dpgn/2 + 1.5* DUPONT_HOUSING_WIDTH() ];
-//    base = [body.x-spring.x, 1, 2*translation_spring.z+2];
-//    
-//    module pin_clearance() {
-//        rod(d=d_pin_dpm+d_pin_dpm_clearance, l=100, $fn=12); 
-//    }
-//    
-//
-
-//
-//    colorize() {
-//        difference() {
-//            union() {
-//                color("pink") latch();
-//                
-//                color("brown") 
-//                    translate([0, 0, -od_barrel_dpgn/2]) 
-//                        block(shelf, center=FRONT+BELOW);
-//                
-//                color("violet") 
-//                    translate(translation_spring) { 
-//                        block(spring, center=BEHIND+ABOVE);
-//                        translate([-2, 0, 0]) block(spring, center=BEHIND+ABOVE);
-//                    }
-//                
-//                color("blue") 
-//                    translate([0, 0, -2*body.z]) 
-//                        block(screw_body, center=ABOVE+BEHIND);
-//                
-//                color("green")
-//                    translate([0, 0, -body.z/2]) 
-//                        block(stop_body, center=BELOW+FRONT); 
-//                
-//                if (!external_pin) {
-//                    dupont_connector( 
-//                        housing = DUPONT_SHORT_HOUSING(), 
-//                        center=BEHIND, 
-//                        has_wire=false);
-//                }
-//                
-//                color("tomato")
-//                    translate([-spring.x, -body.y/2, 0]) 
-//                        block(base, center=BEHIND+RIGHT);  
-//              
-//                 color("salmon")
-//                    translate([-spring.x, -body.y/2, base.z/2])
-//                        block([base.x, body.y, wall], 
-//                        center=BEHIND+RIGHT+BELOW);
-//                
-//            }
-//            if (external_pin) {
-//                // If external pin, create a slot for the wire at the back of the pin
-//                hull() {
-//                    translate([-10, 0, 0]) rod(d=DUPONT_WIRE_DIAMETER(), l=body.x+5, center=BEHIND);
-//                    translate([-10, 5, 0])rod(d=DUPONT_WIRE_DIAMETER(), l=body.x+5, center=BEHIND);
-//                } 
-//            } else {
-//                rod(d=d_pin_dpm, taper=d_pin_dpm+1, l=1, $fn=12, center=FRONT);
-//            }
-//
-//            
-//            
-//            
-//            pin_holder_screws(as_hole_through=true);
-//        }
-//
-//    }
-//    if (show_mock) {
-//        //male_pin();
-//        if (external_pin) {
-//            dupont_connector(housing_color="Lime", center=BEHIND, has_pin=true);
-//        }
-//        pin_holder_screws(as_screw=true);
-//    }    
-}
-
-
-
-
-
-module male_pin_holder(
-        show_mock=true, 
-        z_spring = 2.54, 
-        x_stop = dx_barrel_dpgn, 
-        d_pin_dpm_clearance = 0.4, 
-        clearance_fraction=.1, 
-        z_column=0, 
-        dx_column=0, 
-        latch_release_diameter = 2,
-        external_pin = true, 
-        latch_release_height = 2,
-        color_name="orange", 
-        alpha=1) {
-//    
-//    assert(!is_undef(z_column));
-//    assert(!is_undef(x_stop));
-//    assert(!is_undef(z_spring));
-//    assert(!is_undef(show_mock));
-//    
-//    body = [16, 2.54, 2.54];
-//    pin_body = [14, 2.54, 2.54];       
-//    x_split = 7;
-//    z_split = 0.0;
-//
-//    latch_x = x_detent_dpgn * (1-clearance_fraction);
-//    latch_dx = (x_detent_dpgn * clearance_fraction)/2;
-//    latch = [latch_x, body.y, body.z/2 + z_spring];
-//    spring = [
-//        body.x + x_strike_dpf + x_detent_dpgn,
-//        body.y,
-//        z_spring];
-//            
-//    split = [x_split, 10, z_split];
-//    split_front = [1, 10, body.z/2 + z_split];
-//    
-//    stop_body = [x_stop, body.y, body.z];
-//    screw_body = [body.x, body.y, 2*body.z]; 
-//    column = [body.y, body.y, z_column];
-//    
-//    
-//    module pin_clearance() {
-//        rod(d=d_pin_dpm+d_pin_dpm_clearance, l=100, $fn=12); 
-//    }
-//
-//    color(color_name, alpha) {
-//        //render(convexity=10) 
-//        difference() {
-//            union() {
-//                block(body, center=BEHIND);
-//                shelf = [x_strike_dpf, body.y, 2.54/2-od_barrel_dpgn];
-//                block(shelf, center=FRONT);
-//                
-//                translate([-body.x, 0, body.z/2]) 
-//                    block(spring, center=ABOVE+FRONT);
-//                
-//                translate([0.75*x_strike_dpf, 0, 0.75*body.z]) 
-//                    rod(
-//                        d=latch_release_diameter, 
-//                        l = body.y/2 + latch_release_height, 
-//                        center=SIDEWISE+RIGHT+ABOVE, 
-//                        $fn=12);
-//                
-//                translate([x_strike_dpf + latch_dx, 0, 0]) 
-//                    block(latch, center=ABOVE+FRONT);
-//                     
-//                block(screw_body, center=BELOW+BEHIND);
-//                
-//                translate([0, 0, -body.z/2]) 
-//                    block(stop_body, center=BELOW+FRONT);                 
-//                
-//                translate([dx_column, -body.y/2, -body.z/2]) 
-//                    block(column, center=RIGHT+FRONT+BELOW);
-//                
-//            }
-//            if (external_pin) {
-//                block(pin_body, center=BEHIND);
-//            } else {
-//                pin_clearance();
-//                
-//                // Bevel to make entrance easier!
-//                rod(d=d_pin_dpm, taper=d_pin_dpm+1, l=1, $fn=12, center=BEHIND);
-//            }
-//            
-//            translate([1, 0, 2]) block(split, center=BEHIND+BELOW);
-//            block(split_front, center=FRONT+ABOVE);
-//            
-//            pin_holder_screws(as_hole_through=true);
-//        }
-//
-//    }
-//    if (show_mock) {
-//        //male_pin();
-//        //translate([-14, 0, 0]) rotate([0, 90, 0]) 
-//        //dupont_connector(housing_color="Lime", center);
-//        pin_holder_screws(as_screw=true);
-//    }
-}
-
