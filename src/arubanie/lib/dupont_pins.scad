@@ -40,7 +40,7 @@ use_default_values = false;
 
 x_spring_cph = 8; // [0:1:10]
 z_spring_cph = 1.5; // [0: 0.01 : 3]
-z_housing_catch_cph = 0.2; // [0: 0.01 : .2]
+z_housing_catch_cph = 0.1; // [0: 0.01 : .2]
 show_part_colors_cph = false;
 show_mock_cph = true;
 mock_is_male_cph = true;
@@ -444,7 +444,7 @@ module _generic_pin_dp(
 
 module pin_holder_screws(as_screw=false, as_hole_threaded=false, as_hole_through=false) {
     module process() {
-        for (x = [2 : 4 : 14]) {
+        for (x = [2 : 4 : 10]) {
             translate([-x, 0, -3]) rotate([90, 0, 0]) children(); 
         }
     }
@@ -456,7 +456,7 @@ module pin_holder_screws(as_screw=false, as_hole_threaded=false, as_hole_through
         process() translate([0, 0, 12.5]) hole_threaded("M2");
     }
     if (as_screw) {
-        stainless() process() translate([0, 0, +2.54/2]) screw("M2x6");
+        stainless() process() translate([0, 0, +2.54/2]) screw("M2x8");
     }
 }
 
@@ -471,21 +471,27 @@ module pin_latch(
             
             
     s = DUPONT_HOUSING_WIDTH(); 
-    body = [2*s, width, 2*s];
+    body = [4, width, 4];
     dx = (dx_detent_dpgn + dx_barrel_dpgn)/2;  // Center over detent
+    dx_hole = 2;
     dz_release = body.z/2 + s/2 + z_clearance;
     color(color_name, color_alpha) {
-        
         difference() {
             union() {
-                translate([dx, 0, dz_release]) block(body);
+                *translate([dx, 0, dz_release]) block(body);
                 translate([0, 0, dz_release]) block(body, center=FRONT);
                 hull() {
+
                     translate([dx, 0, s/2]) block([x_detent_dpgn, width, z_clearance], center=ABOVE);
                     translate([dx, 0, -.25]) block([x_detent_dpgn/2, width, s/2 + 0.25 ], center=ABOVE); 
                 }
+                hull() {
+                   translate([dx, 0, s/2]) block([x_detent_dpgn, width, z_clearance], center=ABOVE); 
+                   translate([2, 0, s/2+z_clearance]) block([3, width, 0.1], center=ABOVE+FRONT);
+                   translate([2, 0, s/2+z_clearance]) block([2, width, 4], center=ABOVE+FRONT);
+                }
             }
-            translate([dx, -25, dz_release]) rotate([90, 0, 0]) hole_through("M2", cld=0.4);
+            translate([dx_hole, -25, dz_release]) rotate([90, 0, 0]) hole_through("M2", cld=0.4, $fn=12);
             // bevel to make it easier for pin to enter
             translate([dx, 0, 0]) rod(d=d_pin_dpm+0.5, taper=d_pin_dpm+1.5, l=1, $fn=12, center=CENTER);
         }
@@ -516,6 +522,7 @@ module customized_pin_holder() {
 default_x_spring_cph = 8;
 default_z_spring_cph = 1.5; 
 default_z_housing_catch_cph = 0.1;
+default_include_screw_holes = true;
 default_show_part_colors_cph = false;
 default_show_mock_cph = true;
 default_mock_is_male_cph = true;
@@ -526,6 +533,7 @@ module pin_holder(
         x_spring = default_x_spring_cph, 
         z_spring = default_z_spring_cph, 
         z_housing_catch = default_z_housing_catch_cph,
+        include_screw_holes = default_include_screw_holes,
         show_part_colors = default_show_part_colors_cph,
         show_mock = default_show_mock_cph,
         mock_is_male = default_mock_is_male_cph,
@@ -554,9 +562,11 @@ module pin_holder(
 
     shelf = [dx_barrel_dpgn, body.y, body.z/2-od_barrel_dpgn/2];
     
-
+    //pin_holder_screws(as_hole_threaded=true, $fn=12);
+    
         
-    if (show_mock) { 
+    if (show_mock) {
+        translate([0, -wall-housing_clearance, 0]) pin_holder_screws(as_screw=true, $fn=12); 
         if (mock_is_male) {
             dupont_connector(center=BEHIND, has_pin=false, color_alpha=color_alpha);
             male_pin();
@@ -571,6 +581,14 @@ module pin_holder(
         sized_pin_latch();
         spring();
         shelf();
+        screw_block();
+    }
+    
+    module screw_block() {
+        difference() {
+            translate([0, 0, -body.z/2]) block([12, body.y, 2], center=BEHIND+BELOW); 
+            pin_holder_screws(as_hole_threaded=true, $fn=12);
+        }
     }
     
     module sized_pin_latch() {

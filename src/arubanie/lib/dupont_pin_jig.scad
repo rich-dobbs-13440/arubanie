@@ -40,24 +40,25 @@ dz_cavity_iwp = 0; // [-2:0.01:+2]
 
 
 
-/* [Male Pin Holder Design] */
+/* [Pin Holder Design] */
 
 d_pin_clearance  = 0.4; // [0:0.1:1]
 // This controls how strong the spring holds
 z_spring_mph = 3.; // [3:0.1:5]
 
 dx_pin_slider = 4.7; // [4.7: 0.01: 4.8]
+percent_open_jaw = 0; // [0:99.9]
+show_male_pin_ = true;
+alpha_mp = 1; // [0, 0.25, 0.5, 0.75, 1]
+
 
 module end_of_customization() {}
 
-/* [Mocks] */
 
 
 
 /* [Show Mocks] */
-percent_open_jaw = 0; // [0:99.9]
-show_male_pin_ = true;
-alpha_mp = 1; // [0, 0.25, 0.5, 0.75, 1]
+
 
 /* [Future Design] */
 wire_diameter = 1.66; // Includes insulation
@@ -153,7 +154,7 @@ module pin_holders_attachment(orient=RIGHT, orient_for_build=false, color_name="
             }
         }
         if (!orient_for_build) {
-            translate([10, 0, 0])  oriented_pin_holder(orient=orient);
+            translate([11, 0, 0])  oriented_pin_holder(orient=orient);
         }
 
     }   
@@ -161,14 +162,14 @@ module pin_holders_attachment(orient=RIGHT, orient_for_build=false, color_name="
 
 
 module orient_to_anvil(orient) {
-    dz = dz_025_wire_punch_z + z_conductor_wrap_mp/2; 
+    dz = dz_025_wire_punch_z + z_conductor_wrap_dpgn/2; 
     rotation = 
         orient == RIGHT ? [0, 180, -90] : 
         orient == LEFT ? [0, 180, 90] : 
         assert(false);
     translation = 
-        orient == RIGHT ? [0, -dx_insulation_wrap_mp, -dz] :
-        orient == LEFT ? [0, dx_insulation_wrap_mp, -dz] : 
+        orient == RIGHT ? [0, -dx_insulation_wrap_dpgn, -dz] :
+        orient == LEFT ? [0, dx_insulation_wrap_dpgn, -dz] : 
         assert(false);
     translate(translation) {
         rotate(rotation) {
@@ -181,11 +182,11 @@ module orient_to_anvil(orient) {
 module oriented_pin_holder(orient) {
     clearance_fraction_male_pin_holder = 0.1; //[0: 0.01: 0.20]
     orient_to_anvil(orient) {
-        male_pin_holder(
-            z_spring = z_spring_mph,
-            clearance_fraction = clearance_fraction_male_pin_holder, 
-            x_stop = dx_insulation_wrap_mp -y_upper_jaw_anvil/2,
-            show_mock=show_male_pin_ && !orient_for_build);
+        pin_holder(show_mock=show_male_pin_ && !orient_for_build, include_screw_holes=true);
+//            z_spring = z_spring_mph,
+//            clearance_fraction = clearance_fraction_male_pin_holder, 
+//            x_stop = dx_insulation_wrap_dpgn -y_upper_jaw_anvil/2,
+//            show_mock=show_male_pin_ && !orient_for_build);
         
     }        
 }
@@ -232,7 +233,7 @@ module pin_strip_breaker() {
 
     translate([0, 0, +gap/2]) pin_catch(pins, height, width, true, center=ABOVE);
     translate([0, 0, -gap/2]) pin_catch(pins, height, width, false, center=BELOW);
-    rotate([0, 0, -90])  translate([-dx_insulation_wrap_mp, 0, 0]) male_pin_holder(show_mock=true, z_spring = z_spring_mph);
+    rotate([0, 0, -90])  translate([-dx_insulation_wrap_dpgn, 0, 0]) male_pin_holder(show_mock=true, z_spring = z_spring_dpgnh);
 }
 
 
@@ -339,10 +340,10 @@ module insulator_wrap_prebender() {
     //rotate([0, 90, 0]) {  
         render(convexity=10) difference() { 
             union() {
-                block([x_handle_iwp, y_strip_mp, z_upper_mold_iwp], center=BEHIND+ABOVE);
-                block([x_handle_iwp, y_strip_mp, z_lower_mold_iwp], center=BEHIND+BELOW);
-                block([x_mold_iwp, y_strip_mp, z_upper_mold_iwp], center=FRONT+ABOVE);
-                block([x_mold_iwp, y_strip_mp, z_lower_mold_iwp], center=FRONT+BELOW);
+                block([x_handle_iwp, y_strip_dpgn, z_upper_mold_iwp], center=BEHIND+ABOVE);
+                block([x_handle_iwp, y_strip_dpgn, z_lower_mold_iwp], center=BEHIND+BELOW);
+                block([x_mold_iwp, y_strip_dpgn, z_upper_mold_iwp], center=FRONT+ABOVE);
+                block([x_mold_iwp, y_strip_dpgn, z_lower_mold_iwp], center=FRONT+BELOW);
             }
             translate([0, 0, dz_cavity_iwp]) insulator_wrap_mold_cavity();
         }
@@ -350,7 +351,7 @@ module insulator_wrap_prebender() {
 }
 
 module positioned_insulator_wrap_prebender() {
-    translate([dx_025_anvil, -dx_insulation_wrap_mp, -(dz_025_wire_punch_z + 2.54/2)]) {
+    translate([dx_025_anvil, -dx_insulation_wrap_dpgn, -(dz_025_wire_punch_z + 2.54/2)]) {
         insulator_wrap_prebender();
     }
 }
