@@ -93,8 +93,14 @@ module center_rotation(rotation) {
     rotate(angles) {
         children();
     }
-
 }
+
+module center_orient(orient, initial_orient) 
+    center_rotation(orient) {  
+        center_rotation(initial_orient) {
+           children();
+        }
+    }
 
 module center_rotate(from_axis, to_axis) {
     

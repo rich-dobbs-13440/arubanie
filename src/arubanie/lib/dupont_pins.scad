@@ -31,16 +31,16 @@ housing_ = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Sho
 /* [Show] */
 show_top_level = false;
 show_only_one = false;
-one_to_show = -10; // [-10: "Customized pin holder", -9:"9 as designed", -8, -7:" male_pin_holder(show_mock=false)", -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8]
+one_to_show = -10; // [-10: "Customized pin holder", -9:"9 as designed", -8, -7:" male_pin_holder(show_mock=false)", -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10]
 
-delta_ = 10;
+delta_ = 10; // [10:10:100]
 
 /* [Pin Holder Customization] */
 use_default_values = false;
 
 x_spring_cph = 8; // [0:1:10]
 z_spring_cph = 1.5; // [0: 0.01 : 3]
-z_housing_catch_cph = 0.1; // [0: 0.01 : .2]
+z_housing_catch_cph = 0.2; // [0: 0.01 : .2]
 show_part_colors_cph = false;
 show_mock_cph = true;
 mock_is_male_cph = true;
@@ -99,8 +99,27 @@ x_position(4) dupont_connector(
         housing=DUPONT_STD_HOUSING(),
         has_pin=true);
 
-x_position(-1) rotate([0, 0, 90]) 
-    male_pin(); 
+
+
+x_position(7) {
+    color("red") male_pin(ABOVE);
+    color("orange") male_pin(BELOW);
+    color("yellow") male_pin(FRONT);
+    color("green") male_pin(BEHIND);
+    color("blue") male_pin(RIGHT);
+    color("violet") male_pin(LEFT);
+}
+
+x_position(10) {
+    color("red") female_pin(orient=ABOVE);
+    color("orange") female_pin(orient=BELOW);
+    color("yellow") female_pin(orient=FRONT);
+    color("green") female_pin(orient=BEHIND);
+    color("blue") female_pin(orient=RIGHT);
+    color("violet") female_pin(orient=LEFT);
+}
+
+x_position(-1) male_pin(orient=LEFT); 
 
 x_position(-2) rotate([0, 0, 90]) 
     male_pin(
@@ -125,17 +144,17 @@ x_position(-3) rotate([0, 0, 90])
 x_position(-4) rotate([0, 0, 90]) 
     male_pin(insulation_wrap=0.75);
     
-x_position(-5) rotate([0, 0, 90]) 
-    male_pin_holder(show_mock=true, z_spring=2);
-    
-x_position(-6) rotate([0, 0, 90]) 
-    male_pin_holder();
+//x_position(-5) rotate([0, 0, 90]) 
+//    male_pin_holder(show_mock=true, z_spring=2);
+//    
+//x_position(-6) rotate([0, 0, 90]) 
+//    male_pin_holder();
 
-x_position(-7) rotate([0, 0, 90])
-    male_pin_holder(show_mock=false);
+//x_position(-7) rotate([0, 0, 90])
+//    male_pin_holder(show_mock=false);
     
-x_position(-9) 
-    male_pin_holder();
+//x_position(-9) 
+//    male_pin_holder();
 
 x_position(-10) 
     customized_pin_holder();
@@ -213,92 +232,135 @@ module dupont_connector(
         center = ABOVE,
         housing = DUPONT_STD_HOUSING(),
         has_pin = false, 
-        has_wire = true) {
+        has_wire = true,
+        color_alpha = 1) {
             
     pin_cavity = [
         DUPONT_HOUSING_WIDTH() - 2*DUPONT_HOUSING_WALL() , 
         DUPONT_HOUSING_WIDTH() - 2*DUPONT_HOUSING_WALL() ,
         DUPONT_STD_HOUSING()
-    ]; 
+    ];
+    housing_extent = [DUPONT_HOUSING_WIDTH(), DUPONT_HOUSING_WIDTH(), housing]; 
         
-            
+    // center_orient(orient, BELOW)        
     center_rotation(center) {  
         center_rotation(BELOW) { 
+            if (has_wire) {
+                color(wire_color) can(d=DUPONT_WIRE_DIAMETER(), h = housing + 8, center=ABOVE, rank=-3);
+            }
+            if (has_pin) {
+                // For headers should make it square!
+                //color("silver") can(d=DUPONT_PIN_SIZE(), h = DUPONT_PIN_LENGTH(), center=BELOW);
+                male_pin(orient=ABOVE, insulation_wrap=1, conductor_wrap=1, strip=false);
+            } else {
+                female_pin(orient=ABOVE, insulation_wrap=1, conductor_wrap=1, strip=false);
+            }
             difference() {   
-                union() {
-                    color(housing_color) block([DUPONT_HOUSING_WIDTH(), DUPONT_HOUSING_WIDTH(), housing], center = ABOVE, rank=10);
-                    if (has_wire) {
-                        color(wire_color) can(d=DUPONT_WIRE_DIAMETER(), h = housing + 8, center=ABOVE, rank=-3);
-                    }
-                }
+                color(housing_color, color_alpha) 
+                    block(housing_extent, center = ABOVE, rank=10);
+                
                 if (!has_pin) {
                     can(d=DUPONT_PIN_SIZE() + 0.5, h = 0.1, taper=DUPONT_PIN_SIZE(), center=ABOVE, rank = 15);
                     can(d=d_pin_dpm + 0.3, h = x_pin_dpm + 1);
                     translate([0, 0, d_pin_dpm]) block(pin_cavity, center=ABOVE);
-                }
-                
+                } 
             }
-            
-            if (has_pin) {
-                // For headers should make it square!
-                color("silver") can(d=DUPONT_PIN_SIZE(), h = DUPONT_PIN_LENGTH(), center=BELOW);
-            }
+
         }
     } 
            
 }
 
-module female_pin(        
+module female_pin( 
+        orient = FRONT,
         strike = true,
         detent = true, 
         barrel = true,
         conductor_wrap = 0,
         insulation_wrap = 0, 
-        strip = true, 
+        strip = true,
         alpha=1) { 
-    
+
+    echo("orient: ", orient);
+            
     _generic_pin_dp(
-        pin = false,
+        orient = orient,
+        pin = false,          
         strike = strike,
         detent = detent, 
         barrel = barrel,
         conductor_wrap = conductor_wrap,
         insulation_wrap = insulation_wrap, 
-        strip = strip , 
-        alpha);        
+        strip = strip, 
+        alpha = alpha);        
 }
 
 module male_pin(
+        orient = FRONT,
         pin = true, 
         strike = true,
         detent = true, 
         barrel = true,
         conductor_wrap = 0,
         insulation_wrap = 0, 
-        strip = true, 
+        strip = true,
         alpha=1) {
 
     _generic_pin_dp(
+        orient = orient,             
         pin = pin,
         strike = strike,
         detent = detent, 
         barrel = barrel,
         conductor_wrap = conductor_wrap,
         insulation_wrap = insulation_wrap, 
-        strip = strip , 
+        strip = strip,
         alpha = alpha);           
 }
 
 module _generic_pin_dp(
+        orient, 
         pin,
         strike,
         detent, 
         barrel,
         conductor_wrap,
         insulation_wrap, 
-        strip, 
+        strip,
         alpha) {
+            
+    echo("orient: ", orient);
 
+    center_orient(orient, FRONT) pin(); 
+
+    module pin() {
+        is_male = is_bool(pin) && pin;
+        color("silver", alpha=alpha) {
+           
+            if (is_male) {
+                rod(d=d_pin_dpm, l=x_pin_dpm, center=BEHIND);
+            }
+            if (strike) {
+                strike(is_male);
+            }
+            if (detent) {
+                detent();
+            }
+            if (barrel) {
+                barrel();
+            }
+            if (is_num(conductor_wrap) || (is_bool(conductor_wrap) && conductor_wrap))  {            
+                conductor_wrap();
+            }
+            if (is_num(insulation_wrap) || (is_bool(insulation_wrap) && insulation_wrap))  {             
+                insulation_wrap(); 
+            }
+            if (strip) {
+                strip();
+            }
+        }
+    } 
+    
     // Initially model pin before construction with pin on x_axis,
     // with the pin itself negative, and the parts used in assembly
     // increasing in the x domain.abs
@@ -355,18 +417,19 @@ module _generic_pin_dp(
     }
     
     module conductor_wrap() {
+        z_factor = conductor_wrap < 0.5 ? 1 : 1.5 - conductor_wrap;
         extent = [x_conductor_wrap_dpgn, y_conductor_wrap_dpgn, z_conductor_wrap_dpgn];
-        
         translate([dx_conductor_wrap_dpgn, 0, 0]) 
             wing(
                 [x_conductor_wrap_dpgn, wire_diameter, od_barrel_dpgn/2], 
-                [0.8*x_conductor_wrap_dpgn, y_conductor_wrap_dpgn, z_conductor_wrap_dpgn - od_barrel_dpgn/2]); 
+                [0.8*x_conductor_wrap_dpgn, y_conductor_wrap_dpgn, z_factor*(z_conductor_wrap_dpgn - od_barrel_dpgn/2)]); 
     }
     module insulation_wrap() {
+        z_factor = insulation_wrap < 0.5 ? 1 : 1.5 - insulation_wrap;
         translate([dx_insulation_wrap_dpgn, 0, 0]) 
             wing(
                 [x_insulation_wrap_dpgn, wire_diameter, od_barrel_dpgn/2], 
-                [0, (1-insulation_wrap)*y_insulation_wrap_dpgn, z_insulation_wrap_dpgn - od_barrel_dpgn/2]);         
+                [0, (1-insulation_wrap)*y_insulation_wrap_dpgn, z_factor*(z_insulation_wrap_dpgn - od_barrel_dpgn/2)]);         
     } 
     module strip() {
         translate([dx_strip_dpgn, 0, -z_insulation_wrap_dpgn/2+2*z_metal_dpgn])
@@ -375,31 +438,7 @@ module _generic_pin_dp(
                 translate([x_strip_dpgn/2, 0, 0]) can(d=d_strip_dpgn, h=5);
             }
     }
-    is_male = is_bool(pin) && pin;
-    color("silver", alpha=alpha) {
-       
-        if (is_male) {
-            rod(d=d_pin_dpm, l=x_pin_dpm, center=BEHIND);
-        }
-        if (strike) {
-            strike(is_male);
-        }
-        if (detent) {
-            detent();
-        }
-        if (barrel) {
-            barrel();
-        }
-        if (is_num(conductor_wrap) || (is_bool(conductor_wrap) && conductor_wrap))  {            
-            conductor_wrap();
-        }
-        if (is_num(insulation_wrap) || (is_bool(insulation_wrap) && insulation_wrap))  {             
-            insulation_wrap(); 
-        }
-        if (strip) {
-            strip();
-        }
-    }  
+ 
 }
 
 
@@ -502,32 +541,30 @@ module pin_holder(
     width = s + wall;
             
     housing_std_dpg = [hsg_l, s, s];
-    walls = 2*[wall, wall, wall];
+    walls = [wall, 2*wall, 2*wall];
     housing_clearance = 0.2;
     housing_clearances = 2*[housing_clearance, housing_clearance, housing_clearance];
     body = housing_std_dpg + housing_clearances + walls; 
             
     z_clearance = body.z/2 - s/2 + spring_gap;
             
-    d_housing_catch = wall + z_housing_catch;
+    d_housing_catch = wall + z_housing_catch + housing_clearance;
             
     spring = [x_spring, body.y, z_spring];       
 
     shelf = [dx_barrel_dpgn, body.y, body.z/2-od_barrel_dpgn/2];
     
-    if (show_mock) {
+
         
     if (show_mock) { 
         if (mock_is_male) {
-            dupont_connector(center=BEHIND, has_pin=false);
-            color("silver", alpha=0.5) male_pin();
+            dupont_connector(center=BEHIND, has_pin=false, color_alpha=color_alpha);
+            male_pin();
         } else {
-            dupont_connector(center=BEHIND, has_pin=true);
-            color("silver", alpha=0.25) female_pin();
-            
+            dupont_connector(center=BEHIND, has_pin=true, color_alpha=color_alpha);
+            female_pin(alpha=0.5);
         }
     }        
-    } 
     colorize(show_part_colors=show_part_colors) {
         body(); 
         housing_latch();        
@@ -546,10 +583,10 @@ module pin_holder(
     }
    
     module housing_latch() {
-        translate([-hsg_l - 2*housing_clearance, 0, s/2 + housing_clearance]) {  
+        translate([-hsg_l - 2*housing_clearance, 0, body.z/2-d_housing_catch/2]) {  
             difference() {
                 color("pink", color_alpha) rod(d=d_housing_catch, l=body.y, center=SIDEWISE, rank=5);
-                plane_clearance(FRONT+BELOW);
+                translate([0, 0, -wall/2]) plane_clearance(FRONT+BELOW);
             }
         }        
     } 
