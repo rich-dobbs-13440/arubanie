@@ -24,6 +24,13 @@ include <centerable.scad>
 use <shapes.scad>
 
 
+/* [Wire Holder Design] */
+show_mock_wh = true;
+orient_for_build = false;
+z_pivot = 3; // [0:0.5:5]
+//x_clamp_offset = 1; // [0 : 0.1 : 5]
+//wire_clearance = 0.5; // [0 : 0.1 : 1]
+clamp_angle = 0; // [0:5:90]
 /* [Housing Length] */
 
 housing_ = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Short + Header", 16.7:"Standard + Header"]
@@ -642,4 +649,108 @@ module pin_holder(
             }
         }
     }
+}
+
+
+for (i = [2:7]) {
+    pincher_clearance = i*0.1;
+    translate([0, i*10, 0]) {
+        wire_holder(
+            pincher_clearance = pincher_clearance, 
+            orient_for_build=orient_for_build, 
+            clamp_angle=clamp_angle, 
+            show_body = true,
+            show_clamp = false,
+            show_mock = show_mock_wh); 
+    }   
+}
+
+
+
+module wire_holder(
+        pincher_clearance, 
+        orient_for_build=false, 
+        show_mock=true, 
+        show_clamp = true,
+        clamp_angle = 0, 
+        show_body = true) {
+    
+    alot = 100;
+    upper_body = [12, 5, 6];
+    handle = [upper_body.x+2, 2, 4];
+    handle_clearance = 0.2;
+    screw_block = [upper_body.x, upper_body.y, 5];
+    t_axle = [-2, 0, z_pivot];
+    
+    
+    if (orient_for_build) {
+        if (show_body) {
+            translate([0, 0, screw_block.z]) body();
+        }
+        if (show_clamp) {
+            translate([screw_block.x/2, -5, handle.y/2]) rotate([90, 0, 0]) clamp();
+        }
+        
+    } else {
+        if (show_mock) { 
+            rod(d=DUPONT_WIRE_DIAMETER(), l=30); 
+        }
+        clamp(clamp_angle);
+        body(alpha=0.50);
+    }
+    
+    module pivot_hole() {
+        translate([0, -25, 0]) rotate([90, 0, 0]) hole_through("M2"); 
+    }
+    
+    module handle() {
+        difference() {
+            union() {
+                hull() {
+                    translate([0, 0, 0]) rod(d=handle.z, l=handle.y, center=SIDEWISE);
+                    block(handle, center=BEHIND);
+                }
+            }
+            pivot_hole();
+            // Connection for moving clamp
+            translate([-upper_body.x, -25, 0]) rotate([90, 0, 0]) hole_through("M2"); 
+        }         
+    }
+    
+    module pincher() {
+        translate([-2, 0, -handle.z/2]) block([2, handle.y, z_pivot-handle.z/2-pincher_clearance], center=BELOW+BEHIND);
+    }
+    
+    module clamp(angle=0) {
+        translate(t_axle) {
+            rotate([0, angle, 0]) {
+                handle();
+                pincher();
+            }
+        }
+    }
+    
+    module axle_clearance() {
+        translate(t_axle) translate([0, -25, 0]) rotate([90, 0, 0]) hole_through("M2");
+    }
+    
+    
+    module body(alpha=1) {
+        difference() {
+            union() {
+                color("red", alpha) block(upper_body, center=BEHIND+ABOVE); 
+                color("blue", alpha)block(screw_block, center=BEHIND+BELOW); 
+            }
+            block([alot, handle.y + 2* handle_clearance, alot], center=ABOVE);
+            hull() {
+                rod(d=DUPONT_WIRE_DIAMETER(), l=alot); 
+                //translate([0, 0, alot]) rod(d=DUPONT_WIRE_DIAMETER(), l=alot); 
+            }
+            pin_holder_screws(as_hole_threaded=true, $fn=12);
+            axle_clearance();
+        }
+    }
+        
+    
+    
 }
