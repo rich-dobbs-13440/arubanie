@@ -25,12 +25,15 @@ use <shapes.scad>
 
 
 /* [Wire Holder Design] */
-show_mock_wh = true;
-orient_for_build = false;
-z_pivot = 3; // [0:0.5:5]
-//x_clamp_offset = 1; // [0 : 0.1 : 5]
-//wire_clearance = 0.5; // [0 : 0.1 : 1]
-clamp_angle = 0; // [0:5:90]
+z_pivot_dpwh = 6; // [4:0.5:8]
+
+show_mock_dpwh = true;
+show_body_dpwh = true;
+show_clamp_dpwh = true;
+orient_for_build_dpwh = false;
+clamp_angle_dpwh = 0; // [0:5:90]
+
+
 /* [Housing Length] */
 
 housing_ = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Short + Header", 16.7:"Standard + Header"]
@@ -38,7 +41,7 @@ housing_ = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Sho
 /* [Show] */
 show_top_level = false;
 show_only_one = false;
-one_to_show = -10; // [-10: "Customized pin holder", -9:"9 as designed", -8, -7:" male_pin_holder(show_mock=false)", -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10]
+one_to_show = -10; // [-11:"customized wire holders", -7: "Customized pin holder", -10:"Wire holders array", -4:"male_pin(insulation_wrap=0.75, orient=RIGHT)", -3:"Isolate insulation wrap - half closed", -2:"Isolate insulation wrap - closed", -1:" male_pin(orient=LEFT)", 0:"Selectable housing lengths for dupont connector", 1:"default dupont_connector()", 2:"dupont_connector(has_pin=true)", 3:"Short housing, custom colors", 4:"Custom colors for dupont connector", 7:"Male pin orientation", 10:"Female pin orientation"]
 
 delta_ = 10; // [10:10:100]
 
@@ -94,11 +97,19 @@ module x_position(idx) {
 }
 
 // Usage Demo:
-
+// 0:"Selectable housing lengths for dupont connector"
 x_position(0) dupont_connector(housing=housing_);
+
+// 1:"default dupont_connector()"
 x_position(1) dupont_connector();
+
+// 2:"dupont_connector(has_pin=true)"
 x_position(2) dupont_connector(has_pin=true);
+
+// 3:"Short housing, custom colors"
 x_position(3)  dupont_connector("chartreuse", "salmon", ABOVE, DUPONT_SHORT_HOUSING());
+
+// 4:"Custom colors for dupont connector"
 x_position(4) dupont_connector(
         wire_color="pink", 
         housing_color="blue",         
@@ -107,7 +118,7 @@ x_position(4) dupont_connector(
         has_pin=true);
 
 
-
+//7:"Male pin orientation", 
 x_position(7) {
     color("red") male_pin(ABOVE);
     color("orange") male_pin(BELOW);
@@ -117,6 +128,7 @@ x_position(7) {
     color("violet") male_pin(LEFT);
 }
 
+//10:"Female pin orientation
 x_position(10) {
     color("red") female_pin(orient=ABOVE);
     color("orange") female_pin(orient=BELOW);
@@ -126,8 +138,10 @@ x_position(10) {
     color("violet") female_pin(orient=LEFT);
 }
 
+// -1:" male_pin(orient=LEFT);" 
 x_position(-1) male_pin(orient=LEFT); 
 
+// -2:"Isolate insulation wrap - closed"
 x_position(-2) rotate([0, 0, 90]) 
     male_pin(
         pin = false, 
@@ -137,7 +151,8 @@ x_position(-2) rotate([0, 0, 90])
         conductor_wrap = false,
         insulation_wrap = 0, 
         strip=false); 
-        
+
+// -3:"Isolate insulation wrap - half closed"    
 x_position(-3) rotate([0, 0, 90]) 
     male_pin(
         pin = false, 
@@ -147,24 +162,18 @@ x_position(-3) rotate([0, 0, 90])
         conductor_wrap = false,
         insulation_wrap = 0.5, 
         strip=false);       
-        
-x_position(-4) rotate([0, 0, 90]) 
-    male_pin(insulation_wrap=0.75);
-    
-//x_position(-5) rotate([0, 0, 90]) 
-//    male_pin_holder(show_mock=true, z_spring=2);
-//    
-//x_position(-6) rotate([0, 0, 90]) 
-//    male_pin_holder();
 
-//x_position(-7) rotate([0, 0, 90])
-//    male_pin_holder(show_mock=false);
-    
-//x_position(-9) 
-//    male_pin_holder();
+// -4:"Male pin - insulation_wrap=0.75"        
+x_position(-4) 
+    male_pin(insulation_wrap=0.75, orient=RIGHT);
 
-x_position(-10) 
+
+x_position(-7) 
     customized_pin_holder();
+ 
+// -11:"customized wire holders"
+x_position(-11) 
+    customized_wire_holders();
 
 
 /* [Pin Strip Measurements] */    
@@ -449,9 +458,13 @@ module _generic_pin_dp(
 }
 
 
-module pin_holder_screws(as_screw=false, as_hole_threaded=false, as_hole_through=false) {
+module pin_holder_screws(
+        as_screw = false, 
+        as_hole_threaded = false, 
+        as_hole_through = false,
+        as_nutcatch_sidecut = false) {
     module process() {
-        for (x = [2 : 4 : 10]) {
+        for (x = [0 : 6 : 18]) {
             translate([-x, 0, -3]) rotate([90, 0, 0]) children(); 
         }
     }
@@ -464,6 +477,9 @@ module pin_holder_screws(as_screw=false, as_hole_threaded=false, as_hole_through
     }
     if (as_screw) {
         stainless() process() translate([0, 0, +2.54/2]) screw("M2x8");
+    }
+    if (as_nutcatch_sidecut) {
+        process() translate([0, 0, 2]) rotate([0, 0, 90]) nutcatch_sidecut(name = "M2", clh=0.3);
     }
 }
 
@@ -592,9 +608,11 @@ module pin_holder(
     }
     
     module screw_block() {
-        difference() {
-            translate([0, 0, -body.z/2]) block([12, body.y, 2], center=BEHIND+BELOW); 
-            pin_holder_screws(as_hole_threaded=true, $fn=12);
+        color("blue", color_alpha) {
+            difference() {
+                translate([2, 0, -body.z/2]) block([16, body.y, 3], center=BEHIND+BELOW); 
+                pin_holder_screws(as_hole_through=true, $fn=12);
+            }
         }
     }
     
@@ -623,6 +641,7 @@ module pin_holder(
             }
             block(housing_std_dpg + housing_clearances + [alot, 0, 0], center = BEHIND);
             block(.9*housing_std_dpg);
+            pin_holder_screws(as_hole_through=true, $fn=12);
         }        
     }
     
@@ -634,9 +653,13 @@ module pin_holder(
     }
     
     module shelf() {
-        color("violet", color_alpha)
-            translate([0, 0, -body.z/2]) 
-                block(shelf, center=ABOVE+FRONT);          
+        color("violet", color_alpha) {
+            difference() {
+                translate([0, 0, -body.z/2]) 
+                    block(shelf, center=ABOVE+FRONT);
+                pin_holder_screws(as_hole_through=true, $fn=12);
+            }
+        }
     }
     
     
@@ -652,23 +675,29 @@ module pin_holder(
 }
 
 
-for (i = [2:7]) {
-    pincher_clearance = i*0.1;
-    translate([0, i*10, 0]) {
-        wire_holder(
-            pincher_clearance = pincher_clearance, 
-            orient_for_build=orient_for_build, 
-            clamp_angle=clamp_angle, 
-            show_body = true,
-            show_clamp = false,
-            show_mock = show_mock_wh); 
-    }   
+
+module customized_wire_holders() {
+    pincher_clearances = [ each [0.2:0.05:0.4]];
+    echo(pincher_clearances);
+    for (i = [0:len(pincher_clearances)-1]) {
+        translate([0, i*20, 0]) {
+            wire_holder(
+                pincher_clearance = pincher_clearances[i], 
+                z_pivot = z_pivot_dpwh,
+                orient_for_build=orient_for_build_dpwh, 
+                clamp_angle=clamp_angle_dpwh, 
+                show_body = show_body_dpwh,
+                show_clamp = show_clamp_dpwh,
+                show_mock = show_mock_dpwh); 
+        }   
+    }
 }
 
 
 
 module wire_holder(
         pincher_clearance, 
+        z_pivot = 6,
         orient_for_build=false, 
         show_mock=true, 
         show_clamp = true,
@@ -676,11 +705,13 @@ module wire_holder(
         show_body = true) {
     
     alot = 100;
-    upper_body = [12, 5, 6];
-    handle = [upper_body.x+2, 2, 4];
+
+    upper_body = [8, 6, z_pivot+4];
+    handle = [12, 2, 8];
     handle_clearance = 0.2;
-    screw_block = [upper_body.x, upper_body.y, 5];
-    t_axle = [-2, 0, z_pivot];
+    
+    screw_block = [16, upper_body.y, 5];
+    t_axle = [-4, 0, z_pivot];
     
     
     if (orient_for_build) {
@@ -696,7 +727,7 @@ module wire_holder(
             rod(d=DUPONT_WIRE_DIAMETER(), l=30); 
         }
         clamp(clamp_angle);
-        body(alpha=0.50);
+        body();
     }
     
     module pivot_hole() {
@@ -704,21 +735,23 @@ module wire_holder(
     }
     
     module handle() {
-        difference() {
-            union() {
-                hull() {
-                    translate([0, 0, 0]) rod(d=handle.z, l=handle.y, center=SIDEWISE);
-                    block(handle, center=BEHIND);
+        color("green") {
+            difference() {
+                union() {
+                    hull() {
+                        rod(d=handle.z, l=handle.y, center=SIDEWISE);
+                        block(handle, center=BEHIND);
+                    }
                 }
-            }
-            pivot_hole();
-            // Connection for moving clamp
-            translate([-upper_body.x, -25, 0]) rotate([90, 0, 0]) hole_through("M2"); 
-        }         
+                pivot_hole();
+                // Connection for moving clamp
+                translate([-handle.x + 2, -25, 0]) rotate([90, 0, 0]) hole_through("M2"); 
+            } 
+        }        
     }
     
     module pincher() {
-        translate([-2, 0, -handle.z/2]) block([2, handle.y, z_pivot-handle.z/2-pincher_clearance], center=BELOW+BEHIND);
+        translate([0, 0, -handle.z/2]) block([2, handle.y, z_pivot-handle.z/2-pincher_clearance], center=BELOW+BEHIND);
     }
     
     module clamp(angle=0) {
@@ -736,18 +769,19 @@ module wire_holder(
     
     
     module body(alpha=1) {
-        difference() {
-            union() {
-                color("red", alpha) block(upper_body, center=BEHIND+ABOVE); 
-                color("blue", alpha)block(screw_block, center=BEHIND+BELOW); 
+        color("blue") {
+            render(convexity=10) difference() {
+                union() {
+                    block(upper_body, center=BEHIND+ABOVE); 
+                    block(screw_block, center=BEHIND+BELOW); 
+                }
+                block([alot, handle.y + 2* handle_clearance, alot], center=ABOVE);
+                hull() {
+                    rod(d=DUPONT_WIRE_DIAMETER(), l=alot); 
+                }
+                translate([-2, 0, 0]) pin_holder_screws(as_hole_through=true, $fn=12);
+                axle_clearance();
             }
-            block([alot, handle.y + 2* handle_clearance, alot], center=ABOVE);
-            hull() {
-                rod(d=DUPONT_WIRE_DIAMETER(), l=alot); 
-                //translate([0, 0, alot]) rod(d=DUPONT_WIRE_DIAMETER(), l=alot); 
-            }
-            pin_holder_screws(as_hole_threaded=true, $fn=12);
-            axle_clearance();
         }
     }
         

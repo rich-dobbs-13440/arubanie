@@ -5,6 +5,11 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 include <nutsnbolts-master/materials.scad>
 include <SN_28B_measurements.scad>
 
+
+/* [Build ] */
+
+build_jaw_yoke_SN_28B = false;
+
 /* [Show] */
 
 show_top_level = false;
@@ -56,12 +61,13 @@ padding_SN_28B_retainer_washer = 2;
 
 /* [Jaw Yoke Design] */
 
-x_SN_28B_jaw_yoke_behind = 20; // [0:1:20]
-x_SN_28B_jaw_yoke_front = 20; // [0:1:20]
-y_SN_28B_jaw_yoke = 10; // [0:1:10]
-z_SN_28B_jaw_yoke = 2; // [0:0.25:4]
-
-
+x_front_sn28b_jk = 20; // [0:1:20]
+x_behind_sn28b_jk = 20; // [0:1:20]
+y_sn28b_jk = 10; // [0:1:10]
+z_sn28b_jk = 2; // [0:0.25:4]
+color_name_sn28b_jk = "SandyBrown";
+screws_sn28b_jk = false;
+        
 
 /* [Upper Jaw Yoke Design] */
 w_upper_SN_28B_jaw_yoke = 2;
@@ -563,16 +569,44 @@ module SN_28B_M4_rail_position(orient, child_position) {
     }
 }
 
+module SN_28B_M4_rail_M3_top_attach_fitting_screw_blocks_clearance(size, orient) {
+
+    SN_28B_M4_rail_position_for_rotation(orient=orient) {
+        center_reflect([1, 0, 0]) {
+            center_reflect([0, 1, 0]) { 
+                translate([size.x/2, 2, 0]) {
+                    rotate([0, -90, 0]) { 
+                        nutcatch_sidecut("M2");
+                        hole_through("M2", $fn=12);
+                    }                  
+                }
+
+            }
+        }
+    }
+}
+
 module SN_28B_M4_rail_M3_top_attach_fitting(
         orient = RIGHT,
         child_position="relative_to_jaw",
         size = [10, 10, 7],
         registration_clearance=0.2,
-        screw_name = "M3x8",
+        screw_name = "M3x10",
         color_name = "Plum",
         alpha = 1,
         show_mock = true) {
     assert(is_num(orient), assert_msg("orient: ", str(orient)));
+            
+    module screw_blocks() {
+        z_offset = 2;
+        difference() {
+            center_reflect([1, 0, 0]) SN_28B_M4_rail_position_for_edge(orient=orient) {
+                translate([size.x/2, 0, z_offset]) block([4, size.y, size.z + z_offset], center = BELOW + RIGHT +FRONT);
+            }
+            SN_28B_M4_rail_M3_top_attach_fitting_screw_blocks_clearance(size, orient);
+        }
+    }
+    screw_blocks();
     
     difference() {
         union() {
@@ -581,6 +615,7 @@ module SN_28B_M4_rail_M3_top_attach_fitting(
                     block(size, center=BELOW+RIGHT);
                 }
             }
+
             if (is_list(child_position)) {
                 if ($children > 0 && len(child_position) > 0) {
                     SN_28B_M4_rail_position(orient, child_position[0]) children(0);
@@ -905,13 +940,37 @@ module SN_28B_rail_rider(color_name="NavahoWhite") {
     }
 }
 
+if (build_jaw_yoke_SN_28B) {
+    customized_SN_28B_jaw_yoke();
+}
 
-module SN_28B_jaw_yoke(color_name="SandyBrown") {
-    y_total = y_lower_jaw_anvil + 2 * y_SN_28B_jaw_yoke;
-    yoke_behind = [x_SN_28B_jaw_yoke_behind, y_total, z_SN_28B_jaw_yoke];
-    yoke_front = [x_SN_28B_jaw_yoke_front, y_SN_28B_jaw_yoke, z_SN_28B_jaw_yoke];
-    translation_ht_front = [0.8*yoke_front.x, 0.9*y_SN_28B_jaw_yoke, 25];
-    translation_ht_behind = [-0.8*yoke_behind.x, 0.9*y_SN_28B_jaw_yoke, 25];
+
+module customized_SN_28B_jaw_yoke() {
+    SN_28B_jaw_yoke(
+        x_front = x_front_sn28b_jk,
+        x_behind = x_behind_sn28b_jk,
+        y = y_sn28b_jk,
+        z=z_sn28b_jk,
+        color_name = color_name_sn28b_jk, 
+        screws = screws_sn28b_jk);
+}
+
+
+
+
+module SN_28B_jaw_yoke(
+        x_front=5,
+        x_behind = 5,
+        y = 1,
+        z=1,
+        color_name = "SandyBrown", 
+        screws = false) {
+            
+    y_total = y_lower_jaw_anvil + 2 * y;
+    yoke_behind = [x_behind, y_total, z];
+    yoke_front = [x_front, y, z];
+    translation_ht_front = [0.8*yoke_front.x, 0.9*y, 25];
+    translation_ht_behind = [-0.8*yoke_behind.x, 0.9*y, 25];
     color(color_name) {
         difference() {
             union() {
@@ -920,8 +979,10 @@ module SN_28B_jaw_yoke(color_name="SandyBrown") {
                     translate([0, y_lower_jaw_anvil/2, 0])
                         block(yoke_front, center=ABOVE+FRONT+RIGHT);
             }
-            center_reflect([0, 1, 0]) translate(translation_ht_behind) hole_through("M3");
-            center_reflect([0, 1, 0]) translate(translation_ht_front) hole_through("M3");
+            if (screws) {
+                center_reflect([0, 1, 0]) translate(translation_ht_behind) hole_through("M3", $fn=12);
+                center_reflect([0, 1, 0]) translate(translation_ht_front) hole_through("M3", $fn=12);
+            }
         }
     }
     

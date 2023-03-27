@@ -6,14 +6,18 @@ use <SN_28B_pin_crimper.scad>
 use <not_included_batteries.scad>
 include <nutsnbolts-master/cyl_head_bolt.scad>
 
-
-
-/* [Show] */
+/* [Build] */
 orient = "As assembled"; //["As designed", "As assembled", "For build"]
+build_fixed_jaw_rails = true;
+build_wire_holder_body = true;
+build_pin_holders_attachment = true;
+build_pin_holders = true;
+/* [Show] */
+
 orient_for_build = orient == "For build";
 
 show_pin_holders_attachment = false;
-show_pin_holder_clip = false;
+//show_pin_holder_clip = false;
 show_pin_strip_carriage = false;
 show_pin_strip_breaker = false;
 show_insulator_wrap_prebender = false;
@@ -79,23 +83,6 @@ pin_count = 20;
 delta_pin_strip = l_pin_strip / (pin_count -1);
 
 
-
-if (show_pin_holder_clip) {
-    if (orient == "As designed") {
-        pin_holder_clip();
-    } else if (orient_for_build) {
-        translate([100, 0,0])  pin_holder_clip(orient_for_build=true);
-    }
-}
-if (show_pin_holders_attachment) {
-    if (orient == "As designed") {
-        pin_holders_attachment(orient=RIGHT, orient_for_build=false);
-    } else if (orient_for_build) {
-        pin_holders_attachment(orient=LEFT, orient_for_build=true);
-    }
-}
-
-
 if (show_pin_crimper) { 
     SN_28B_pin_crimper(    
             show_only_attachments = show_only_attachments_, 
@@ -108,25 +95,26 @@ if (show_pin_crimper) {
             show_moving_jaw_screw = show_moving_jaw_screw_) {
                 
         union() {        
-            SN_28B_M4_rail(LEFT, x_behind = 20);
-            SN_28B_M4_rail(RIGHT, x_behind = 20);
-            SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);
+            fixed_jaw_rails();
             
             
             SN_28B_M4_rail_M3_top_attach_slider(orient=LEFT);
-            //SN_28B_M4_rail_M3_top_attach_fitting(orient=RIGHT);
-            //SN_28B_M4_rail_M3_top_attach_slider(orient=RIGHT);  
+            SN_28B_M4_rail_M3_top_attach_slider(orient=RIGHT);
+            SN_28B_M4_rail_M3_top_attach_fitting(orient=RIGHT);
+            SN_28B_M4_rail_M3_top_attach_fitting(orient=LEFT); 
   
-            pin_holders_attachment(orient=LEFT);
+            translate([16, 0, 0]) pin_holders_attachment(orient=LEFT);
+            translate([-40, 0, 0]) pin_holders_attachment(orient=RIGHT);
             
-            //SN_28B_jaw_hole_clip(upper=false, x_front=25, do_cap=true);
-        }
-        union() { 
-            if (show_pin_holder_clip) {
-                pin_holder_clip();
-            }
         }
     } 
+}
+
+
+module fixed_jaw_rails() {
+    SN_28B_M4_rail(LEFT, x_behind = 20);
+    SN_28B_M4_rail(RIGHT, x_behind = 20);
+    SN_28B_jaw_hole_clip(do_cap=true, x_front= -20, x_back = jaws_extent.x);    
 }
 
 
@@ -138,85 +126,48 @@ module pin_holders_attachment(orient=RIGHT, orient_for_build=false, color_name="
             child_position="relative_to_jaw", 
             show_mock=show_mock) {
         
-        color(color_name) {        
-            orient_to_anvil(orient) { 
-                center_reflect([0, 1, 0]) {
-                    translate([0, -5, 0]) { 
-                        difference() {
-                            union() {
-                                //block([12, 5-2.54/2, 2*2.54], center=BELOW+BEHIND);
-                                translate([1.6, 0, 0]) block([10, 5-2.54/2, 2*2.54], center=BELOW+BEHIND+LEFT);
-                            }
-                            pin_holder_screws(as_hole_threaded=true, $fn=12);
-                        }
-                    }
-                } 
-            }
-        }
         if (!orient_for_build) {
-            translate([11, 0, 0])  oriented_pin_holder(orient=orient);
+            center_reflect([1, 0, 0]) translate([11, 0, 0])  oriented_pin_holder(orient=orient);
         }
 
-    }   
+
+    } 
+  
+//    module nut_cut_blocks() {
+//        center_reflect([0, 1, 0]) {
+//            translate([0, -5, 0]) { 
+//                difference() {
+//                    union() {
+//                        translate([3, 0, 3.25]) block([12, 4, 9], center=BELOW+BEHIND+LEFT);
+//                    }
+//                    translate([0, -0.75, 0]) pin_holder_screws(as_nutcatch_sidecut=true, as_hole_through=true, $fn=12);
+//                }
+//            }
+//        } 
+//    }
 }
 
 
-module orient_to_anvil(orient) {
+module orient_to_anvil() {
     dz = dz_025_wire_punch_z + z_conductor_wrap_dpgn/2; 
-    rotation = 
-        orient == RIGHT ? [0, 180, -90] : 
-        orient == LEFT ? [0, 180, 90] : 
-        assert(false);
-    translation = 
-        orient == RIGHT ? [0, -dx_insulation_wrap_dpgn, -dz] :
-        orient == LEFT ? [0, dx_insulation_wrap_dpgn, -dz] : 
-        assert(false);
+    rotation = [0, 180, 90];
+    translation = [0, dx_insulation_wrap_dpgn, -dz]; 
     translate(translation) {
         rotate(rotation) {
             children();
         }
-    }     
+    }         
+  
 }
 
 
-module oriented_pin_holder(orient) {
+module oriented_pin_holder(orient=RIGHT) {
     clearance_fraction_male_pin_holder = 0.1; //[0: 0.01: 0.20]
-    orient_to_anvil(orient) {
+    orient_to_anvil() {
         pin_holder(show_mock=show_male_pin_ && !orient_for_build, include_screw_holes=true);
-//            z_spring = z_spring_mph,
-//            clearance_fraction = clearance_fraction_male_pin_holder, 
-//            x_stop = dx_insulation_wrap_dpgn -y_upper_jaw_anvil/2,
-//            show_mock=show_male_pin_ && !orient_for_build);
-        
     }        
 }
 
-module pin_holder_clip(orient_for_build=false) {
-    
-    x_front = dx_025_anvil-DUPONT_HOUSING_WIDTH()/2;
-    
-
-    module brace() {
-        translate([dx_025_anvil, -jaws_extent.y/2, -z_upper_jaw_anvil]) {
-            hull() {
-                block([2.54, 0.1, 10], center=ABOVE+LEFT);
-                block([2.54, 10, 0.1], center=ABOVE+LEFT);
-            }
-        }
-    }
-    module clip() {
-        SN_28B_jaw_hole_clip(upper=true, x_front=x_front, do_cap=true);
-        oriented_pin_holder();
-        brace();
-    }
-    if (orient_for_build) {
-        rotate([0, -90, 0]) {
-            translate([-x_front, 0, 0]) clip();
-        }
-    } else {
-        clip();
-    }
-}
 
 
 if (show_pin_strip_breaker) {
@@ -354,6 +305,34 @@ module positioned_insulator_wrap_prebender() {
     translate([dx_025_anvil, -dx_insulation_wrap_dpgn, -(dz_025_wire_punch_z + 2.54/2)]) {
         insulator_wrap_prebender();
     }
+}
+
+
+if (build_fixed_jaw_rails) {
+    translate([100, 10, jaws_extent.x]) rotate([0, 90, 0]) fixed_jaw_rails();
+}
+
+if (build_wire_holder_body) {
+    translate([100, 40,0])  
+        wire_holder(
+            pincher_clearance = 0.3, 
+            orient_for_build = true, 
+            show_mock = true, 
+            show_clamp = false,
+            clamp_angle = 0, 
+            show_body = true); 
+}
+
+//if (build_pin_holder_clip) {
+//    translate([100, 20, 0]) pin_holder_clip(orient_for_build=true);
+//}
+if (build_pin_holders_attachment) {
+    translate([100, 50, 0]) pin_holders_attachment(orient=LEFT, orient_for_build=true);
+}
+
+if (build_pin_holders) {
+    translate([100, 80, 0]) rotate([90, 0, 0]) pin_holder(show_mock=false, include_screw_holes=true);
+    translate([100, 100, 0]) rotate([90, 0, 0])  pin_holder(show_mock=false, include_screw_holes=true);
 }
 
 
