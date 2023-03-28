@@ -43,9 +43,30 @@ x axis, with x being positive as you go deeper into the jaw.
     y_lower_jaw_anvil =7.21;
     z_lower_jaw_anvil = 7.05;   
     lower_jaw_anvil_blank = [x_lower_jaw_anvil, y_lower_jaw_anvil, z_lower_jaw_anvil]; 
+
     dx_025_anvil = 3.63;
     dz_025_pin_punch_z = 5.78;
-    dz_025_wire_punch_z = 5.89;     
+    x_b_025_pin_punch = 2.0;
+    x_t_025_pin_punch =  1.7;
+    x_b_025_wire_punch = 2.7;
+    x_t_025_wire_punch = 1.9;
+    dz_025_wire_punch_z = 5.89;       
+
+    dx_050_anvil = 11.4;
+    dz_050_pin_punch_z = 5.9;
+    x_b_050_pin_punch = 2.2;
+    x_t_050_pin_punch = 1.9;
+    x_b_050_wire_punch = 3.1;
+    x_t_050_wire_punch = 2.8;
+    dz_050_wire_punch_z = 5.89;          
+
+    dx_100_anvil = 19.7;
+    dz_100_pin_punch_z = 5.78;
+    x_b_100_pin_punch = 2.4;
+    x_t_100_pin_punch = 2.0;   
+    x_b_100_wire_punch = 3.7;
+    x_t_100_wire_punch = 3.1; 
+    dz_100_wire_punch_z = 5.89;            
     
     x_upper_jaw_anvil = 23.8;
     y_upper_jaw_anvil =7.13;

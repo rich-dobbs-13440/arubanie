@@ -61,9 +61,9 @@ padding_SN_28B_retainer_washer = 2;
 
 /* [Jaw Yoke Design] */
 
-x_front_sn28b_jk = 20; // [0:1:20]
-x_behind_sn28b_jk = 20; // [0:1:20]
-y_sn28b_jk = 10; // [0:1:10]
+x_front_sn28b_jk = 24; // [0:1:24]
+x_behind_sn28b_jk = 20; // [0:1:24]
+y_sn28b_jk = 10; // [0:1:20]
 z_sn28b_jk = 2; // [0:0.25:4]
 color_name_sn28b_jk = "SandyBrown";
 screws_sn28b_jk = false;
@@ -253,7 +253,35 @@ module y_position(idx) {
 
 
 /* [Jaw Clip Calculations] */
-    y_jaw_clip = 2*wall_jaw_clip + jaws_extent.y + 2*clearance_jaw_clip;     
+    y_jaw_clip = 2*wall_jaw_clip + jaws_extent.y + 2*clearance_jaw_clip; 
+
+
+module SN_28B_upper_jaw_anvil(color_name="DimGray") {
+    module punch(dx, x_base, x_top, z_top) {
+        hull() {
+            translate([dx, 0, z_upper_jaw_anvil]) 
+                block([x_base, y_upper_jaw_anvil/2, 0.01], center=ABOVE+LEFT);
+             translate([dx, 0, z_top]) 
+                    block([x_top, y_upper_jaw_anvil/2, 0.01], center=ABOVE+LEFT);
+        }
+    }
+    mirror([0, 0, 1]) {
+        color(color_name) {
+            block(upper_jaw_anvil_blank, center=ABOVE+FRONT); 
+            
+            mirror([0, 1, 0])punch(dx_025_anvil, x_b_025_pin_punch, x_t_025_pin_punch, dz_025_pin_punch_z);
+            punch(dx_025_anvil, x_b_025_wire_punch, x_t_025_wire_punch, dz_025_wire_punch_z);
+            
+            mirror([0, 1, 0]) punch(dx_050_anvil, x_b_050_pin_punch, x_t_050_pin_punch, dz_050_pin_punch_z);
+            punch(dx_050_anvil, x_b_050_wire_punch, x_t_050_wire_punch, dz_050_wire_punch_z);
+
+            mirror([0, 1, 0]) punch(dx_100_anvil, x_b_100_pin_punch, x_t_100_pin_punch, dz_100_pin_punch_z);
+            punch(dx_100_anvil, x_b_100_wire_punch, x_t_100_wire_punch, dz_100_wire_punch_z);
+
+        }
+        translate([x_upper_jaw_anvil/2, 0, 0]) SN_28B_anvil_retainer();
+    }
+}        
     
 module SN_28B_pin_crimper(
         jaw_angle, 
@@ -334,7 +362,7 @@ module SN_28B_pin_crimper(
                 jaw();
             }  
             if (show_anvil && show_crimper) {
-                upper_jaw_anvil();
+                SN_28B_upper_jaw_anvil();
             }
             if (show_screw && show_crimper) {
                 SN_28B_positioned_screw(screw_name, fixed=false);
@@ -395,32 +423,7 @@ module SN_28B_pin_crimper(
 
         translate([x_lower_jaw_anvil/2, 0, 0]) SN_28B_anvil_retainer();  
     }
-    module upper_jaw_anvil(color_name="DimGray") {
-        module pin_side_25_punch() {
-            hull() {
-                translate([dx_025_anvil, 0, z_upper_jaw_anvil]) 
-                    block([1.82, y_upper_jaw_anvil/2, 0.01], center=ABOVE+LEFT);
-                translate([dx_025_anvil, 0, dz_025_pin_punch_z]) 
-                    block([1.6, y_upper_jaw_anvil/2, 0.01], center=ABOVE+LEFT);
-            }
-        }
-        module wire_side_25_punch() {      
-            hull() {
-                translate([dx_025_anvil, 0, z_upper_jaw_anvil]) 
-                    block([2.06, y_upper_jaw_anvil/2, 0.01], center=ABOVE+RIGHT);
-                translate([dx_025_anvil, 0, dz_025_wire_punch_z]) 
-                    block([2.05, y_upper_jaw_anvil/2, 0.01], center=ABOVE+RIGHT);
-            }
-        }
-        mirror([0, 0, 1]) {
-            color(color_name) {
-                block(upper_jaw_anvil_blank, center=ABOVE+FRONT);    
-                pin_side_25_punch();
-                wire_side_25_punch();
-            }
-            translate([x_upper_jaw_anvil/2, 0, 0]) SN_28B_anvil_retainer();
-        }
-    }
+
     module jaw(color_name="SlateGray") {
         color(color_name) {
             render(convexity = 10) difference() {        
@@ -961,17 +964,18 @@ module customized_SN_28B_jaw_yoke() {
 module SN_28B_jaw_yoke(
         x_front=5,
         x_behind = 5,
-        y = 1,
-        z=1,
+        y = 10,
+        z = 1,
         color_name = "SandyBrown", 
+        color_alpha = 1,
         screws = false) {
             
     y_total = y_lower_jaw_anvil + 2 * y;
     yoke_behind = [x_behind, y_total, z];
     yoke_front = [x_front, y, z];
-    translation_ht_front = [0.8*yoke_front.x, 0.9*y, 25];
-    translation_ht_behind = [-0.8*yoke_behind.x, 0.9*y, 25];
-    color(color_name) {
+//    translation_ht_front = [0.8*yoke_front.x, 0.9*y, 25];
+//    translation_ht_behind = [-0.8*yoke_behind.x, 0.9*y, 25];
+    color(color_name, alpha=color_alpha) {
         difference() {
             union() {
                 block(yoke_behind, center=ABOVE+BEHIND);
@@ -980,8 +984,20 @@ module SN_28B_jaw_yoke(
                         block(yoke_front, center=ABOVE+FRONT+RIGHT);
             }
             if (screws) {
-                center_reflect([0, 1, 0]) translate(translation_ht_behind) hole_through("M3", $fn=12);
-                center_reflect([0, 1, 0]) translate(translation_ht_front) hole_through("M3", $fn=12);
+                center_reflect([0, 1, 0]) {
+                    for (dx = [2:6: x_front]) {
+                        for (dy = [8:6:y_total]) {
+                            translate([dx, dy, 25]) hole_through("M3", $fn=6);
+                        }
+                    }
+                }
+                center_reflect([0, 1, 0]) {
+                    for (dx = [4:6: x_behind]) {
+                        for (dy = [2:6:y_total]) {
+                            translate([-dx, dy, 25]) hole_through("M3", $fn=6);
+                        }
+                    }
+                }
             }
         }
     }

@@ -490,7 +490,7 @@ module pin_latch(
         color_name = "FireBrick", 
         color_alpha = 1, 
         show_mock = true, 
-        mock_is_male = true,) {
+        mock_is_male = true) {
             
             
     s = DUPONT_HOUSING_WIDTH(); 
@@ -575,7 +575,9 @@ module pin_holder(
     walls = [wall, 2*wall, 2*wall];
     housing_clearance = 0.2;
     housing_clearances = 2*[housing_clearance, housing_clearance, housing_clearance];
-    body = housing_std_dpg + housing_clearances + walls; 
+    minimal_body = housing_std_dpg + housing_clearances + walls; 
+    // Make body a metric width:
+    body = [minimal_body.x, 6, minimal_body.z];
             
     z_clearance = body.z/2 - s/2 + spring_gap;
             
@@ -589,7 +591,9 @@ module pin_holder(
     
         
     if (show_mock) {
-        translate([0, -wall-housing_clearance, 0]) pin_holder_screws(as_screw=true, $fn=12); 
+        if (include_screw_holes) {
+            translate([0, -wall-housing_clearance, 0]) pin_holder_screws(as_screw=true, $fn=12); 
+        }
         if (mock_is_male) {
             dupont_connector(center=BEHIND, has_pin=false, color_alpha=color_alpha);
             male_pin();
@@ -604,7 +608,9 @@ module pin_holder(
         sized_pin_latch();
         spring();
         shelf();
-        screw_block();
+        if (include_screw_holes) {
+            screw_block();
+        }
     }
     
     module screw_block() {
@@ -641,7 +647,9 @@ module pin_holder(
             }
             block(housing_std_dpg + housing_clearances + [alot, 0, 0], center = BEHIND);
             block(.9*housing_std_dpg);
-            pin_holder_screws(as_hole_through=true, $fn=12);
+            if (include_screw_holes) {
+                pin_holder_screws(as_hole_through=true, $fn=12);
+            }
         }        
     }
     
@@ -698,6 +706,7 @@ module customized_wire_holders() {
 module wire_holder(
         pincher_clearance, 
         z_pivot = 6,
+        include_screw_holes = true, 
         orient_for_build=false, 
         show_mock=true, 
         show_clamp = true,
@@ -706,11 +715,12 @@ module wire_holder(
     
     alot = 100;
 
-    upper_body = [8, 6, z_pivot+4];
+    upper_body = [8, 6, z_pivot+7];
     handle = [12, 2, 8];
     handle_clearance = 0.2;
     
-    screw_block = [16, upper_body.y, 5];
+    z_screw_block =  include_screw_holes ?  5 : DUPONT_HOUSING_WIDTH()/2;      
+    screw_block = [16, upper_body.y, z_screw_block];
     t_axle = [-4, 0, z_pivot];
     
     
@@ -726,7 +736,9 @@ module wire_holder(
         if (show_mock) { 
             rod(d=DUPONT_WIRE_DIAMETER(), l=30); 
         }
-        clamp(clamp_angle);
+        if (show_clamp) {
+            clamp(clamp_angle);
+        }
         body();
     }
     
@@ -764,7 +776,7 @@ module wire_holder(
     }
     
     module axle_clearance() {
-        translate(t_axle) translate([0, -25, 0]) rotate([90, 0, 0]) hole_through("M2");
+        translate(t_axle) translate([0, -25, 0]) rotate([90, 0, 0]) hole_through("M2", $fn=12);
     }
     
     
@@ -775,9 +787,9 @@ module wire_holder(
                     block(upper_body, center=BEHIND+ABOVE); 
                     block(screw_block, center=BEHIND+BELOW); 
                 }
-                block([alot, handle.y + 2* handle_clearance, alot], center=ABOVE);
+                block([alot, handle.y + 2* handle_clearance, upper_body.z-0.5], center=ABOVE);
                 hull() {
-                    rod(d=DUPONT_WIRE_DIAMETER(), l=alot); 
+                    rod(d=DUPONT_WIRE_DIAMETER(), l=alot, $fn=12); 
                 }
                 translate([-2, 0, 0]) pin_holder_screws(as_hole_through=true, $fn=12);
                 axle_clearance();
