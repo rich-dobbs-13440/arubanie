@@ -28,12 +28,12 @@ color_name_cjy_ = "SandyBrown";
 screws_cjy = true;  
 
 module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = true) {
-    z_yoke = 1;
+    z_yoke = 2;
     z_clearance = 0.25;
     dz = dz_100_wire_punch_z + od_barrel_dpgn/2+z_clearance;
     t_pin_holder = [dx_100_anvil, -dx_insulation_wrap_dpgn, dz];
     t_wire_holder = [dx_100_anvil, x_insulation_wrap_dpgn + x_strip_dpgn, dz];
-    t_pivot_block =  [dx_100_anvil - 3, y_lower_jaw_anvil/2, 0];
+    t_pivot_block =  [dx_100_anvil - 3, y_lower_jaw_anvil/2, z_yoke];
     
     module basic_pin_holder() { 
         pin_holder(
@@ -76,24 +76,64 @@ module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = t
             x_front = jaws_extent.x,// dx_100_anvil - 3 ,
             x_behind = 14,
             y = 20,
-            z = 2,
+            z = z_yoke,
             color_name = "SandyBrown",
             color_alpha =1,
             screws = true);
      } 
          
-     module pivot_blocks() {    
-        translate(t_pivot_block) {
-            difference() { 
-                block([2, 22, 7], center=ABOVE+BEHIND+RIGHT);
-                translate([25, 14.8,  3.9]) rotate([0, 90, 0]) hole_through("M2", cld=0.4, $fn=12);
-                translate([25, 19,  3.9]) rotate([0, 90, 0]) hole_through("M2", cld=0.4, $fn=12);
+     module wire_holder_pivot_block() {
+         
+        module nutcatch(y, hole=true, nut=true) {
+            translate([-3.2, y,  1.9]) {
+                rotate([0, -90, 0]) {
+                    if (hole) {
+                        hole_through("M2", cld=0.4, $fn=12);
+                    }
+                    if (nut) {
+                        nutcatch_sidecut("M2");
+                        /*	l      = 50.0,  // length of slot
+                        clk    =  0.0,  // key width clearance
+                        clh    =  0.0,  // height clearance
+                        clsl   =  0.1)  // slot width clearance */
+                    }
+                }
+            } 
+        }       
+        module shape() { 
+            translate(t_pivot_block) {
+                difference() { 
+                    union() {
+                        block([3, 30, 7], center=ABOVE+BEHIND+RIGHT);
+                        block([12, 30, 2], center=ABOVE+BEHIND+RIGHT);
+                    }
+                    nutcatch(y=2.8);
+                    nutcatch(y=8.8);
+                    //translate([-5, 8.8,  1.9]) rotate([0, -90, 0]) hole_through("M2", cld=0.4, $fn=12);
+                    hull() {
+                        nutcatch(y=14.8, hole=false, nut=true);
+                        nutcatch(y=22, hole=false, nut=true);
+                    }
+                    hull() {
+                        nutcatch(y=14.8, hole=true, nut=false);
+                        nutcatch(y=22, hole=true, nut=false);
+                    }
+                }
             }
         }
+        difference() {
+            shape();
+            translate([8, 8, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
+            translate([8, 14, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
+            translate([8, 20, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
+        } 
+        
+    }
+    module pin_holder_pivot_block() { 
         mirror([0, 1, 0]) translate(t_pivot_block) {
             difference() { 
                 block([2, 22, 7], center=ABOVE+BEHIND+RIGHT);
-                translate([25, 19,  3.9]) rotate([0, 90, 0]) hole_through("M2", cld=0.4, $fn=12);
+                translate([25, 19,  1.9]) rotate([0, 90, 0]) hole_through("M2", cld=0.4, $fn=12);
             }
         }
     }    
@@ -101,12 +141,16 @@ module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = t
     if (orient_for_build) {
 
         * translate([100, 20, 3]) rotate([90, 0, 0]) basic_pin_holder();
-        *translate([100, 40, 3]) rotate([90, 0, 0]) basic_wire_holder();
-        translate([100, 60, 0]) base();
+        * translate([100, 40, 3]) rotate([90, 0, 0]) basic_wire_holder();
+        * translate([100, 60, 0]) base();
+        wire_holder_pivot_block();
+        * pin_holder_pivot_block();        
     } else {
         base();
         oriented_pin_holder(); 
         oriented_wire_holder();
+        wire_holder_pivot_block();
+        pin_holder_pivot_block();
     }
     
     if (show_mocks && ! orient_for_build) {   
