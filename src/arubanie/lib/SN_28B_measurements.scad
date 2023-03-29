@@ -23,7 +23,8 @@ x axis, with x being positive as you go deeper into the jaw.
     lower_jaw_height = 1.81;
     
     
-    back_jaw_to_pivot = [12.62, 6.26, 20];
+    back_jaw_to_pivot_moving = [12.62, 6.26, 20];
+    back_jaw_to_pivot_fixed = [12.62, 11.2, 20];
     y_pivot = 16.32;
     d_pivot = 7.92;
     
@@ -32,7 +33,7 @@ x axis, with x being positive as you go deeper into the jaw.
             side = fixed ? -1 : +1
         )
         [
-            -(back_jaw_to_pivot.x + x_jaw), 
+            -(back_jaw_to_pivot_moving.x + x_jaw), 
             0, 
             side * dz_between_upper_and_lower_jaw / 2
         ];    

@@ -15,6 +15,9 @@ build_jaw_yoke_SN_28B = false;
 show_top_level = false;
 show_standard = true;
 show_development = true;
+// Check console for list of items
+show_only_one = false;
+one_to_show = 0; // [-20:1:20]
 delta_ = 30;
 
 
@@ -61,7 +64,7 @@ padding_SN_28B_retainer_washer = 2;
 
 /* [Jaw Yoke Design] */
 
-x_front_sn28b_jk = 24; // [0:1:24]
+x_front_sn28b_jk = 24; // [0:1:40]
 x_behind_sn28b_jk = 20; // [0:1:24]
 y_sn28b_jk = 10; // [0:1:20]
 z_sn28b_jk = 2; // [0:0.25:4]
@@ -97,57 +100,47 @@ module end_of_customization() {}
 
 
 // Usage Demo:
-y_position(1) 
-    // Show default - jaw closed, no attachments
+y_position(1, "Default - jaw closed, no attachments") 
     SN_28B_pin_crimper();
 
-y_position(2) 
-    // Show position jaw by angle
+y_position(2, "Position jaw by angle") 
     SN_28B_pin_crimper(jaw_angle=12);
 
-y_position(3) 
-    // Show jaw position by percent open 
+y_position(3, "Jaw position by percent open") 
     SN_28B_pin_crimper(jaw_percent_open=75);
 
-y_position(4)
-    // Show hiding jaw and anvil
+y_position(4, "Hiding jaw and anvil")
     SN_28B_pin_crimper(jaw_percent_open=100, show_fixed_jaw=false, show_moving_jaw_anvil=false);
 
-y_position(5) 
-    // Show attaching children, jaw_clip, and SN_28B_jaw_yoke, and changing jaw position by customization
+y_position(5, "Attaching children, jaw_clip, and SN_28B_jaw_yoke, and changing jaw position by customization")  
     SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open_, fixed_jaw_screw_name="M4x16") {
         SN_28B_jaw_clip(include_clip_rails=true, dz_rails=10);
         SN_28B_jaw_yoke();
     }
 
-y_position(6) 
-    // Show retainer washer
+y_position(6, "Retainer washer")  
     SN_28B_pin_crimper(show_fixed_jaw=false) 
         SN_28B_retainer_washer(color_name = "Pink", alpha=0.75);
     
-y_position(7)
-    // Show retainer washer on both sides, and dealing with no fixed children.
+y_position(7, "Retainer washer on both sides, and dealing with no fixed children.")
     SN_28B_pin_crimper(show_moving_jaw=false, show_moving_jaw_anvil=false) {
         no_fixed_jaw_attachments();
         center_reflect([0, 1, 0]) SN_28B_retainer_washer(color_name = "Pink", alpha=1);   
     }
 
-y_position(8) 
-    // Show rotation from one jaw to another
+y_position(8, "Rotation from one jaw to another") 
     SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open_, fixed_jaw_screw_name="M4x16", moving_jaw_screw_name="M4x16") {
         SN_28B_jaw_hole_clip(x_front=0);
         SN_28B_jaw_hole_clip(x_front=0);
     }
 
-y_position(9) 
-    // Show default jaw_clip
+y_position(9, "Default jaw_clip") 
     SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open_) {
         no_fixed_jaw_attachments();
         SN_28B_jaw_hole_clip(do_cap=true, x_front=2);
     }
     
-y_position(10) 
-    // Show default jaw_clip
+y_position(10, "Top attach_slider") 
     SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open_) {
         union() {
             SN_28B_M4_rail(LEFT, x_behind = 20);
@@ -168,8 +161,13 @@ y_position(10)
                     show_mock = true);
         }
     } 
+y_position(10, "Customized SN_28B Jaw Yoke") 
+    SN_28B_pin_crimper(jaw_percent_open=jaw_percent_open_) {
+        customized_SN_28B_jaw_yoke();
+        customized_SN_28B_jaw_yoke();
+    }
     
-y_position(0) {
+y_position(-3, "Slider and fitting with crimper") {
     if (show_slider_tas) {
         SN_28B_M4_rail_M3_top_attach_slider(
             orient=orient_slider_tas, 
@@ -190,6 +188,9 @@ y_position(0) {
             show_mock = show_attachment_mock_tas);
     }
 }
+
+
+
    
 //y_position(0) 
 //    // Show M4 rail
@@ -241,12 +242,16 @@ module custom_SN_28B_pin_crimper() {
     }      
 }
     
-module y_position(idx) {
+module y_position(idx, description) {
+    function translation(idx) = let( actual_delta = y_pivot + delta_) [0, actual_delta * idx, 0];
+    echo("Y position index: ", idx, "Description: ", description);
     if (show_top_level) {
         if ((show_standard && idx > 0) || (show_development && idx <= 0)) {
-            actual_delta = y_pivot + delta_;
-            translate([0, actual_delta * idx, 0]) children();
+            translate(translation(idx)) children();
         }
+        if (!show_only_one || (idx == one_to_show)) {
+            translate(translation(idx)) children();
+        }        
     }
 }    
 
@@ -281,7 +286,20 @@ module SN_28B_upper_jaw_anvil(color_name="DimGray") {
         }
         translate([x_upper_jaw_anvil/2, 0, 0]) SN_28B_anvil_retainer();
     }
-}        
+} 
+
+
+module SN_28B_back_jaw(color_name="SlateGray", center) {
+    assert(is_num(center));
+    color(color_name) {
+        if (center == ABOVE) {
+            block(back_jaw_to_pivot_moving, center=BEHIND+center);
+        } else {
+            block(back_jaw_to_pivot_fixed, center=BEHIND+center);
+        }
+    }
+} 
+    
     
 module SN_28B_pin_crimper(
         jaw_angle, 
@@ -336,7 +354,7 @@ module SN_28B_pin_crimper(
     module fixed_assembly(show_crimper, show_jaw, show_anvil, show_screw, screw_name) {
         if (show_crimper) { 
             axle();
-            back_jaw(center=BELOW);
+            SN_28B_back_jaw(center=BELOW);
         }
         translation_to_pivot(fixed = true) {  
             if (show_jaw && show_crimper) {
@@ -355,7 +373,7 @@ module SN_28B_pin_crimper(
     module moving_assembly(show_crimper, show_jaw, show_anvil, show_screw, screw_name) {
         if (show_crimper) { 
             axle();
-            back_jaw(center=ABOVE);
+            SN_28B_back_jaw(center=ABOVE);
         }
         translation_to_pivot(fixed = false) {  
             if (show_jaw && show_crimper) {
@@ -387,12 +405,7 @@ module SN_28B_pin_crimper(
             rod(d=d_pivot, l=y_pivot, center=SIDEWISE);  
     }
 
-    module back_jaw(color_name="SlateGray", center) {
-        assert(is_num(center));
-        color(color_name) {
-            block(back_jaw_to_pivot, center=BEHIND+center);
-        }
-    } 
+
  
     module lower_jaw_anvil(color_name="DarkSlateGray") {
 
@@ -548,7 +561,8 @@ module SN_28B_M4_rail_M3_top_attach_slider(
         difference() {
             union() {
                 SN_28B_M4_rail_slider(orient=orient, slider_length=slider_length, clearance = rail_clearance);
-                SN_28B_M4_rail_M3_registration(orient=orient, slider_length=slider_length, registration_clearance=0);
+                SN_28B_M4_rail_M3_registration(
+                    orient=orient, slider_length=slider_length, registration_clearance=0);
             }
             SN_28B_M4_rail_M3_screws_and_nuts(orient=orient, screw_name=undef, as_clearance=true);
         }
@@ -604,7 +618,8 @@ module SN_28B_M4_rail_M3_top_attach_fitting(
         z_offset = 2;
         difference() {
             center_reflect([1, 0, 0]) SN_28B_M4_rail_position_for_edge(orient=orient) {
-                translate([size.x/2, 0, z_offset]) block([4, size.y, size.z + z_offset], center = BELOW + RIGHT +FRONT);
+                translate([size.x/2, 0, z_offset]) 
+                    block([4, size.y, size.z + z_offset], center = BELOW + RIGHT +FRONT);
             }
             SN_28B_M4_rail_M3_top_attach_fitting_screw_blocks_clearance(size, orient);
         }
@@ -694,11 +709,12 @@ module SN_28B_M4_rail_M3_registration(orient, slider_length, registration_cleara
     }   
 }
 
-
-
-
-
-module SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name, just_nut=false, just_screw=false, as_clearance=false) {
+module SN_28B_M4_rail_M3_screws_and_nuts(
+        orient, 
+        screw_name, 
+        just_nut=false, 
+        just_screw=false, 
+        as_clearance=false) {
     module attachment_screw(as_clearance) {
         translation = 
             screw_name == "M3x8" ? [0, 0, -5] :
@@ -706,7 +722,10 @@ module SN_28B_M4_rail_M3_screws_and_nuts(orient, screw_name, just_nut=false, jus
             assert(false);
         if (as_clearance) {
             alot = 100;
-            translate(translation) translate([0, 0, -alot]) rotate([180, 0, 0])  hole_through("M3", h=alot, l=alot, $fn=12);  //l=200, h=100,   
+            translate(translation) 
+                translate([0, 0, -alot]) 
+                    rotate([180, 0, 0])  
+                        hole_through("M3", h=alot, l=alot, $fn=12);  //l=200, h=100,   
         } else {
             color("Silver") translate(translation) rotate([180, 0, 0]) screw(screw_name, $fn=12);
         }
@@ -983,6 +1002,8 @@ module SN_28B_jaw_yoke(
                     translate([0, y_lower_jaw_anvil/2, 0])
                         block(yoke_front, center=ABOVE+FRONT+RIGHT);
             }
+            fixed = true;
+            translate(-translation_jaw_to_pivot(fixed)) SN_28B_back_jaw(center=BELOW);
             if (screws) {
                 center_reflect([0, 1, 0]) {
                     for (dx = [2:6: x_front]) {

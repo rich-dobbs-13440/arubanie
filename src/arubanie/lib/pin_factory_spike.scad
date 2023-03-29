@@ -9,40 +9,71 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 /* [Build] */ 
 build_only_one = false;
 // Check console for description of build items!
-one_to_build = -1; // [-1, 1, 2, 3, 4, 5, 6, 7, 8 ]
+one_to_build = -1; // [-2, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 /* [Minimal Jig Customization] */
 show_mocks_mj = true;
 show_wire_clamp_mj = true;
 orient_for_build_mj = true;
+z_yoke_mj = 2;
 
-end_of_customization() {}
+/* [Jaw Yoke Customization] */
 
-/* [Minimal Jig Customization] */
-
-x_front_cjy = 24; // [0:1:24]
+x_front_cjy = 24; // [0:1:40]
 x_behind_cjy = 20; // [0:1:24]
 y_cjy = 20; // [0:1:24]
 z_cjy = 1; // [0:0.5:4]
 color_name_cjy_ = "SandyBrown"; 
-screws_cjy = true;  
+screws_cjy = true; 
+
+
+end_of_customization() {}
+
+
+ module minimal_jig_base() { 
+             
+    SN_28B_jaw_yoke(
+        x_front = 36 ,// dx_100_anvil - 3 ,
+        x_behind = 14,
+        y = 26,
+        z = z_yoke_mj,
+        color_name = "SandyBrown",
+        color_alpha =1,
+        screws = true);
+ }
+
+
+module slider_fixture() {
+    spacing = 6;
+    color("white") { 
+        rail_size = [4*spacing, spacing, 4];
+        difference() {
+            //block([1*spacing, 4*spacing, spacing], center=ABOVE);
+            translate([0, 0, rail_size.z/2]) rotate([0, 0, 90]) slider_rail(size=rail_size, depth=1, flat=1, as_clearance=false);
+            center_reflect([0, 1, 0]) {
+                translate([0, 0.5*spacing, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
+                translate([0, 1.5*spacing, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
+            }
+
+        }  
+    } 
+}
 
 module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = true) {
-    z_yoke = 2;
     z_clearance = 0.25;
     dz = dz_100_wire_punch_z + od_barrel_dpgn/2+z_clearance;
     t_pin_holder = [dx_100_anvil, -dx_insulation_wrap_dpgn, dz];
     t_wire_holder = [dx_100_anvil, x_insulation_wrap_dpgn + x_strip_dpgn, dz];
-    t_pivot_block =  [dx_100_anvil - 3, y_lower_jaw_anvil/2, z_yoke];
+    t_pivot_block =  [dx_100_anvil - 3, y_lower_jaw_anvil/2, z_yoke_mj];
     
     module basic_pin_holder() { 
         pin_holder(
-            x_spring = 8, 
             z_spring = 0.5, 
             z_housing_catch = 0.1,
-            include_screw_holes = true,
-            show_part_colors = false,
-            show_mock = show_mocks,
+            include_screw_holes = false,
+            slider = true,
+            show_part_colors = true,
+            show_mock = show_mocks && ! orient_for_build,
             mock_is_male = true,
             color_name = "orange", 
             color_alpha = 1);  
@@ -60,7 +91,7 @@ module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = t
             z_pivot = 3,
             include_screw_holes = true,
             orient_for_build = false, 
-            show_mock = show_mocks, 
+            show_mock = show_mocks && ! orient_for_build,
             show_clamp = false,
             clamp_angle = 0, 
             show_body = true);
@@ -70,25 +101,15 @@ module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = t
         translate(t_wire_holder) rotate([0, 0, -90]) basic_wire_holder();
     }
 
-     module base() { 
-                 
-        SN_28B_jaw_yoke(
-            x_front = jaws_extent.x,// dx_100_anvil - 3 ,
-            x_behind = 14,
-            y = 20,
-            z = z_yoke,
-            color_name = "SandyBrown",
-            color_alpha =1,
-            screws = true);
-     } 
+
          
-     module wire_holder_pivot_block() {
+     module pivot_block() {
          
         module nutcatch(y, hole=true, nut=true) {
-            translate([-3.2, y,  1.9]) {
-                rotate([0, -90, 0]) {
+            translate([-2, y,  1.9]) {
+                rotate([0, 90, 0]) {
                     if (hole) {
-                        hole_through("M2", cld=0.4, $fn=12);
+                        translate([0, 0, 47]) hole_through("M2", cld=0.4, $fn=12);
                     }
                     if (nut) {
                         nutcatch_sidecut("M2");
@@ -104,19 +125,18 @@ module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = t
             translate(t_pivot_block) {
                 difference() { 
                     union() {
-                        block([3, 30, 7], center=ABOVE+BEHIND+RIGHT);
-                        block([12, 30, 2], center=ABOVE+BEHIND+RIGHT);
+                        block([4, 30, 7], center=ABOVE+BEHIND+RIGHT);
+                        block([12, 30, 4], center=ABOVE+BEHIND+RIGHT);
                     }
                     nutcatch(y=2.8);
                     nutcatch(y=8.8);
-                    //translate([-5, 8.8,  1.9]) rotate([0, -90, 0]) hole_through("M2", cld=0.4, $fn=12);
                     hull() {
-                        nutcatch(y=14.8, hole=false, nut=true);
-                        nutcatch(y=22, hole=false, nut=true);
+                        nutcatch(y=8.8, hole=false, nut=true);
+                        nutcatch(y=25, hole=false, nut=true);
                     }
                     hull() {
-                        nutcatch(y=14.8, hole=true, nut=false);
-                        nutcatch(y=22, hole=true, nut=false);
+                        nutcatch(y=8.8, hole=true, nut=false);
+                        nutcatch(y=25, hole=true, nut=false);
                     }
                 }
             }
@@ -126,31 +146,24 @@ module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = t
             translate([8, 8, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
             translate([8, 14, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
             translate([8, 20, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
-        } 
-        
+        }     
     }
-    module pin_holder_pivot_block() { 
-        mirror([0, 1, 0]) translate(t_pivot_block) {
-            difference() { 
-                block([2, 22, 7], center=ABOVE+BEHIND+RIGHT);
-                translate([25, 19,  1.9]) rotate([0, 90, 0]) hole_through("M2", cld=0.4, $fn=12);
-            }
-        }
-    }    
+ 
 
     if (orient_for_build) {
-
-        * translate([100, 20, 3]) rotate([90, 0, 0]) basic_pin_holder();
-        * translate([100, 40, 3]) rotate([90, 0, 0]) basic_wire_holder();
-        * translate([100, 60, 0]) base();
-        wire_holder_pivot_block();
-        * pin_holder_pivot_block();        
+        translate([0, 0, 0]) base();
+        translate([30, 0, -z_yoke])  center_reflect([0, 1, 0]) pivot_block(); 
+        translate([70, 0, 3]) rotate([-90, 0, 0]) basic_pin_holder();
+        translate([100, 0, 3]) rotate([90, 0, 0]) basic_wire_holder();
     } else {
-        base();
+        minimal_jig_base();
+        mirror([0, 1, 0]) translate([14, 17, z_yoke_mj]) slider_fixture();
+        mirror([0, 1, 0]) translate([26, 17, z_yoke_mj]) slider_fixture();
+        translate([14, 17, z_yoke_mj]) slider_fixture();
         oriented_pin_holder(); 
         oriented_wire_holder();
-        wire_holder_pivot_block();
-        pin_holder_pivot_block();
+        //center_reflect([0, 1, 0]) pivot_block();
+        //pin_holder_pivot_block();
     }
     
     if (show_mocks && ! orient_for_build) {   
@@ -184,6 +197,8 @@ build(-1, "minimal_jig()")
         show_mocks=show_mocks_mj, 
         show_wire_clamp=show_wire_clamp_mj, 
         orient_for_build = orient_for_build_mj);
+
+build(-2, "minimal_jig_base()") minimal_jig_base();
 
 build(1, "Customized SN_28B_jaw_yoke") customized_jaw_yoke();
 
@@ -246,7 +261,6 @@ build(6, "pin_latch")
 
 build(7, "pin_holder")
     pin_holder(
-        x_spring = 8, 
         z_spring = 1.5, 
         z_housing_catch = 0.1,
         include_screw_holes = false,
@@ -259,6 +273,8 @@ build(7, "pin_holder")
 build(8, "pin_holder_screws")
     translate([-2, 0, 0]) 
         pin_holder_screws(as_hole_through=true, $fn=12);
+
+build(9, "slider_fixture()") slider_fixture();       
 
 module colorize(color_name, color_alpha, show_part_colors) {
     if (show_part_colors) {

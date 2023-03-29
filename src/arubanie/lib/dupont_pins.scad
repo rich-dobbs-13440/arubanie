@@ -48,9 +48,10 @@ delta_ = 10; // [10:10:100]
 /* [Pin Holder Customization] */
 use_default_values = false;
 
-x_spring_cph = 8; // [0:1:10]
 z_spring_cph = 1.5; // [0: 0.01 : 3]
 z_housing_catch_cph = 0.1; // [0: 0.01 : .2]
+slider_cph = true;
+include_screw_holes_cph = use_default_values;
 show_part_colors_cph = false;
 show_mock_cph = true;
 mock_is_male_cph = true;
@@ -58,10 +59,10 @@ color_name_cph = "orange";
 color_alpha_cph = 1; // [0:0.1:1]
 
 
-
-use_default_x_spring_cph = use_default_values;
 use_default_z_spring_cph = use_default_values; 
 use_default_z_housing_catch_cph = use_default_values;
+use_default_slider_cph = use_default_values;
+use_default_include_screw_holes_cph = use_default_values; 
 use_default_show_part_colors_cph = use_default_values;
 use_default_show_mock_cph = use_default_values;
 use_default_mock_is_male_cph = use_default_values;
@@ -297,7 +298,6 @@ module female_pin(
         strip = true,
         alpha=1) { 
 
-    echo("orient: ", orient);
             
     _generic_pin_dp(
         orient = orient,
@@ -483,6 +483,32 @@ module pin_holder_screws(
     }
 }
 
+//slider_rail(size=[40, 6, 5], depth=1, flat=1, as_clearance=false);
+
+module slider_rail(y, size, depth=1, flat=1, as_clearance=true) {
+    if (as_clearance) {
+        assert(!is_undef(y));
+    } else {
+        assert(!is_undef(size));
+    }
+    if (!as_clearance) {
+        block(size);
+    }
+    y_prime = as_clearance ? y : size.y;
+    x = as_clearance ? 100 : size.x;
+    center_reflect([0, 1, 0]) {
+        translate([0,  y_prime/2, 0 ]) {
+            rotation = as_clearance ? [0, 0, 0] : [180, 0, 0];
+            rotate(rotation) {
+                hull() {
+                    block([x, depth, flat], center=LEFT);
+                    block([x, 0.01, flat+0.5*depth]);
+                }
+            }
+        }
+    }
+}
+
 
 module pin_latch(
         width, 
@@ -516,7 +542,13 @@ module pin_latch(
             }
             translate([dx_hole, -25, dz_release]) rotate([90, 0, 0]) hole_through("M2", cld=0.4, $fn=12);
             // bevel to make it easier for pin to enter
-            translate([dx, 0, 0]) rod(d=d_pin_dpm+0.5, taper=d_pin_dpm+1.5, l=1, $fn=12, center=CENTER);
+            translate([dx, 0, 0]) {
+                hull() {
+                    rod(d=d_pin_dpm+0.5, taper=d_pin_dpm+1.5, l=1, $fn=12, center=CENTER);
+                    translate([0, -1, -2]) rod(d=d_pin_dpm+0.5, taper=d_pin_dpm+1.5, l=1, $fn=12, center=CENTER);
+                }
+                
+            }
         }
     }
     if (show_mock) { 
@@ -532,9 +564,10 @@ module pin_latch(
 module customized_pin_holder() {
 
     pin_holder(
-        x_spring = use_default_x_spring_cph  ?  default_x_spring_cph :  x_spring_cph,
         z_spring = use_default_z_spring_cph  ?  default_z_spring_cph :  z_spring_cph,
         z_housing_catch = use_default_z_housing_catch_cph ? default_z_housing_catch_cph : z_housing_catch_cph,
+        slider = use_default_slider_cph ? default_slider_cph : slider_cph,
+        include_screw_holes = use_default_include_screw_holes_cph ? default_show_part_colors_cph : include_screw_holes_cph,
         show_part_colors = use_default_show_part_colors_cph ? default_show_part_colors_cph : show_part_colors_cph,
         show_mock = use_default_show_mock_cph ? default_show_mock_cph : show_mock_cph,
         mock_is_male = use_default_mock_is_male_cph ? default_mock_is_male_cph : mock_is_male_cph,
@@ -542,9 +575,9 @@ module customized_pin_holder() {
         color_alpha = use_default_alpha_cph ? default_alpha_cph : color_alpha_cph);  
 }
 
-default_x_spring_cph = 8;
 default_z_spring_cph = 1.5; 
 default_z_housing_catch_cph = 0.1;
+default_slider_cph = false;
 default_include_screw_holes = true;
 default_show_part_colors_cph = false;
 default_show_mock_cph = true;
@@ -553,9 +586,9 @@ default_color_name_cph = "orange";
 default_color_alpha_cph = 1;    
 
 module pin_holder(
-        x_spring = default_x_spring_cph, 
         z_spring = default_z_spring_cph, 
         z_housing_catch = default_z_housing_catch_cph,
+        slider = default_slider_cph,
         include_screw_holes = default_include_screw_holes,
         show_part_colors = default_show_part_colors_cph,
         show_mock = default_show_mock_cph,
@@ -578,6 +611,7 @@ module pin_holder(
     minimal_body = housing_std_dpg + housing_clearances + walls; 
     // Make body a metric width:
     body = [minimal_body.x, 6, minimal_body.z];
+    x_spring = body.x/2-1;
             
     z_clearance = body.z/2 - s/2 + spring_gap;
             
@@ -586,10 +620,7 @@ module pin_holder(
     spring = [x_spring, body.y, z_spring];       
 
     shelf = [dx_barrel_dpgn, body.y, body.z/2-od_barrel_dpgn/2];
-    
-    //pin_holder_screws(as_hole_threaded=true, $fn=12);
-    
-        
+         
     if (show_mock) {
         if (include_screw_holes) {
             translate([0, -wall-housing_clearance, 0]) pin_holder_screws(as_screw=true, $fn=12); 
@@ -601,34 +632,65 @@ module pin_holder(
             dupont_connector(center=BEHIND, has_pin=true, color_alpha=color_alpha);
             female_pin(alpha=0.5);
         }
-    }        
-    colorize(show_part_colors=show_part_colors) {
+    } 
+    
+    module assembly() {
         body(); 
-        housing_latch();        
+        housing_latch();       
         sized_pin_latch();
         spring();
         shelf();
+        if (slider) {
+            slider_engagement();     
+        }
         if (include_screw_holes) {
             screw_block();
+        }        
+    }
+    
+    colorize(show_part_colors=show_part_colors) {
+        difference() {
+            assembly();
+            if (slider) {
+                slider_rail(body.y, as_clearance=true);
+            }
         }
+    }
+    
+    module slider_engagement() {
+        h_nub = 2;
+        d_nub = 2;
+        module slider_pin(x) {
+            translate([-x, body.y/2, -body.z/2]) {
+                hull() {
+                    can(d=d_nub, h=h_nub,  center=BELOW+LEFT);
+                    block([d_nub/2, d_nub/2, h_nub], center=BELOW+LEFT);
+                }
+            }
+        }
+        slider_pin(2);
+        slider_pin(12);
+
     }
     
     module screw_block() {
         color("blue", color_alpha) {
             difference() {
-                translate([2, 0, -body.z/2]) block([16, body.y, 3], center=BEHIND+BELOW); 
+                translate([2, 0, -body.z/2]) block([16, body.y, 3], center=BEHIND); 
                 pin_holder_screws(as_hole_through=true, $fn=12);
             }
         }
     }
     
     module sized_pin_latch() {
-        pin_latch(
-            width = body.y, 
-            z_clearance= z_clearance, 
-            show_mock = false, 
-            mock_is_male = mock_is_male, 
-            color_alpha = color_alpha);
+        difference() {
+            pin_latch(
+                width = body.y, 
+                z_clearance= z_clearance, 
+                show_mock = false, 
+                mock_is_male = mock_is_male, 
+                color_alpha = color_alpha);
+        }
     }
    
     module housing_latch() {
@@ -639,6 +701,7 @@ module pin_holder(
             }
         }        
     } 
+
     
     module body() {
         difference() {
@@ -656,7 +719,7 @@ module pin_holder(
     module spring() {
         color("green", color_alpha) {
             translate([0, 0, body.z/2 + spring_gap])  block(spring, center=ABOVE+BEHIND);
-            translate([-x_spring, 0, body.z/2])  block([2, spring.y, spring.z+spring_gap], center=ABOVE+BEHIND); 
+            translate([-x_spring, 0, body.z/2])  block([2, spring.y, spring_gap+2], center=ABOVE+BEHIND); 
         } 
     }
     
