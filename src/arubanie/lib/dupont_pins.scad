@@ -491,20 +491,29 @@ module slider_rail(y, size, depth=1, flat=1, as_clearance=true) {
     } else {
         assert(!is_undef(size));
     }
-    if (!as_clearance) {
-        block(size);
-    }
-    y_prime = as_clearance ? y : size.y;
-    x = as_clearance ? 100 : size.x;
-    center_reflect([0, 1, 0]) {
-        translate([0,  y_prime/2, 0 ]) {
-            rotation = as_clearance ? [0, 0, 0] : [180, 0, 0];
-            rotate(rotation) {
-                hull() {
-                    block([x, depth, flat], center=LEFT);
-                    block([x, 0.01, flat+0.5*depth]);
-                }
+
+    module shape(in=true) {
+        x = in ? 100 : size.x;
+        rotation = in ? [0, 0, 0] : [180, 0, 0];
+        rotate(rotation) {
+            hull() {
+                block([x, depth, flat], center=LEFT);
+                block([x, 0.01, flat+0.5*depth]);
             }
+        }
+    }
+    if (!as_clearance) {
+        translate([0,  size.y/2, 0 ]) shape(in=false); 
+        difference() {
+            block(size);
+            //mirror([0, 1, 0]) translate([0,  size.y/2, 0 ]) shape(in=true);
+        }
+        
+    } else{
+        #center_reflect([0, 1, 0]) {
+            translate([0,  y/2, 0 ]) {
+                shape(in=true); 
+            } 
         }
     }
 }

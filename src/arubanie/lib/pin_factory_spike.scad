@@ -9,7 +9,7 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 /* [Build] */ 
 build_only_one = false;
 // Check console for description of build items!
-one_to_build = -1; // [-2, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+one_to_build = -1; // [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 /* [Minimal Jig Customization] */
 show_mocks_mj = true;
@@ -45,16 +45,19 @@ end_of_customization() {}
 
 module slider_fixture() {
     spacing = 6;
-    color("white") { 
+    module oriented_slider() {
         rail_size = [4*spacing, spacing, 4];
+        translate([0, 0, rail_size.z/2]) 
+            rotate([0, 0, 90]) slider_rail(size=rail_size, depth=1, flat=1, as_clearance=false);
+    }     
+    color("white") { 
         difference() {
-            //block([1*spacing, 4*spacing, spacing], center=ABOVE);
-            translate([0, 0, rail_size.z/2]) rotate([0, 0, 90]) slider_rail(size=rail_size, depth=1, flat=1, as_clearance=false);
+            oriented_slider();
             center_reflect([0, 1, 0]) {
                 translate([0, 0.5*spacing, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
                 translate([0, 1.5*spacing, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
             }
-
+//
         }  
     } 
 }
@@ -173,7 +176,7 @@ module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = t
     
 }
 
-function translation(idx) = [20, 30*idx, 0];
+function translation(idx) = [0, 30*idx, 0];
 
 module build(idx, description) {
     echo("Build index: ", idx, "Description: ", description);
@@ -274,7 +277,7 @@ build(8, "pin_holder_screws")
     translate([-2, 0, 0]) 
         pin_holder_screws(as_hole_through=true, $fn=12);
 
-build(9, "slider_fixture()") slider_fixture();       
+build(0, "slider_fixture()") slider_fixture();       
 
 module colorize(color_name, color_alpha, show_part_colors) {
     if (show_part_colors) {
