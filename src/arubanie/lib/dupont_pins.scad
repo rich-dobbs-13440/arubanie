@@ -49,12 +49,13 @@ delta_ = 10; // [10:10:100]
 latch_is_open_cph = false;
 lifter_angle_cph = 0; // [0: 1 : 99.9]
  
-d_lifter = 6; // [0:0.1:10]  
+ 
 z_offset_handle_screw = 8; // [0:0.5: 20]
-d_axle = 8; // [0:0.1:10] 
-dz_lifter_center_of_rotation = 4; //[0:0.1:10]
-//angle_offset_handle_screw = 45; // [0 : 90] 
-z_plane_clearance = 2; // [0: 0.1: 5]
+
+
+// Adjusted lift screw the correct amount
+dz_lifter_center_of_rotation = 4.2; //[0:0.1:10]
+
     
     
 
@@ -675,6 +676,7 @@ module pin_holder(
     body = [minimal_body.x, 6, 6];//minimal_body.z];
     x_spring = body.x-4;
     
+    z_plane_clearance = 2; // [0: 0.1: 5]
     spring_gap = z_plane_clearance + dz_lifter_center_of_rotation - body.z/2 + parts_separation_clearance; 
             
     z_clearance = body.z/2 - s/2 + spring_gap;
@@ -814,6 +816,7 @@ module pin_holder(
         d_axle = 2*(dz_lifter_center_of_rotation - DUPONT_HOUSING_WIDTH()/2);
         angle_offset_handle_screw = 0;
         d_rim = d_axle + 1.5;
+
         
         
         displace_to_center_of_rotation = [-x_spring/2, body.y/2, dz_lifter_center_of_rotation];
@@ -826,10 +829,16 @@ module pin_holder(
                 d = d_axle + 2 * applied_clearance, 
                 l = y_lifter + applied_clearance, 
                 center=SIDEWISE+LEFT);
-            rod(
-                d=d_rim + 2 * applied_clearance,
-                l=wall + applied_clearance, 
-                center = SIDEWISE+LEFT, rank = 5); 
+            difference() {
+                rod(
+                    d=d_rim + 2 * applied_clearance,
+                    l=wall + applied_clearance, 
+                    center = SIDEWISE+LEFT, rank = 5);
+                    if (!as_clearance) {
+                       //translate([0.33*d_rim, 0, -0.4 * d_rim]) 
+                       rotate([0, 45, 0]) plane_clearance(FRONT+ABOVE);
+                    }
+           } 
         }
         
         module lifter() {
@@ -837,6 +846,7 @@ module pin_holder(
             difference() {
                 shape(as_clearance=false);
                 translate([0, 0, z_plane_clearance]) plane_clearance(ABOVE);
+                //translate([d_axle/2, 0, 0]) plane_clearance(FRONT);
             }  
         }
         module handle(as_clearance=false) { 
@@ -873,6 +883,7 @@ module pin_holder(
         y_spring_narrow = 0.4 * body.y;
         lift = latch_is_open ? 1. : 0;
         z_spring_end = body.z/2 + spring_gap + lift;
+        z_spring_middle = body.z/2 + spring_gap + lift/2;
         color("green", color_alpha) {
             // Lower part
             hull() {
@@ -882,7 +893,7 @@ module pin_holder(
             // Flaring part
             hull() {
                translate([0, body.y/2, z_spring_end]) rod(d=z_spring, l=y_spring_wide, center=SIDEWISE+ABOVE+LEFT);  
-               translate([-x_spring/2, body.y/2, body.z/2 + spring_gap]) rod(d=z_spring, l=y_spring_narrow, center=SIDEWISE+ABOVE+LEFT);  
+               translate([-x_spring/2, body.y/2, z_spring_middle]) rod(d=z_spring, l=y_spring_narrow, center=SIDEWISE+ABOVE+LEFT);  
             }  
             // Pedistal 
             translate([-x_spring, body.y/2, body.z/2]) block([3, y_spring_wide, 8], center=ABOVE+LEFT); 
