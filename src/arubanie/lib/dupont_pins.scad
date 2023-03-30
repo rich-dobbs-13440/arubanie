@@ -46,25 +46,23 @@ one_to_show = -10; // [-11:"customized wire holders", -7: "Customized pin holder
 delta_ = 10; // [10:10:100]
 
 /* [Lifter Design] */
-latch_is_open_cph = false;
-lifter_angle_cph = 0; // [0: 1 : 99.9]
- 
- 
+
+
 z_offset_handle_screw = 8; // [0:0.5: 20]
 
-
-// Adjusted lift screw the correct amount
-dz_lifter_center_of_rotation = 4.2; //[0:0.1:10]
-
-    
-    
+ 
 
 /* [Pin Holder Customization] */
 use_default_values = false;
 
 
-z_spring_cph = 1.; // [0: 0.25 : 3]
+z_spring_cph = 2.; // [0: 0.25 : 3]
 z_housing_catch_cph = 0.1; // [0: 0.01 : .2]
+
+
+// Adjusted lift screw the correct amount
+dz_lifter_center_of_rotation_cph = 4.2; //[0:0.1:10]
+
 slider_cph = true;
 include_screw_holes_cph = use_default_values;
 include_post_body_cph = false;
@@ -73,6 +71,8 @@ mock_is_male_cph = true;
 color_name_cph = "orange";  
 color_alpha_cph = 1; // [0:0.1:1]
 show_part_colors_cph = false;
+lifter_angle_cph = 0; // [0: 1 : 99.9]
+latch_is_open_cph = false;
 
 
 use_default_z_spring_cph = use_default_values; 
@@ -607,8 +607,79 @@ module pin_latch(
             female_pin();
         }
     }
-}    
- 
+}  
+
+
+
+module latch_lifter(
+        d_axle,
+        lifter_angle = use_default_lifter_angle_cph ? default_lifter_angle_cph : lifter_angle_cph,
+        as_clearance = false, 
+        allowance = 0.2, 
+        wall=1, 
+        body=[6, 6, 14],
+        color_name = "cyan", // use_default_color_name_ll ? default_color_name_ll : color_name_ll,
+        color_alpha = 1) { // = // use_default_alpha_ll ? default_color_alpha_ll : color_alpha_ll);  
+
+    dx_lifter_center_of_rotation = 5;
+    clearance = as_clearance ? 2*allowance : 0;
+    y_lifter = body.y - wall - clearance;
+    
+    angle_offset_handle_screw = 0;
+    d_rim = d_axle + 1.5;
+    z_plane_clearance = 2; // [0: 0.1: 5]
+
+
+    module shape(as_clearance) {
+        rod(
+            d = d_axle + 2 * clearance, 
+            l = y_lifter + 2 * clearance, 
+            center=SIDEWISE+LEFT);
+        difference() {
+            rod(
+                d = d_rim + 2 * clearance,
+                l = wall + 2* clearance, 
+                center = SIDEWISE+LEFT, rank = 5);
+            if (!as_clearance) {
+               //translate([0.33*d_rim, 0, -0.4 * d_rim]) 
+               rotate([0, 45, 0]) plane_clearance(FRONT+ABOVE);
+            }
+       } 
+    }
+    
+    module lifter() {
+        //dz_cavity = dz_lifter_center_of_rotation - DUPONT_HOUSING_WIDTH()/2;
+        difference() {
+            shape(as_clearance=false);
+            translate([0, 0, z_plane_clearance]) plane_clearance(ABOVE);
+            //translate([d_axle/2, 0, 0]) plane_clearance(FRONT);
+        }  
+    }
+    module handle(as_clearance=false) { 
+        rotate([0, angle_offset_handle_screw, 0]) translate([0, -.6*body.y, z_offset_handle_screw]) {
+            if (as_clearance)  {
+                hole_through("M2");
+            } else {
+                screw("M2x8");
+            }
+            
+        }
+    }     
+
+    color(color_name, alpha = color_alpha) {
+        if (as_clearance) {
+            shape(as_clearance=true);
+        } else {
+            
+            rotate([0, -lifter_angle, 0]) {
+                difference() { 
+                    lifter();
+                    handle(as_clearance = true);
+                }
+            }
+        }
+    }
+}     
 
 
 module customized_pin_holder() {
@@ -622,7 +693,8 @@ module customized_pin_holder() {
         show_part_colors = use_default_show_part_colors_cph ? default_show_part_colors_cph : show_part_colors_cph,
         show_mock = use_default_show_mock_cph ? default_show_mock_cph : show_mock_cph,
         latch_is_open = use_default_latch_is_open_cph ? default_latch_is_open_cph : latch_is_open_cph,
-        lifter_angle = use_default_lifter_angle_cph ? default_lifter_angle_cph : lifter_angle_cph,
+
+        
         mock_is_male = use_default_mock_is_male_cph ? default_mock_is_male_cph : mock_is_male_cph,
         color_name = use_default_color_name_cph ? default_color_name_cph : color_name_cph,
         color_alpha = use_default_alpha_cph ? default_color_alpha_cph : color_alpha_cph);  
@@ -631,39 +703,43 @@ module customized_pin_holder() {
 default_z_spring_cph = 1.0; 
 default_z_housing_catch_cph = 0.1;
 default_slider_cph = false;
-default_include_screw_holes = false;
+default_include_screw_holes_cph = false;
 default_include_post_body = false;
+default_parts_separation_clearance_cph = 1;
 default_show_part_colors_cph = false;
 default_latch_is_open_cph = false;
 default_lifter_angle_cph = 0;
 default_show_mock_cph = true;
 default_mock_is_male_cph = true;
 default_color_name_cph = "orange";  
-default_color_alpha_cph = 1;    
+default_color_alpha_cph = 1;  
+default_orient_for_build_cph = true;
 
 module pin_holder(
         z_spring = default_z_spring_cph, 
         z_housing_catch = default_z_housing_catch_cph,
         slider = default_slider_cph,
-        include_screw_holes = default_include_screw_holes,
+        include_screw_holes = default_include_screw_holes_cph,
         include_post_body = default_include_post_body,
-        show_part_colors = default_show_part_colors_cph,
+        parts_separation_clearance = default_parts_separation_clearance_cph, 
         latch_is_open = default_latch_is_open_cph,
         lifter_angle = default_lifter_angle_cph, 
         show_mock = default_show_mock_cph,
         mock_is_male = default_mock_is_male_cph,
+        show_part_colors = default_show_part_colors_cph,
         color_name = default_color_name_cph, 
-        color_alpha = default_color_alpha_cph) { 
+        color_alpha = default_color_alpha_cph,
+        orient_for_build = default_orient_for_build_cph
+        ) { 
          
-         
-    echo("lifter_angle", lifter_angle);   
+           
     s = DUPONT_HOUSING_WIDTH(); 
     hsg_l = DUPONT_STD_HOUSING();
     
             
     alot = 20;            
     wall = 1;
-    parts_separation_clearance = 0.4; 
+    
              
     width = s + wall;
             
@@ -675,9 +751,11 @@ module pin_holder(
     // Make body a metric width:
     body = [minimal_body.x, 6, 6];//minimal_body.z];
     x_spring = body.x-4;
+    dx_lifter_center_of_rotation = 5;
     
     z_plane_clearance = 2; // [0: 0.1: 5]
-    spring_gap = z_plane_clearance + dz_lifter_center_of_rotation - body.z/2 + parts_separation_clearance; 
+    spring_gap = z_plane_clearance + dz_lifter_center_of_rotation_cph - body.z/2; 
+    d_latch_lifter_axle = 2*(dz_lifter_center_of_rotation_cph - DUPONT_HOUSING_WIDTH()/2);
             
     z_clearance = body.z/2 - s/2 + spring_gap;
             
@@ -685,13 +763,12 @@ module pin_holder(
     
     cavity_for_pin = housing_std_dpg + housing_clearances + [alot, 0, 0];
     
- 
-            
-    //spring = [x_spring, body.y, z_spring];       
+    displace_latch_lifter = [-dx_lifter_center_of_rotation, body.y/2, dz_lifter_center_of_rotation_cph];
+      
 
     shelf = [dx_conductor_wrap_dpgn, body.y, body.z/2-od_barrel_dpgn/2];  //dx_barrel_dpgn
          
-    if (show_mock) {
+    if (show_mock && !orient_for_build) {
         if (include_screw_holes) {
             translate([0, -wall-housing_clearance, 0]) pin_holder_screws(as_screw=true, $fn=12); 
         }
@@ -705,32 +782,36 @@ module pin_holder(
         if (include_post_body) {
             post_body_screw_block(as_clearance=false); 
         }
+        translate(displace_latch_lifter) latch_lifter(d_axle=d_latch_lifter_axle);
     } 
     
+
+    
+
+    if (orient_for_build) {
+       rotate([-90, 0, 0])  translate([0, -body.y/2, 0])  assembly();
+       translate([20, 0, 0]) rotate([-90, 0, 0]) latch_lifter(d_axle=d_latch_lifter_axle); 
+    } else {
+        colorize(show_part_colors=show_part_colors) {
+            difference() {
+                assembly();
+                if (slider) {
+                    slider_rail(body.y, as_clearance=true);
+                }
+            }
+        }
+    }
+    
     module assembly() {
-        body(); 
+        body("yellow"); 
         housing_latch();       
         sized_pin_latch();
-        latch_lifter();
-        spring();
+        spring("green");
         shelf("violet");
         if (include_screw_holes) {
             screw_block();
         }        
     }
-    
-
-    
-    colorize(show_part_colors=show_part_colors) {
-        difference() {
-            assembly();
-            if (slider) {
-                slider_rail(body.y, as_clearance=true);
-            }
-        }
-    }
-    
-    
     
     module screw_block() {
         color("blue", color_alpha) {
@@ -790,9 +871,9 @@ module pin_holder(
     }    
 
     
-    module body() {
+    module body(color_name = "yellow", color_alpha=1) {
         extra_for_post_body_screw_block = include_post_body ? [14, 0, 0] : [0, 0, 0];     
-        color("yellow", color_alpha) {         
+        color(color_name, color_alpha) {         
             difference() {
                 translate([wall, 0, 0]) block(body + extra_for_post_body_screw_block, center = BEHIND);  
                 block(cavity_for_pin, center = BEHIND);
@@ -803,81 +884,15 @@ module pin_holder(
                 if (include_post_body) {
                     post_body_screw_block(as_clearance=true);
                 }
-                latch_lifter(as_clearance = true);
+                translate(displace_latch_lifter) 
+                    latch_lifter(d_axle = d_latch_lifter_axle, as_clearance = true);
             }
         }
 
     }
+
     
-    module latch_lifter(as_clearance = false) {
-
-        clearance = as_clearance ? 2*parts_separation_clearance : 0;
-        y_lifter = body.y - wall - parts_separation_clearance;
-        d_axle = 2*(dz_lifter_center_of_rotation - DUPONT_HOUSING_WIDTH()/2);
-        angle_offset_handle_screw = 0;
-        d_rim = d_axle + 1.5;
-
-        
-        
-        displace_to_center_of_rotation = [-x_spring/2, body.y/2, dz_lifter_center_of_rotation];
-        
-        
-        
-        module shape(as_clearance = false) {
-            applied_clearance = as_clearance ? parts_separation_clearance : 0;
-            rod(
-                d = d_axle + 2 * applied_clearance, 
-                l = y_lifter + applied_clearance, 
-                center=SIDEWISE+LEFT);
-            difference() {
-                rod(
-                    d=d_rim + 2 * applied_clearance,
-                    l=wall + applied_clearance, 
-                    center = SIDEWISE+LEFT, rank = 5);
-                    if (!as_clearance) {
-                       //translate([0.33*d_rim, 0, -0.4 * d_rim]) 
-                       rotate([0, 45, 0]) plane_clearance(FRONT+ABOVE);
-                    }
-           } 
-        }
-        
-        module lifter() {
-            //dz_cavity = dz_lifter_center_of_rotation - DUPONT_HOUSING_WIDTH()/2;
-            difference() {
-                shape(as_clearance=false);
-                translate([0, 0, z_plane_clearance]) plane_clearance(ABOVE);
-                //translate([d_axle/2, 0, 0]) plane_clearance(FRONT);
-            }  
-        }
-        module handle(as_clearance=false) { 
-            rotate([0, angle_offset_handle_screw, 0]) translate([0, -.6*body.y, z_offset_handle_screw]) {
-                if (as_clearance)  {
-                    hole_through("M2");
-                } else {
-                    screw("M2x8");
-                }
-                
-            }
-        }     
-
-        if (as_clearance) {
-            translate(displace_to_center_of_rotation) {
-                shape(as_clearance=true);
-            }
-        } else {
-            translate(displace_to_center_of_rotation) {
-                rotate([0, -lifter_angle, 0]) {
-                    difference() { 
-                        lifter();
-                        handle(as_clearance = true);
-                    }
-                }
-            }
-        }
-        
-    }    
-    
-    module spring() {
+    module spring(color_name="green", color_alpha=1) {
         
         y_spring_wide = .73* body.y; 
         y_spring_narrow = 0.4 * body.y;
@@ -887,20 +902,20 @@ module pin_holder(
         color("green", color_alpha) {
             // Lower part
             hull() {
-               translate([0, body.y/2, z_spring_end]) rod(d=z_spring, l=y_spring_narrow, center=SIDEWISE+ABOVE+LEFT);  
-               translate([-x_spring, body.y/2, body.z/2 + spring_gap]) rod(d=z_spring, l=y_spring_narrow, center=SIDEWISE+ABOVE+LEFT);  
+               translate([0, body.y/2, z_spring_end]) 
+                    rod(d=z_spring, l=y_spring_narrow, center=SIDEWISE+ABOVE+LEFT);  
+               translate([-x_spring, body.y/2, body.z/2 + spring_gap]) 
+                    rod(d=z_spring, l=y_spring_narrow, center=SIDEWISE+ABOVE+LEFT);  
             }
             // Flaring part
             hull() {
-               translate([0, body.y/2, z_spring_end]) rod(d=z_spring, l=y_spring_wide, center=SIDEWISE+ABOVE+LEFT);  
-               translate([-x_spring/2, body.y/2, z_spring_middle]) rod(d=z_spring, l=y_spring_narrow, center=SIDEWISE+ABOVE+LEFT);  
+               translate([0, body.y/2, z_spring_end]) 
+                    rod(d=z_spring, l=y_spring_wide, center=SIDEWISE+ABOVE+LEFT);  
+               translate([-x_spring/2, body.y/2, z_spring_middle]) 
+                    rod(d=z_spring, l=y_spring_narrow, center=SIDEWISE+ABOVE+LEFT);  
             }  
             // Pedistal 
-            translate([-x_spring, body.y/2, body.z/2]) block([3, y_spring_wide, 8], center=ABOVE+LEFT); 
-//            hull() {
-//                translate([-x_spring, body.y/2, body.z/2 + spring_gap]) rod(d=z_spring, l=y_spring_wide, center=SIDEWISE+ABOVE+LEFT);
-//                translate([-x_spring, body.y/2, cavity_for_pin.z/2]) rod(d=3, l=y_spring_wide, center= SIDEWISE+ABOVE+LEFT);
-//            }
+            translate([-x_spring, body.y/2, body.z/2]) block([3, y_spring_narrow, 8], center=ABOVE+LEFT); 
         } 
     }
     
