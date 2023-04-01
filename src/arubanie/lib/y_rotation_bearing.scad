@@ -111,7 +111,7 @@ module axle_shape(d, h, d_ratio, h_ratio, is_axle, colors) {
 //}
 
 module bearing_blank(d, h) {
-    color("SteelBlue", alpha=alpha_bearing_blank) translate([0,0,h/2]) cylinder(d=d, h=h, center=true); 
+    color("SteelBlue", alpha=alpha_bearing_blank_cst) translate([0,0,h/2]) cylinder(d=d, h=h, center=true); 
 }
 
 

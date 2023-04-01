@@ -22,6 +22,21 @@ dupont_connector(
 */
 include <centerable.scad>
 use <shapes.scad>
+include <small_pivot.scad>
+
+
+
+
+/* [Show] */
+show_top_level = false;
+show_only_one = false;
+one_to_show = -10; // [-13:"customized_pin_holder_slide", -17:"customized wire holders", -7: "Customized pin holder", -4:"male_pin(insulation_wrap=0.75, orient=RIGHT)", -3:"Isolate insulation wrap - half closed", -2:"Isolate insulation wrap - closed", -1:" male_pin(orient=LEFT)", 0:"Selectable housing lengths for dupont connector", 1:"default dupont_connector()", 2:"dupont_connector(has_pin=true)",  4:"Custom colors for dupont connector", 7:"Male pin orientation", 10:"Female pin orientation"]
+
+delta_ = 10; // [10:10:100]
+
+/* [Lifter Design] */
+
+z_offset_handle_screw = 8; // [0:0.5: 20]
 
 
 /* [Wire Holder Design] */
@@ -39,17 +54,6 @@ clamp_angle_dpwh = 0; // [0:5:90]
 /* [Housing Length] */
 
 housing_ = 14; //[12:"12 mm - Short", 14:"14 mm - Standard", 14.7:"14.7 mm - Short + Header", 16.7:"Standard + Header"]
-
-/* [Show] */
-show_top_level = false;
-show_only_one = false;
-one_to_show = -10; // [-13:"customized_pin_holder_slide", -17:"customized wire holders", -7: "Customized pin holder", -4:"male_pin(insulation_wrap=0.75, orient=RIGHT)", -3:"Isolate insulation wrap - half closed", -2:"Isolate insulation wrap - closed", -1:" male_pin(orient=LEFT)", 0:"Selectable housing lengths for dupont connector", 1:"default dupont_connector()", 2:"dupont_connector(has_pin=true)",  4:"Custom colors for dupont connector", 7:"Male pin orientation", 10:"Female pin orientation"]
-
-delta_ = 10; // [10:10:100]
-
-/* [Lifter Design] */
-
-z_offset_handle_screw = 8; // [0:0.5: 20]
 
 
 /* [Pin Holder Customization] */
@@ -661,10 +665,13 @@ module latch_lifter(
     dy_edge = 0.8;
     y_gutter = 0.8;
     delta = d_rim -d_lifter; 
-                   
-    translate([0, 0, d_lifter/2]) {    
-        rotate([0, -lifter_angle, 0]) {
-            assembly();
+    if (orient_for_build) {
+        rotate([90, 0, 0]) translate([0, y_spring+handle.y, 0]) assembly();
+    } else {        
+        translate([0, 0, d_lifter/2]) {    
+            rotate([0, -lifter_angle, 0]) {
+                assembly();
+            }
         }
     }
 
@@ -676,8 +683,10 @@ module latch_lifter(
     }
     
     module lift_clearances() {
-        translate([0, 0, d_lifter/2 - 2]) plane_clearance(ABOVE);
-        translate([lift, 0, 0])plane_clearance(FRONT);            
+        if (!as_clearance) {
+            translate([0, 0, d_lifter/2 - 2]) plane_clearance(ABOVE);
+            translate([lift, 0, 0])plane_clearance(FRONT); 
+        }           
     }
     
     module lifter() {
@@ -710,7 +719,7 @@ module latch_lifter(
     }
 }  
 
-// ***********************************************************************************************************current
+
 
 
 module customized_pin_holder_slide() {
@@ -817,6 +826,68 @@ default_color_name_cph = "orange";
 default_color_alpha_cph = 1;  
 default_orient_for_build_cph = false;
 
+//pivot_development();
+
+
+
+//***************************************************************************************************
+module pivot_development() {
+    pivot_size = 0.5;
+    air_gap = 0.35;
+    * fake_handle(pivot_size);
+    
+    
+    // Want to use the child to generate an attachment
+    clipping_diameter = 9;
+    attachment_instructions = [
+        [ADD_HULL_ATTACHMENT, AP_BEARING, 0, clipping_diameter],
+        [ADD_HULL_ATTACHMENT, AP_TCAP, 1, clipping_diameter],
+        [ADD_HULL_ATTACHMENT, AP_LCAP, 1, clipping_diameter]
+    ];
+    * echo("attachment_instructions", attachment_instructions);
+    rotate([90, 0, 0]) {
+        pivot(pivot_size, air_gap, angle_bearing_t, angle_pin_t, attachment_instructions=attachment_instructions) {
+            fake_handle(pivot_size);
+            fake_handle(0.75*pivot_size);
+        }
+    }
+}
+
+pin_strip_clamp();
+
+module pin_strip_clamp(allowance=0.2) {
+    
+    module carve_out() {
+        hull() {
+            translate([0, 0, allowance/2]) cross_section() children();
+            translate([0, 0, -allowance/2]) cross_section() children();
+            translate([allowance/2, 0, 0]) cross_section() children();
+            translate([-allowance/2, 0, 0]) cross_section() children();
+        }    
+    }
+     
+    module cross_section() {   
+        hull() {
+            center_reflect([0, 1, 0]) {
+                translate([0, 10, 0]) { 
+                    children();
+                }
+            }
+        }
+    }
+    
+    difference() {
+        block([20, 6, 6], center=BEHIND);
+        carve_out() male_pin(strike = false, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = false, orient=FRONT);
+        carve_out() female_pin(strike = true, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = false, orient=BEHIND);
+        carve_out() female_pin(strike = false, detent = true, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = false, orient=BEHIND);
+        carve_out() female_pin(strike = false, detent = false, barrel = true, conductor_wrap = false, insulation_wrap = false, strip = false, orient=BEHIND);
+        carve_out() female_pin(strike = false, detent = false, barrel = false, conductor_wrap = 1, insulation_wrap = 1, strip = false, orient=BEHIND);
+        carve_out() female_pin(strike = false, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = true, orient=BEHIND);
+    }        
+    
+}
+
 module pin_holder(
         z_spring = default_z_spring_cph, 
         z_housing_catch = default_z_housing_catch_cph,
@@ -888,12 +959,12 @@ module pin_holder(
         if (include_post_body) {
             post_body_screw_block(as_clearance=false); 
         }
-        sized_latch_lifter(); 
+        translate(displace_latch_lifter) sized_latch_lifter(); 
     } 
     
     module sized_latch_lifter(orient_for_build=false, as_clearance = false) {
         echo("lifter_angle", lifter_angle);
-        translate(displace_latch_lifter) 
+
             latch_lifter(
                 lift = maximum_lift, 
                 y_spring = 0.6*body.y, 
@@ -908,6 +979,7 @@ module pin_holder(
        rotate([-90, 0, 0])  translate([0, -body.y/2, 0])  assembly();
        translate([20, 0, 0]) sized_latch_lifter(orient_for_build=true);
     } else {
+        echo("color_alpha", color_alpha);
         colorize(show_part_colors=show_part_colors, color_name=color_name, color_alpha=color_alpha ) {
             difference() {
                 assembly();
@@ -1005,7 +1077,7 @@ module pin_holder(
                     post_body_screw_block(as_clearance=true);
                 }
                 
-                sized_latch_lifter(as_clearance = true);
+                translate(displace_latch_lifter) sized_latch_lifter(as_clearance = true);
             }
         }
 

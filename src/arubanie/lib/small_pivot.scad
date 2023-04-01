@@ -1,3 +1,11 @@
+/* 
+
+Usage: 
+include <small_pivot.scad>
+
+
+*/
+
 use <vector_cylinder.scad>
 
 /* [Boiler Plate] */
@@ -9,7 +17,7 @@ eps = 0.001;
 
 
 /* [Show] */
-show_pivot = true;
+show_pivot = false;
 show_pivot_default_colors=false;
 show_pivot_with_weird_colors = false;
 show_pin = false;
