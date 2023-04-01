@@ -109,7 +109,7 @@ function log_verbosity_choice(choice) =
     NOTSET;
  
  
-function log_s(label, s, verbosity, level=DEBUG, important=0) = 
+function log_s(label, s, verbosity=NOTSET, level=INFO, important=0) = 
     let(
         overridden_level = max(level, important),
         style = console_styling(overridden_level), 
@@ -119,7 +119,7 @@ function log_s(label, s, verbosity, level=DEBUG, important=0) =
     undef;
     
     
-module log_s(label, s, verbosity, level=INFO, important=0) {
+module log_s(label, s, verbosity=NOTSET, level=INFO, important=0) {
     overridden_level = max(level, important);
     if (overridden_level >= verbosity) { 
         style = console_styling(overridden_level);
