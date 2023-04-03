@@ -48,6 +48,8 @@ sliding_clearance_sb = 0.4;
 base_pin_clearance_sb = 0.2;
 wall_sb = 2; // [0 : 0.5 : 4]
 
+color_alpha_sb = 1; //[0.25, 0.50, 0.75, 1.]
+
 end_of_customization() {}
 
 build(0, "strip_breaker")  
@@ -61,7 +63,8 @@ build(0, "strip_breaker")
         show_rotator = show_rotator_sb, 
         show_strip_clamp = show_strip_clamp_sb,
         show_pin_clamp = show_pin_clamp_sb, 
-        show_mocks=show_mocks_sb);   
+        show_mocks = show_mocks_sb,
+        color_alpha = color_alpha_sb);   
 
 module strip_breaker(
         wall, 
@@ -73,7 +76,8 @@ module strip_breaker(
         show_rotator = true, 
         show_strip_clamp = true,
         show_pin_clamp = true, 
-        show_mocks = true) {
+        show_mocks = true,
+        color_alpha = 1) {
     // Origin is at the bottom of the pin, between the strip and the insulation wrap, 
     // With the pin going in the positive X direction
     alot = 100;
@@ -81,7 +85,7 @@ module strip_breaker(
     od_pivot = 2 * x_pivot;
     id_pivot = 2*(x_strip_dpgn) + wall;
     y_pivot = 6; 
-    y_pin_base = 2 * ceil(x_pivot + wall);
+    y_pin_base = 2 * ceil(y_pivot + wall);
     x_pins_clearance = x_pin_to_strip_edge + x_pin_dpm + 0.5;
     z_pins_clearance = 3;
     z_strip_clearance = 0.5;
@@ -89,31 +93,100 @@ module strip_breaker(
     z_pin_clamp = od_pivot + 3;
     
     front_base = [x_pins_clearance + wall, y_pin_base, 2*(z_pins_clearance + wall)];
-    back_base = [od_pivot + wall, y_pin_base, 2*(z_pins_clearance + wall)];  
+    back_base = [od_pivot/2 + wall, y_pin_base, od_pivot+2]; 
+           
+    pin_clamp_lift = pin_clamp_is_open ? z_pins_clearance : 0; 
+            
+    dx_behind_flat = (id_pivot/2 + wall);
+            
+    if (show_mocks && !orient_for_build) {
+        rotate([0, angle, 0]) {
+            translate([dx_strip_dpgn, 0, od_barrel_dpgn/2]) male_pin(orient=BEHIND);
+        }
+    }    
+    if (orient_for_build) {
+         rotate([0, -90, 0]) {
+            translate([dx_behind_flat, 0, 0]) {
+                base(); 
+                rotator();
+            }
+        }
+        translate([20, 0, z_pin_clamp]) rotate([0, 180, 0]) pin_clamp();
+    } else {
 
-    module pin_strip_clearance() {
+        if (show_strip_clamp) {
+            strip_clamp();
+        }
+        rotate([0, angle, 0]) {
+            if (show_rotator) {
+                rotator(); 
+            } 
+            if (show_pin_clamp) {
+                translate([0, 0, pin_clamp_lift]) pin_clamp();
+            }
+        }
+        if (show_base) {
+            base(); 
+        }        
+    }            
+
+    module pin_strip_clearance(for_base = true) {
         block([x_pins_clearance, alot, z_pins_clearance], center=ABOVE+FRONT);
-        block([x_pins_clearance, 1.5, alot], center=FRONT);
         block([x_strip_dpgn, alot, z_strip_clearance], center=ABOVE+BEHIND);
+        if (for_base) {
+            block([x_pins_clearance, 1.5, alot], center=FRONT+BELOW);
+        }
     }            
             
     module base() {
-        color("red") {
-            difference() {
+        color("red", alpha=color_alpha) {
+            render(convexity=10) difference() {
                 union() {
-                    //block(strip_base);
                     block(front_base, center=FRONT);
+                    hull() {
+                        block([od_pivot/2, front_base.y, back_base.z], center=FRONT);
+                        //block([0.01, front_base.y, back_base.z], center=FRONT);
+                    }
+                    
                     block(back_base, center=BEHIND);
                 }
                 rotator(as_clearance=true, clearance = sliding_clearance);
                 pin_clamp(as_clearance = true, rotating = true);
-                pin_strip_clearance(); 
-                translate([-x_strip_dpgn/2, 0, 0]) can(d=d_pin_dpm + 2 * base_pin_clearance_sb, h=alot);
+                pin_strip_clearance();
+                strip_clamp(as_clearance=true, rotating=false);
                 
-                translate([-10, 0, 0]) plane_clearance(BEHIND);
+                
+                translate([-dx_behind_flat, 0, 0]) plane_clearance(BEHIND);
             }
         }
     }
+    module strip_clamp(as_clearance=false, rotating = true, lift = 0) {
+        module shape(lift ) {
+            translate([-x_strip_dpgn/2, 0, 0]) { 
+                rotate([0, -0, 0]) {
+                    translate([0, 0, lift])
+                        dupont_connector(center=ABOVE);
+                }
+            }            
+        }
+        //#translate([-x_strip_dpgn/2, 0, 0]) can(d=d_pin_dpm + 2 * base_pin_clearance_sb, h=alot);
+        if (as_clearance) {
+            if (rotating) {
+                hull() {
+                    shape(lift=0);
+                    rotate([0, -90, 0]) shape(lift=0);
+                    rotate([0, -135, 0]) shape(lift=0);
+                }
+            } else {
+                hull() shape(lift=0);
+            }
+        } else {
+            color("chartreuse") {
+                shape(lift=lift);
+            }
+        }
+    }
+    
     module pin_clamp(as_clearance = false, rotating = false) {
         active_clearance = as_clearance ? sliding_clearance : 0;
         module x_clamp() {
@@ -144,15 +217,17 @@ module strip_breaker(
         }
         module handle() {
             
-            od =  2*z_pin_clamp-4;
+            od =  2*z_pin_clamp;
             id = od - 8;
-            difference() {
+            render(convexity=10) difference() {
                 rod(d=od, hollow=id, l=y_pin_clamp_sb, center=SIDEWISE); 
                 plane_clearance(FRONT);
+                block([back_base.x, alot, alot], center=BEHIND+BELOW);
+                
             }
             
         }
-        color("green") {
+        color("green", alpha=color_alpha) {
             x_clamp();
             z_clamp();
             handle();
@@ -174,6 +249,7 @@ module strip_breaker(
         echo("clearance", clearance);
         x = od_pivot + 2 * clearance;
         y = y_pivot + 2*clearance;
+        
         module washer() {
             rod(d = x, l = y, hollow = id_pivot - clearance, center = SIDEWISE);
         }
@@ -181,50 +257,27 @@ module strip_breaker(
             x_holder = x_insulation_wrap_dpgn + d_pin_clamp_sb/2 + wall;
             translate([0, 0, id_pivot/2]) block ([x_holder, y, od_pivot/2 -id_pivot/2], center=ABOVE+FRONT);
         }
-        module shape() {
+        module shape(as_clearance) {
             render(convexity=10) difference() {
-                    union() {
-                        washer();
-                        // pin_clamp_holder();
-                    }
-                    pin_clamp(as_clearance = true, rotating = false);
-                    pin_strip_clearance();
-                    
-                    //translate([0, 0, -strip_base.z/2]) plane_clearance(BELOW);
+                washer();
+                if (!as_clearance) {
+                    pin_clamp(as_clearance = as_clearance, rotating = false);
+                    strip_clamp(as_clearance=true, rotating = true);
+                    pin_strip_clearance(for_base=!as_clearance);
+                    translate([-dx_behind_flat, 0, 0]) plane_clearance(BEHIND);
+                }
             }
         }
         if (as_clearance) {
-            shape();
-            
-            
+            shape(as_clearance);
         } else {
-            color("orange") {
-                shape();
+            color("orange", alpha=color_alpha) {
+                shape(as_clearance=false);
             }
         }
     }
 
-    if (show_mocks && !orient_for_build) {
-        rotate([0, angle, 0]) {
-            translate([dx_strip_dpgn, 0, od_barrel_dpgn/2]) male_pin(orient=BEHIND);
-        }
-    }    
-    if (orient_for_build) {
-        translate([0, 0, 0]) rotate([0, 0, 0]) base(); 
-        translate([0, 0, 0]) rotate([0, 0, 0]) rotator();
-        translate([0, 0, 0]) rotate([0, 0, 0]) pin_clamp();
-    } else {
-        if (show_base) {
-            base(); 
-        } 
-        rotate([0, angle, 0]) {
-            if (show_rotator) {
-                rotator(); 
-            }       
-            pin_clamp();
-        }
 
-    }
 
 }
 
@@ -255,7 +308,6 @@ module slider_fixture() {
                 translate([0, 0.5*spacing, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
                 translate([0, 1.5*spacing, 25]) rotate([0, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
             }
-//
         }  
     } 
 }
