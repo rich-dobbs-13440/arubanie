@@ -75,12 +75,7 @@ exposed_wire = 2.14;
 x_body_mpha = x_jaw/2 - dx_025_anvil +  2.54/2; //+ m4_plus_padding_width
 dx_pha = dx_025_anvil - 2.54/2;
 
-/* [Pin Strip Measurements] */    
 
-// Measure from the holes beneath the pins
-l_pin_strip = 115.1;
-pin_count = 20;
-delta_pin_strip = l_pin_strip / (pin_count -1);
 
 
 if (show_pin_crimper) { 
@@ -184,7 +179,8 @@ module pin_strip_breaker() {
 
     translate([0, 0, +gap/2]) pin_catch(pins, height, width, true, center=ABOVE);
     translate([0, 0, -gap/2]) pin_catch(pins, height, width, false, center=BELOW);
-    rotate([0, 0, -90])  translate([-dx_insulation_wrap_dpgn, 0, 0]) male_pin_holder(show_mock=true, z_spring = z_spring_dpgnh);
+    //assert(false, "Not updated");
+    //Not updated rotate([0, 0, -90])  translate([-dx_insulation_wrap_dpgn, 0, 0]) male_pin_holder(show_mock=true, z_spring = z_spring_dpgnh);
 }
 
 
@@ -202,10 +198,12 @@ module pin_catch(
     y_pin_catch = width;
     z_pin_catch = height;
     
-    d_prime = d_pin + d_pin_clearance;
+    d_prime = d_pin_dpm + d_pin_clearance;
     delta_taper = min((y_pin_catch-d_prime), z_pin_catch);  
     
     body = [(pins + 1) * delta_pin_strip, y_pin_catch, z_pin_catch];
+    echo("body", body);
+    assert(false);
     x_offset  = -body.x/2 + delta_pin_strip ;
     
     module pin_holes() {

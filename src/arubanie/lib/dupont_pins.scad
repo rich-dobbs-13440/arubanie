@@ -107,7 +107,6 @@ color_name_phs = "BurlyWood";
 show_part_colors_phs = false;
 color_alpha_phs = 1; // [0:0.1:1]
 
-//                                                    ************************************************************ Current *****************
 
 /* [Develop Pin Strip Clamp] */ 
 show_pin_strip_clamp_development = false;
@@ -242,9 +241,9 @@ x_position(-13, "customized_pin_holder_slide")
 /* [Pin Strip Measurements] */    
 
 // Measure from the holes beneath the pins
-    l_pin_strip = 115.1;
-    pin_count = 20;
-    delta_pin_strip = l_pin_strip / (pin_count -1);    
+    l_pin_strip_dps = 115.1;
+    pin_count_dps = 20;
+    delta_pin_strip_dps = l_pin_strip_dps / (pin_count_dps -1);    
 
 /* [Pin Measurements] */
 
@@ -289,7 +288,7 @@ x_position(-13, "customized_pin_holder_slide")
     z_insulation_wrap_dpgn =  2.6;
     y_insulation_wrap_bottom_dpgn = 1.58;
     x_strip_dpgn = 2.22;
-    y_strip_dpgn = delta_pin_strip;
+    y_strip_dpgn = delta_pin_strip_dps;
     z_strip_dpgn = z_metal_dpgn;
     d_strip_dpgn = 1.4;
     
@@ -301,9 +300,7 @@ x_position(-13, "customized_pin_holder_slide")
     dx_strip_hole_dpgn = dx_strip_dpgn + x_strip_dpgn/2;
     dx_center_of_detent = (dx_detent_dpgn + dx_barrel_dpgn)/2;
     
-    x_pin_to_strip_edge = dx_strip_hole_dpgn + x_strip_dpgn;
-    
-    
+    x_pin_to_strip_edge = dx_strip_hole_dpgn + x_strip_dpgn; 
     
 
 module dupont_connector(
@@ -521,6 +518,11 @@ module _generic_pin_dp(
             }
     }
  
+}
+
+module male_pin_strip(orient) {
+    male_pin(orient);
+    translate([0, delta_pin_strip_dps, 0]) male_pin(orient);
 }
 
 
