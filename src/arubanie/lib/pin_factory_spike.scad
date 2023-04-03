@@ -9,7 +9,7 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 /* [Build] */ 
 build_only_one = false;
 // Check console for description of build items!
-one_to_build = -1; // [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+one_to_build = 0; // [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 /* [Minimal Jig Customization] */
 show_mocks_mj = true;
@@ -26,9 +26,207 @@ z_cjy = 1; // [0:0.5:4]
 color_name_cjy_ = "SandyBrown"; 
 screws_cjy = true; 
 
+/* [Strip Breaker Customization] */
+orient_for_build_sb = false;
+angle_sb = 0; // [0:120]
+show_mocks_sb = true;
+show_base_sb = true; 
+show_rotator_sb = true;
+show_strip_clamp_sb = true;
+show_pin_clamp_sb = true; 
+
+pin_clamp_is_open_sb = false;
+x_pin_clamp_clearance_sb = .1;
+y_pin_clamp_sb = 1.7;
+//z_pin_clamp_sb = 15;
+d_pin_clamp_sb = 1.5;
+dz_pin_clamp_rod_sb = 2;
+l_pin_clamp_sb = 3;
+
+
+sliding_clearance_sb = 0.4;
+base_pin_clearance_sb = 0.2;
+wall_sb = 2; // [0 : 0.5 : 4]
 
 end_of_customization() {}
 
+build(0, "strip_breaker")  
+    strip_breaker(
+        wall = wall_sb,
+        sliding_clearance = sliding_clearance_sb,
+        orient_for_build= orient_for_build_sb, 
+        angle = angle_sb,
+        pin_clamp_is_open = pin_clamp_is_open_sb,
+        show_base = show_base_sb, 
+        show_rotator = show_rotator_sb, 
+        show_strip_clamp = show_strip_clamp_sb,
+        show_pin_clamp = show_pin_clamp_sb, 
+        show_mocks=show_mocks_sb);   
+
+module strip_breaker(
+        wall, 
+        sliding_clearance, 
+        orient_for_build = false, 
+        angle = 0,
+        pin_clamp_is_open = false,
+        show_base = true, 
+        show_rotator = true, 
+        show_strip_clamp = true,
+        show_pin_clamp = true, 
+        show_mocks = true) {
+    // Origin is at the bottom of the pin, between the strip and the insulation wrap, 
+    // With the pin going in the positive X direction
+    alot = 100;
+    x_pivot = (x_insulation_wrap_dpgn + x_conductor_wrap_dpgn + x_barrel_dpgn);
+    od_pivot = 2 * x_pivot;
+    id_pivot = 2*(x_strip_dpgn) + wall;
+    y_pivot = 6; 
+    y_pin_base = 2 * ceil(x_pivot + wall);
+    x_pins_clearance = x_pin_to_strip_edge + x_pin_dpm + 0.5;
+    z_pins_clearance = 3;
+    z_strip_clearance = 0.5;
+            
+    z_pin_clamp = od_pivot + 3;
+    
+    front_base = [x_pins_clearance + wall, y_pin_base, 2*(z_pins_clearance + wall)];
+    back_base = [od_pivot + wall, y_pin_base, 2*(z_pins_clearance + wall)];  
+
+    module pin_strip_clearance() {
+        block([x_pins_clearance, alot, z_pins_clearance], center=ABOVE+FRONT);
+        block([x_pins_clearance, 1.5, alot], center=FRONT);
+        block([x_strip_dpgn, alot, z_strip_clearance], center=ABOVE+BEHIND);
+    }            
+            
+    module base() {
+        color("red") {
+            difference() {
+                union() {
+                    //block(strip_base);
+                    block(front_base, center=FRONT);
+                    block(back_base, center=BEHIND);
+                }
+                rotator(as_clearance=true, clearance = sliding_clearance);
+                pin_clamp(as_clearance = true, rotating = true);
+                pin_strip_clearance(); 
+                translate([-x_strip_dpgn/2, 0, 0]) can(d=d_pin_dpm + 2 * base_pin_clearance_sb, h=alot);
+                
+                translate([-10, 0, 0]) plane_clearance(BEHIND);
+            }
+        }
+    }
+    module pin_clamp(as_clearance = false, rotating = false) {
+        active_clearance = as_clearance ? sliding_clearance : 0;
+        module x_clamp() {
+            x = d_pin_clamp_sb + 2*active_clearance;
+            y = l_pin_clamp_sb + 2*active_clearance; 
+            module lock(dz) {
+                translate([0, 0, dz_pin_clamp_rod_sb]) 
+                    rod(d=x, l=y, center=SIDEWISE);
+            }
+            module end() {
+                 translate([0, 0, z_pin_clamp]) block([x, y, 0.01], center=BELOW);
+            }
+            translate([x_insulation_wrap_dpgn, 0, 0]) {
+                hull() {
+                    lock();
+                    end();
+                }
+            }            
+        }
+        module z_clamp() {
+            clearances = 2 * [active_clearance, active_clearance, active_clearance];
+            z_clamp = [
+                x_insulation_wrap_dpgn + x_conductor_wrap_dpgn - x_pin_clamp_clearance_sb, 
+                y_pin_clamp_sb, 
+                z_pin_clamp];
+            translate([-active_clearance, 0, 0]) block(z_clamp + clearances, center=ABOVE+FRONT);
+            
+        }
+        module handle() {
+            
+            od =  2*z_pin_clamp-4;
+            id = od - 8;
+            difference() {
+                rod(d=od, hollow=id, l=y_pin_clamp_sb, center=SIDEWISE); 
+                plane_clearance(FRONT);
+            }
+            
+        }
+        color("green") {
+            x_clamp();
+            z_clamp();
+            handle();
+        }
+        if (as_clearance && rotating) {
+            hull() {
+               z_clamp(); // Original position
+               translate([0, 0, 5]) z_clamp(); // open
+               rotate([0, 90, 0]) z_clamp(); 
+               translate([0, 0, 5]) rotate([0, 90, 0]) z_clamp(); // open  
+               rotate([0, 135, 0]) z_clamp(); // Over extend to make sure strip is broken 
+            }
+        }
+    }
+    
+
+    module rotator(as_clearance=false, clearance=0) {
+        echo("as_clearance", as_clearance);
+        echo("clearance", clearance);
+        x = od_pivot + 2 * clearance;
+        y = y_pivot + 2*clearance;
+        module washer() {
+            rod(d = x, l = y, hollow = id_pivot - clearance, center = SIDEWISE);
+        }
+        module pin_clamp_holder() {
+            x_holder = x_insulation_wrap_dpgn + d_pin_clamp_sb/2 + wall;
+            translate([0, 0, id_pivot/2]) block ([x_holder, y, od_pivot/2 -id_pivot/2], center=ABOVE+FRONT);
+        }
+        module shape() {
+            render(convexity=10) difference() {
+                    union() {
+                        washer();
+                        // pin_clamp_holder();
+                    }
+                    pin_clamp(as_clearance = true, rotating = false);
+                    pin_strip_clearance();
+                    
+                    //translate([0, 0, -strip_base.z/2]) plane_clearance(BELOW);
+            }
+        }
+        if (as_clearance) {
+            shape();
+            
+            
+        } else {
+            color("orange") {
+                shape();
+            }
+        }
+    }
+
+    if (show_mocks && !orient_for_build) {
+        rotate([0, angle, 0]) {
+            translate([dx_strip_dpgn, 0, od_barrel_dpgn/2]) male_pin(orient=BEHIND);
+        }
+    }    
+    if (orient_for_build) {
+        translate([0, 0, 0]) rotate([0, 0, 0]) base(); 
+        translate([0, 0, 0]) rotate([0, 0, 0]) rotator();
+        translate([0, 0, 0]) rotate([0, 0, 0]) pin_clamp();
+    } else {
+        if (show_base) {
+            base(); 
+        } 
+        rotate([0, angle, 0]) {
+            if (show_rotator) {
+                rotator(); 
+            }       
+            pin_clamp();
+        }
+
+    }
+
+}
 
  module minimal_jig_base() { 
              
@@ -154,8 +352,8 @@ module minimal_jig(show_mocks=false, show_wire_clamp=false, orient_for_build = t
  
 
     if (orient_for_build) {
-        translate([0, 0, 0]) base();
-        translate([30, 0, -z_yoke])  center_reflect([0, 1, 0]) pivot_block(); 
+        translate([0, 0, 0]) minimal_jig_base();
+        translate([30, 0, -z_yoke_mj])  center_reflect([0, 1, 0]) pivot_block(); 
         translate([70, 0, 3]) rotate([-90, 0, 0]) basic_pin_holder();
         translate([100, 0, 3]) rotate([90, 0, 0]) basic_wire_holder();
     } else {
@@ -276,8 +474,10 @@ build(7, "pin_holder")
 build(8, "pin_holder_screws")
     translate([-2, 0, 0]) 
         pin_holder_screws(as_hole_through=true, $fn=12);
+  
+     
 
-build(0, "slider_fixture()") slider_fixture();       
+build(9, "slider_fixture()") slider_fixture();       
 
 module colorize(color_name, color_alpha, show_part_colors) {
     if (show_part_colors) {

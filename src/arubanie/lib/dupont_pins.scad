@@ -109,6 +109,15 @@ color_alpha_phs = 1; // [0:0.1:1]
 
 //                                                    ************************************************************ Current *****************
 
+/* [Develop Pin Strip Clamp] */ 
+show_pin_strip_clamp_development = false;
+show_mock_psc = false;
+allowance_psc = 0.4;
+
+/* [Develop Pivot]*/ 
+
+show_pivot_development = false;
+pivot_size = 0.5; // [
 
 module end_customization() {}
 
@@ -277,7 +286,7 @@ x_position(-13, "customized_pin_holder_slide")
     z_conductor_wrap_dpgn = 1.73;
     x_insulation_wrap_dpgn = 2.18;
     y_insulation_wrap_dpgn = 2.88;
-    z_insulation_wrap_dpgn =  2.46;
+    z_insulation_wrap_dpgn =  2.6;
     y_insulation_wrap_bottom_dpgn = 1.58;
     x_strip_dpgn = 2.22;
     y_strip_dpgn = delta_pin_strip;
@@ -402,7 +411,7 @@ module _generic_pin_dp(
         strip,
         alpha) {
             
-    echo("orient: ", orient);
+    //echo("orient: ", orient);
 
     center_orient(orient, FRONT) pin(); 
 
@@ -439,7 +448,7 @@ module _generic_pin_dp(
     // increasing in the x domain.abs
     module wing(base, tip) {
         module bottom() {
-            translate([0, base.y/2, -base.z]) rod(d=z_metal_dpgn, l=base.x); 
+            translate([0, base.y/2, -base.z]) rod(d=z_metal_dpgn, l=base.x, center=ABOVE); 
         }  
         module top() {
             translate([0, tip.y/2, tip.z]) rod(d = z_metal_dpgn, l = tip.x);                
@@ -462,11 +471,11 @@ module _generic_pin_dp(
         extent = [x_strike_dpm, y_strike_dpgn, z_strike_dpgn];
         if (is_male) {
             hull() {
-                translate([x_strike_dpm/2, 0, -z_strike_dpgn/2]) 
+                translate([x_strike_dpm/2, 0, -od_barrel_dpgn/2]) 
                     block([x_strike_dpm/2, y_strike_dpgn, z_metal_dpgn], center=ABOVE+FRONT);
                 rod(d=d_pin_dpm, l=0.01, center=FRONT);
                 block([z_metal_dpgn, z_metal_dpgn, z_metal_dpgn], center=FRONT);
-                translate([x_strike_dpm, 0, 0]) block([0.01, y_strike_dpgn, z_strike_dpgn], center=BEHIND);
+                translate([x_strike_dpm, 0, -od_barrel_dpgn/2]) block([0.01, y_strike_dpgn, z_strike_dpgn], center=BEHIND+ABOVE);
             }
         } else {
             translate([dx_detent_dpgn, 0, 0])  block([x_strike_dpf, y_strike_dpgn, z_strike_dpgn], center=BEHIND);
@@ -481,7 +490,7 @@ module _generic_pin_dp(
             z_detent_dpgn
         ];
         
-        translate([dx_detent_dpgn, 0, -y_detent_dpgn/2]) block(bottom, center=FRONT + ABOVE);
+        translate([dx_detent_dpgn, 0, -od_barrel_dpgn/2]) block(bottom, center=FRONT + ABOVE);
   
     }
     module barrel() {  
@@ -499,15 +508,15 @@ module _generic_pin_dp(
     }
     module insulation_wrap() {
         z_factor = insulation_wrap < 0.5 ? 1 : 1.5 - insulation_wrap;
-        translate([dx_insulation_wrap_dpgn, 0, 0]) 
+        translate([dx_insulation_wrap_dpgn, 0, -od_barrel_dpgn/2]) 
             wing(
-                [x_insulation_wrap_dpgn, wire_diameter, od_barrel_dpgn/2], 
-                [0, (1-insulation_wrap)*y_insulation_wrap_dpgn, z_factor*(z_insulation_wrap_dpgn - od_barrel_dpgn/2)]);         
+                [x_insulation_wrap_dpgn, wire_diameter, 0], //od_barrel_dpgn/2], 
+                [0, (1-insulation_wrap)*y_insulation_wrap_dpgn, z_factor*(z_insulation_wrap_dpgn)]);         
     } 
     module strip() {
-        translate([dx_strip_dpgn, 0, -z_insulation_wrap_dpgn/2+2*z_metal_dpgn])
+        translate([dx_strip_dpgn, 0, -od_barrel_dpgn/2]) //        -z_insulation_wrap_dpgn/2+2*z_metal_dpgn])
             difference() {
-                block([x_strip_dpgn, y_strip_dpgn, z_metal_dpgn], center=FRONT);
+                block([x_strip_dpgn, y_strip_dpgn, z_metal_dpgn], center=FRONT+ABOVE);
                 translate([x_strip_dpgn/2, 0, 0]) can(d=d_strip_dpgn, h=5);
             }
     }
@@ -826,13 +835,16 @@ default_color_name_cph = "orange";
 default_color_alpha_cph = 1;  
 default_orient_for_build_cph = false;
 
-//pivot_development();
+
+if (show_pivot_development) {
+    pivot_development(pivot_size);
+}
 
 
 
-//***************************************************************************************************
-module pivot_development() {
-    pivot_size = 0.5;
+//*************************************************************************************************** pivot_development
+module pivot_development(pivot_size = 0.5) {
+    
     air_gap = 0.35;
     * fake_handle(pivot_size);
     
@@ -845,21 +857,32 @@ module pivot_development() {
         [ADD_HULL_ATTACHMENT, AP_LCAP, 1, clipping_diameter]
     ];
     * echo("attachment_instructions", attachment_instructions);
-    rotate([90, 0, 0]) {
-        pivot(pivot_size, air_gap, angle_bearing_t, angle_pin_t, attachment_instructions=attachment_instructions) {
-            fake_handle(pivot_size);
-            fake_handle(0.75*pivot_size);
+    
+    translate([0, 0, 3])
+        rotate([90, 0, 0]) {
+            pivot(pivot_size, air_gap, angle_bearing_t, angle_pin_t, attachment_instructions=attachment_instructions) {
+                fake_handle(pivot_size);
+                fake_handle(0.75*pivot_size);
+            }
         }
+}
+
+
+
+//***************************************************************************************************   show_pin_strip_clamp_development 
+if (show_pin_strip_clamp_development) {
+    pin_strip_clamp(allowance_psc);
+    if (show_mock_psc) {
+        female_pin(conductor_wrap = 1, insulation_wrap = 1, orient=BEHIND);
     }
 }
 
-pin_strip_clamp();
-
 module pin_strip_clamp(allowance=0.2) {
     
-    module carve_out() {
+    module carve_out(extra_z=false) {
+        z_allowance = extra_z ? allowance/2 + 0.4 : allowance/2;
         hull() {
-            translate([0, 0, allowance/2]) cross_section() children();
+            translate([0, 0, z_allowance]) cross_section() children();
             translate([0, 0, -allowance/2]) cross_section() children();
             translate([allowance/2, 0, 0]) cross_section() children();
             translate([-allowance/2, 0, 0]) cross_section() children();
@@ -875,15 +898,36 @@ module pin_strip_clamp(allowance=0.2) {
             }
         }
     }
-    
+    module blank() {
+        a_lot = 10;
+        d_snap_ring = 2.50;
+        blank = [20, 6, 5];
+        handles = [6, 2, 6];
+        center_reflect([0, 0, 1]) 
+            translate([0, blank.y/2, 4])
+                difference() {
+                    block(handles, center=LEFT);
+                    rod(d=d_snap_ring, l=a_lot, center=SIDEWISE);
+                } 
+        
+        block(blank, center=BEHIND);
+    }
     difference() {
-        block([20, 6, 6], center=BEHIND);
-        carve_out() male_pin(strike = false, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = false, orient=FRONT);
-        carve_out() female_pin(strike = true, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = false, orient=BEHIND);
-        carve_out() female_pin(strike = false, detent = true, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = false, orient=BEHIND);
-        carve_out() female_pin(strike = false, detent = false, barrel = true, conductor_wrap = false, insulation_wrap = false, strip = false, orient=BEHIND);
-        carve_out() female_pin(strike = false, detent = false, barrel = false, conductor_wrap = 1, insulation_wrap = 1, strip = false, orient=BEHIND);
-        carve_out() female_pin(strike = false, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = true, orient=BEHIND);
+        blank();
+        carve_out() 
+            male_pin(strike = false, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = false, orient=FRONT);
+        carve_out() 
+            female_pin(strike = true, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = false, orient=BEHIND);
+        carve_out() 
+            female_pin(strike = false, detent = true, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = false, orient=BEHIND);
+        carve_out() 
+            female_pin(strike = false, detent = false, barrel = true, conductor_wrap = 1, insulation_wrap = false, strip = false, orient=BEHIND);
+        carve_out(extra_z=true) 
+            female_pin(strike = false, detent = false, barrel = false, conductor_wrap = 1, insulation_wrap = false, strip = false, orient=BEHIND);
+        carve_out(extra_z=true) 
+            female_pin(strike = false, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = 1, strip = false, orient=BEHIND);
+        carve_out(extra_z=true) 
+            female_pin(strike = false, detent = false, barrel = false, conductor_wrap = false, insulation_wrap = false, strip = true, orient=BEHIND);
     }        
     
 }
