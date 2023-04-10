@@ -32,16 +32,18 @@ angle_sb = 0; // [0:120]
 show_mocks_sb = true;
 show_base_sb = true; 
 show_rotator_sb = true;
-show_strip_clamp_sb = true;
+// Needs redesign!
+show_strip_clamp_sb = false;
 show_pin_clamp_sb = true; 
 
 pin_clamp_is_open_sb = false;
 x_pin_clamp_clearance_sb = .1;
-y_pin_clamp_sb = 1.7;
+// Adjust this so z clamp fits in bottom of insulator wrap
+y_pin_clamp_sb = 1.25;
 //z_pin_clamp_sb = 15;
 d_pin_clamp_sb = 1.5;
 dz_pin_clamp_rod_sb = 2;
-l_pin_clamp_sb = 3;
+l_pin_clamp_sb = 4; //3;
 
 
 sliding_clearance_sb = 0.4;
@@ -93,11 +95,11 @@ module strip_breaker(
     z_pin_clamp = od_pivot/2 + 3;
     
     front_base = [x_pins_clearance + wall, y_pin_base, z_pins_clearance + 2*wall];
-    back_base = [x_strip_dpgn + wall, y_pin_base, front_base.z]; 
+    back_base = [x_strip_dpgn + wall, y_pin_base, front_base.z+5]; 
            
     pin_clamp_lift = pin_clamp_is_open ? z_pins_clearance : 0; 
             
-    dx_behind_flat = (id_pivot/2 + wall);
+    dx_behind_flat = od_pivot/2 - 0.5;  //id_pivot/2 + wall + 2;
             
     if (show_mocks && !orient_for_build) {
         rotate([0, angle, 0]) {
@@ -141,12 +143,9 @@ module strip_breaker(
                     block(back_base, center=BEHIND+ABOVE);
                 }
                 rotator(as_clearance=true, clearance = sliding_clearance);
-                pin_clamp(as_clearance = true, rotating = true);
+                pin_clamp(as_clearance = true, for_base=true);
                 pin_strip_clearance();
-                strip_clamp(as_clearance=true, rotating=false);
-                
-                
-                translate([-dx_behind_flat, 0, 0]) plane_clearance(BEHIND);
+                //#strip_clamp(as_clearance=true, rotating=false);
             }
         }
     }
@@ -177,7 +176,8 @@ module strip_breaker(
         }
     }
     
-    module pin_clamp(as_clearance = false, rotating = false) {
+    module pin_clamp(as_clearance = false, for_base = false, for_rotator=false) {
+        
         active_clearance = as_clearance ? sliding_clearance : 0;
         y_x_clamp = l_pin_clamp_sb + 2*active_clearance; 
         z_clamp = [
@@ -205,25 +205,12 @@ module strip_breaker(
             clearances = 2 * [active_clearance, active_clearance, active_clearance];
             translate([-active_clearance, 0, 0]) block(z_clamp + clearances, center=ABOVE+FRONT);
         }
-        if (as_clearance && rotating) {
+        if (as_clearance && for_base) {
             block([z_clamp.z + z_pins_clearance + 2, y_x_clamp, alot], center=FRONT);
         }        
-//        module handle() {
-//            
-//            od =  2*z_pin_clamp;
-//            id = od - 8;
-//            render(convexity=10) difference() {
-//                rod(d=od, hollow=id, l=y_pin_clamp_sb, center=SIDEWISE); 
-//                plane_clearance(FRONT);
-//                block([back_base.x, alot, alot], center=BEHIND+BELOW);
-//                
-//            }
-//            
-//        }
         color("green", alpha=color_alpha) {
             x_clamp();
             z_clamp();
-            //handle();
         }
     }
     
@@ -245,9 +232,9 @@ module strip_breaker(
             render(convexity=10) difference() {
                 washer();
                 if (!as_clearance) {
-                    pin_clamp(as_clearance = as_clearance, rotating = false);
-                    strip_clamp(as_clearance=true, rotating = true);
-                    pin_strip_clearance(for_base=!as_clearance);
+                    pin_clamp(as_clearance = true, for_rotator=true);
+                    //strip_clamp(as_clearance=true, rotating = false);
+                    pin_strip_clearance(for_base=false);
                     translate([-dx_behind_flat, 0, 0]) plane_clearance(BEHIND);
                 }
             }
