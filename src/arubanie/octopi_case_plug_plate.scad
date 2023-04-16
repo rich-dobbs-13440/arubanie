@@ -9,7 +9,8 @@ show_mocks = true;
 build_three_prong_socket_holder_face = true;
 build_web_cam_usb_extender_face = true;
 build_printer_usb_extender_face = true;
-build_barell_pigtail_plug_holder_face = true;
+build_barrel_pigtail_plug_holder_face = true;
+build_barrel_pigtail_plug_holder_back_plate = true;
 
 allowance = 0.4;   // Combination of inaccuracy in printing and clearance to slide things together
 radius = 2;
@@ -20,14 +21,22 @@ z_pigtail_face_plate = 16;
 z_extender_face_plate = 14;
 
 z_3_prong_offset = -z_3_prong_face_plate/2;
-z_barell_pigtail_plug_offset = z_pigtail_face_plate/2;
-z_web_cam_usb_offset = z_barell_pigtail_plug_offset + z_pigtail_face_plate/2 + z_extender_face_plate/2;
+z_barrel_pigtail_plug_offset = z_pigtail_face_plate/2;
+z_web_cam_usb_offset = z_barrel_pigtail_plug_offset + z_pigtail_face_plate/2 + z_extender_face_plate/2;
 z_printer_usb_offset = z_web_cam_usb_offset + z_extender_face_plate;
 
 
 
 
 module end_of_customization() {}
+
+module plate_connection_holes(size, side_wall) {
+    center_reflect([0, 1, 0])
+        center_reflect([0, 0, 1])
+            translate([25, y_face_plate/2-side_wall.y/2, size.z/2-3]) 
+                rotate([0, 90, 0]) 
+                    hole_through("M2", $fn=12);    
+}
 
 module faceplate(size) {
     padding = [0, 4, 4];
@@ -37,16 +46,20 @@ module faceplate(size) {
             block(size + padding, center=BEHIND);
             center_reflect([0, 1, 0]) translate([0, y_face_plate/2, 0]) block(side_wall, center=BEHIND+LEFT);
         }
-        center_reflect([0, 1, 0])
-            center_reflect([0, 0, 1])
-            translate([1, y_face_plate/2-side_wall.y/2, size.z/2-3]) 
-                rotate([0, 90, 0]) hole_through("M2", $fn=12);
+        plate_connection_holes(size, side_wall);
     }
-    
-//    difference() {
-//        
-//        translate([-(x_face_plate + side_wall.x/2), 0, 0]) center_reflect([0, 1, 0]) rotate([90, 0, 0]) hole_through("M2.5");
-//    }
+}
+
+module back_plate(size) {
+    padding = [0, 4, 0];
+    side_wall = [6, 4, size.z];
+    difference() {
+        translate([-2 * side_wall.x, 0, 0]) {
+            block(size + padding, center=FRONT);
+            center_reflect([0, 1, 0]) translate([0, y_face_plate/2 + allowance, 0]) block(side_wall, center=FRONT+RIGHT);
+        }
+        plate_connection_holes(size, side_wall);
+    }  
 }
 
 module powerswitch_tail_II_socket (as_clearance=false) {
@@ -85,7 +98,7 @@ module MILAPEAK_DC_power_pigtail_cable_plug(as_clearance=false) {
         color("DarkSlateGray") {
             rod(d=8.46 + 2*al, l=2.30+al, center=BEHIND);
             translate([-2.30, 0, 0]) rod(d=10.10 + 2*al, l=5.84+al, center=BEHIND);
-            translate([-2.30-5.84, 0, 0]) rod(d=11.08+2*al, l=12.65, center=BEHIND, $fn=6);
+            translate([-2.30-5.84, 0, 0]) rod(d=11.08+2*al, l=12.65, center=BEHIND, $fn=12);
         }
     }
 }
@@ -94,8 +107,7 @@ if (show_mocks) {
     translate([0, 0, z_3_prong_offset]) powerswitch_tail_II_socket();
     translate([0, 0, z_web_cam_usb_offset]) C2G_USB_a_extension_socket();
     translate([0, 0, z_printer_usb_offset]) C2G_USB_a_extension_socket();
-    translate([0, 0, z_barell_pigtail_plug_offset]) MILAPEAK_DC_power_pigtail_cable_plug();
-    
+    translate([0, 0, z_barrel_pigtail_plug_offset]) MILAPEAK_DC_power_pigtail_cable_plug();
 }
 
 
@@ -108,7 +120,7 @@ module three_prong_socket_holder_face() {
     }
 }
 
-module barell_pigtail_plug_holder_face() {
+module barrel_pigtail_plug_holder_face() {
     difference() {
         union() {
             faceplate([x_face_plate, y_face_plate, z_pigtail_face_plate]);
@@ -116,6 +128,14 @@ module barell_pigtail_plug_holder_face() {
         }
         MILAPEAK_DC_power_pigtail_cable_plug(as_clearance=true);
     }
+}
+
+
+module barrel_pigtail_plug_holder_back_plate() {
+    difference() {
+        back_plate([x_face_plate, y_face_plate, z_pigtail_face_plate]);
+        MILAPEAK_DC_power_pigtail_cable_plug(as_clearance=true);
+    }    
 }
 
 
@@ -129,8 +149,12 @@ module usb_extender_face() {
     }      
 }
 
-if (build_barell_pigtail_plug_holder_face) {
-    translate([0, 0, z_barell_pigtail_plug_offset]) barell_pigtail_plug_holder_face();
+if (build_barrel_pigtail_plug_holder_face) {
+    translate([0, 0, z_barrel_pigtail_plug_offset]) barrel_pigtail_plug_holder_face();
+}
+
+if (build_barrel_pigtail_plug_holder_back_plate) {
+    translate([0, 0, z_barrel_pigtail_plug_offset]) barrel_pigtail_plug_holder_back_plate();
 }
 
 
