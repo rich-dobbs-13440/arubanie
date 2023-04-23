@@ -6,7 +6,8 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 use <MCAD/boxes.scad>
 
 build_rail = false;
-build_clip = true;
+build_clip = false;
+build_scissor_holder = true;
 show_mocks = true;
 test_fit = false;
 
@@ -20,6 +21,22 @@ module end_of_customization() {}
 
 tooth_brush_holder = [20.6, 31.7, 108.6];
 tooth_brush_holder_lid = [19.5, 30.4, 95.8];
+
+module scissor_holder() {
+    large_od = 25;
+    thickness = 6.1;
+    minkowski() {
+        translate([2, 0, 0])rod(d=large_od-6, l=0.5, center=FRONT, $fn=30);
+        sphere(3, $fn=30);
+    }
+    translate([0, 0, -1.5]) rod(d=large_od-3, l=thickness, center=BEHIND);
+    
+    
+}
+
+if (build_scissor_holder) {
+    scissor_holder();
+}
 
 module tooth_brush_holder(clearance=0) {
     translate([tooth_brush_holder.x/2 + 5, 0, 0]) {
@@ -75,7 +92,7 @@ if (show_mocks) {
 }
 
 if (build_rail) {
-    rail(40);  
+    rail(tooth_brush_holder.y);  
 }
 
 module tooth_brush_holder_clip() {

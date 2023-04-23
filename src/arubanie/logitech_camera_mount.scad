@@ -248,6 +248,17 @@ module top_hinge_clip(orient_for_build ) {
 }
 
 module tilt_arc_plate() {
+    difference() {       
+        hull() {
+            rod(d=8, l=wall, center=SIDEWISE);
+            translate([35, 0, 0]) rod(d=8, l=wall, center=SIDEWISE);
+        }
+        translate([0, -25, 0]) rotate([90, 0, 0]) hole_through("M3", cld=0.4, $fn=12);  
+        hull() {
+            translate([5, -25, 0]) rotate([90, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
+            translate([35, -25, 0]) rotate([90, 0, 0]) hole_through("M3", cld=0.4, $fn=12);
+        }
+    }
 }
 
 if (build_camera_clamp) {
