@@ -12,7 +12,7 @@ show_mocks = true;
 orient_for_build = true;
 build_bracket = true;
 build_shim = true;
-shim_thickness = 0; // [0: "No shim",  1.20: PEI, 1.0:"Ender Flexible", 4.0:"Ender Glass"]
+shim_thickness = 0; // [0: "No shim",  0.5: PEI, 1.0:"Ender Flexible", 4.0:"Ender Glass"]
 
 
 spring_z_uncompressed = 18.;
