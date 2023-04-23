@@ -8,22 +8,35 @@ use <MCAD/boxes.scad>
 build_rail = false;
 build_clip = true;
 show_mocks = true;
+test_fit = false;
 
 clip_z = 12;
 clip_x = 3.5;
+clearance_ = 0.2;
 
 module end_of_customization() {}
 
 
 
-tooth_brush_holder = [19.5, 30.4, 108.6];
+tooth_brush_holder = [20.6, 31.7, 108.6];
 tooth_brush_holder_lid = [19.5, 30.4, 95.8];
 
-module tooth_brush_holder() {
-    translate([tooth_brush_holder.x/2 + 5, 0, 0]) { //tooth_brush_holder.z/2]) { 
+module tooth_brush_holder(clearance=0) {
+    translate([tooth_brush_holder.x/2 + 5, 0, 0]) {
         intersection() {
-            roundedCube(tooth_brush_holder, r=tooth_brush_holder.x/2, sidesonly=true, center=true, $fn=12);
-            translate([0, 0, 5]) roundedCube(tooth_brush_holder + [0, 0, 10], r=tooth_brush_holder.y/2, sidesonly=false, center=true, $fn=12);
+            roundedCube(
+                tooth_brush_holder + 2*[clearance, clearance, clearance], 
+                r=tooth_brush_holder.x/2, 
+                sidesonly=true, 
+                center=true, 
+                $fn=30);
+            translate([0, 0, 5]) 
+                roundedCube(
+                    tooth_brush_holder + 2*[clearance, clearance, clearance] + [0, 0, 10], 
+                    r=tooth_brush_holder.y/2, 
+                    sidesonly=false, 
+                    center=true, 
+                    $fn=30);
         }
     }
 }
@@ -58,22 +71,34 @@ module clip(length) {
 }
 
 if (show_mocks) {
-    tooth_brush_holder();
+    translate([2, 0, 0]) tooth_brush_holder();
 }
 
 if (build_rail) {
     rail(40);  
 }
 
-if (build_clip) {
-    holder_holder = [tooth_brush_holder.x + 4, tooth_brush_holder.y+5, clip_z+5];
+module tooth_brush_holder_clip() {
+    holder_holder = [tooth_brush_holder.x + 7, tooth_brush_holder.y+7, clip_z+5];
     clip(tooth_brush_holder.y);
     color("green") {
         difference() {
-            //translate([clip_x, 0, 0]) block([tooth_brush_holder.x + 5, tooth_brush_holder.y+5, clip_z], center=FRONT);
             translate([clip_x + holder_holder.x/2, 0, 0]) 
-                roundedCube(holder_holder, r=3, sidesonly=false, center=true);
-            tooth_brush_holder();
+                roundedCube(holder_holder, r=3, sidesonly=false, center=true, $fn=30);
+            translate([2, 0, 0]) tooth_brush_holder(clearance=clearance_);
         }
+    }    
+}
+
+if (build_clip) {
+    if (test_fit) {
+        difference() {
+            tooth_brush_holder_clip();
+            plane_clearance(BELOW);
+            translate([0, 0, 2]) plane_clearance(ABOVE);
+        }
+    } else {
+        tooth_brush_holder_clip();
     }
+
 }
