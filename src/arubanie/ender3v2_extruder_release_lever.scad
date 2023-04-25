@@ -6,7 +6,7 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 
 show_mocks = true;
 
-cam_min_diameter = 11;
+cam_min_diameter = 10;
 cam_offset = 3;
 
 module end_of_customization() {}
@@ -28,7 +28,7 @@ module plate() {
 
 module screw_post(as_clearance=false) {
     if (as_clearance) {
-        translate([0, 0, 20]) hole_through("M4", cld  =  0.4, $fn=12); 
+        translate([0, 0, 20]) hole_through("M4", cld  =  0.5, $fn=12); 
     } else {
         color("silver") {
             translate([0, 0, -plate.z]) rotate([180, 0, 0]) screw("M4x25", $fn=12);
@@ -52,7 +52,7 @@ if (show_mocks) {
 
 module cam_handle_screw_clearance() {
    translate([5, -cam_offset-1, h_cam/2]) rotate([0, 90, 0]) {
-       nutcatch_sidecut("M3", clh=0.3);
+       nutcatch_sidecut("M3", clh=0.4);
        translate([0, 0, 42]) hole_through("M3", $fn=12);
    }
 }
@@ -69,13 +69,13 @@ module cam() {
     module cam_shape() {
         hull() {
             chamfered_can();
-            translate([0, -cam_offset, 0]) chamfered_can();
-            translate([cam_offset, -cam_offset, 0]) chamfered_can();
+            translate([0, -cam_offset/2, 0]) chamfered_can();
+            translate([cam_offset/2, -cam_offset, 0]) chamfered_can();
+            translate([1.5*cam_offset, -cam_offset, 0]) chamfered_can();
         }        
     }
     //color("green") translate([0, 0, dz_cam]) cam_handle_screw_clearance();
     color("red", alpha=1) {
-        
         difference() {
             translate([0, 0, dz_cam]) cam_shape();
             translate([0, 0, dz_cam]) cam_handle_screw_clearance();
