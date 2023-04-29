@@ -13,6 +13,7 @@ build_cam = true;
 build_servo_mount = true;
 build_mounting_plate_spacers = true;
 build_servo_gear = true;
+build_test_fit_servo = true;
 
 cam_alpha = 1; // [0.25, 1]
 
@@ -20,7 +21,7 @@ show_mocks = true;
 show_z_axis_support = true;
 show_servo = true;
 
-cam_min_diameter = 10.5;
+cam_min_diameter = 10.0;
 cam_offset = 3;
 
 z_servo_plate = 0.5; //[0.5:"Position test", 1:"Trial", 2:"Solid"]
@@ -29,8 +30,11 @@ servo_clearance = 0; //[0: "Futaba S3003", 0:"Radio Shack 2730766"]
 
 x_servo = 18; // [0: 40]
 y_servo = 4; // [-20: 20]
-z_servo = -23; // [-40: 0]
+z_servo = -24; // [-40: 0]
 
+servo_shaft_diameter = 5.78; //[5.78:"Radio Shaft Standard"]
+test_fit_height = 0.5; // [0.25, 1, 2.5, 4]
+test_fit_tolerances = [0.4, 0.5, 0.6, 0.7]; // initial: [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1],
 
 module end_of_customization() {}
 
@@ -98,7 +102,7 @@ module servo(as_clearance = false, clearance = 0) {
     translate(servo_translation) rotate([0, 0, servo_rotation]) {
         if ( as_clearance) {
             block(servo_blank + 2*[clearance, clearance, clearance]); 
-            translate([0, 10, 0]) can(d=10 + 2*clearance, h=a_lot);     
+            translate([0, 10, 0]) can(d=12 + 2*clearance, h=a_lot);     
         } else {
             translate(-servo_blank/2) futabas3003(position=[0,0,0], rotation=[0, 0, 0]);
         }
@@ -135,7 +139,7 @@ module servo_screws(as_clearance=false, as_spacers=false, orient_for_build=false
         if (as_clearance) {
             translate([0, 0, 25]) hole_through("M2.5", $fn=12);
         } else if (as_spacers) {
-            h_spacer = - z_z_axis_support - z_servo_plate -dz_top_of_servo_ears;
+            h_spacer = - z_z_axis_support - z_servo_plate - dz_top_of_servo_ears + 2;
             z_spacer = orient_for_build ? -servo_translation.z : 11;
             echo("z_spacer: ", z_spacer); 
             color("blue") {
@@ -148,16 +152,16 @@ module servo_screws(as_clearance=false, as_spacers=false, orient_for_build=false
             }
         }
     }
+    dy = orient_for_build ? 5 : 0.615 * servo_blank.y;
     translate(servo_translation) rotate([0, 0, servo_rotation]) {         
-        translate([0.25 * servo_blank.x, 0.615 * servo_blank.y, 0]) item();
-        translate([0.25 * servo_blank.x, -0.615 * servo_blank.y, 0]) item();
-        translate([-0.25 * servo_blank.x, 0.615 * servo_blank.y, 0]) item();
-        translate([-0.25 * servo_blank.x, -0.615 * servo_blank.y, 0]) item();        
+        translate([0.25 * servo_blank.x, dy, 0]) item();
+        translate([0.25 * servo_blank.x, -dy, 0]) item();
+        translate([-0.25 * servo_blank.x, dy, 0]) item();
+        translate([-0.25 * servo_blank.x, -dy, 0]) item();        
         
     }
     
 }
-
 
 
 module servo_mount_screws(as_clearance=false) {
@@ -186,12 +190,11 @@ module servo_mount_screws(as_clearance=false) {
 }
 
 
-
 module servo_mount() {
     a_lot = 100;
     color("pink"){
         render(convexity=10) difference() {
-            union() {
+            hull() {
                 translate(servo_mount_translation) 
                     block(servo_mount_blank, center=BELOW+FRONT+RIGHT);
                 translate(servo_mount_translation + [0, 0, z_servo_plate]) 
@@ -201,9 +204,7 @@ module servo_mount() {
                     rotate([0, 0, servo_rotation]) {
                         block([servo_blank.x, servo_blank.y, 2*z_servo_plate]+[0, 15, 0]);
                     }
-                }
-                //translate([0, 0, -dz_top_of_servo_ears-z_z_axis_support-z_servo_plate]) 
-                //    mounting_plate();     
+                }  
             }
 
             translate([9.5, 5, 0]) block([a_lot, a_lot, a_lot], center=RIGHT+BEHIND); 
@@ -211,22 +212,22 @@ module servo_mount() {
             translate([-plate_behind_right.x, 0, 0]) plane_clearance(BEHIND);
             servo_screws(as_clearance=true);
             servo_mount_screws(as_clearance=true);
-            //servo(as_clearance=true, clearance = 1); 
+            servo(as_clearance=true, clearance = 1); 
         }  
     } 
 }
 
 module cam_handle_screw_clearance() {
    translate([3, -cam_offset-1, h_cam/2]) rotate([0, -90, 0]) {
-       nutcatch_sidecut("M3", clh=0.4);
-       translate([0, 0, 6]) hole_through("M3", $fn=12);
+       //nutcatch_sidecut("M3", clh=0.4);
+       translate([0, 0, 6]) hole_threaded("M3", $fn=12);
    }
 }
 
 
-module cam() { 
-    module chamfered_can(chamfer_bottom=true) {
-        chamfer = 2;
+module cam(orient_for_build=false) { 
+    chamfer = 2;
+    module chamfered_can(chamfer_bottom=true) {  
         hull() {
             if (chamfer_bottom) {
                 translate([0, 0, chamfer]) {
@@ -244,50 +245,154 @@ module cam() {
     }
     module cam_shape() {
         hull() {
-            translate([0, +4, 0])chamfered_can(chamfer_bottom=false);
-            translate([2, +4, 0])chamfered_can(chamfer_bottom=false);
+            translate([0, +2, 0])chamfered_can(chamfer_bottom=false);
             translate([0, -cam_offset, 0]) chamfered_can(chamfer_bottom=false);
-            translate([1.5*cam_offset, -cam_offset, 0]) chamfered_can(chamfer_bottom=false);
+            translate([1.5, -cam_offset, 0]) chamfered_can(chamfer_bottom=false);
         }        
     }
     
     module servo_adapter() {
         can(d=cam_min_diameter, h=6, center=ABOVE);
         render(convexity=10) difference() {
-            import("resource/cam_gear_form.stl");
-            rotate([0, 0, 45]) plane_clearance(BEHIND+RIGHT);
-            rotate([0, 0, 58]) plane_clearance(BEHIND);
+            union() {
+                scale([0.92, 0.92, 1])import("resource/cam_gear_form.stl");
+                translate([0, 0, 8]) can(d=17, taper=14, h=4);
+            }
+            rotate([0, 0, 0]) plane_clearance(BEHIND+LEFT);
+            rotate([0, 0, 56]) plane_clearance(BEHIND+LEFT);
         }
           
     }
     
-    //color("green") translate([0, 0, dz_cam]) cam_handle_screw_clearance();
-    color("red", alpha=cam_alpha) {
+    module assembly() {
         render(convexity=10) difference() {
             union() {
-                translate([0, 0, dz_cam]) cam_shape();
+                translate([0, 0, dz_cam-2]) cam_shape();
                 translate([0, 0, 1])servo_adapter();
             }
-            translate([0, 0, dz_cam]) cam_handle_screw_clearance();
+            translate([0, 0, dz_cam+2]) cam_handle_screw_clearance();
             servo_mount_screws(as_clearance=true);
-        }
-    }   
+            translate([-cam_min_diameter/2, 0, 0]) plane_clearance(BEHIND);
+        }        
+    }
+    
+    if (orient_for_build) {
+         translate([0, 0, h_cam + 6])
+            rotate([180, 0, 0]) assembly();
+    } else {
+        color("red", alpha=cam_alpha) {
+            assembly();
+        } 
+    }  
 }
 
+
 module servo_gear(orient_for_build=false) {
+    tolerance = 0.5;
     module gear_form() {
-        import("resource/servo_gear_form.stl");
+        scale([0.92, 0.92, 1]) import("resource/servo_gear_form.stl");
+    }
+    module assembly() {
+        render(convexity=10) difference() {
+            union() {
+                gear_form();
+                can(d=9, h=5.8, taper=13, center=BELOW);
+                can(d=10, h=4.8, center=ABOVE);
+            }
+            // Hole for inserting servo screw
+            translate([0, 0, 1]) can(d=6, h=100, center=ABOVE);
+            // pilot hole for servo screw
+            can(d=2, h=100);
+            translate([0, 0, -7]) horn_cavity(
+                diameter=servo_shaft_diameter + 2 * tolerance,
+                height=7,
+                shim_count = 7,
+                shim_width = 1,
+                shim_length = .5); 
+        }       
     }
     if (orient_for_build) {
-        gear_form();
+        translate([0, 0, 6]) assembly();
     } else {
-        translate([x_servo, y_servo, 0]) 
-            rotate([0, 0, servo_rotation]) 
-                translate([0, 11, 0]) gear_form();
+        color("green") {
+            translate([x_servo, y_servo, 0]) {
+                rotate([0, 0, servo_rotation]) {
+                    translate([0, 10.5, 0]) {
+                        assembly();
+                    }
+                }
+            }
+        }
     }
-    
-    
 }
+
+
+module horn_goldilocks_array(
+        plot = 10,
+        shim_counts = [0, 3, 6]) {
+    difference() {
+        cube([
+            plot * len(test_fit_tolerances),
+            plot * len(shim_counts),
+            test_fit_height
+        ]);
+
+        for (i_tolerance = [0 : len(test_fit_tolerances) - 1]) {
+            for (i_shim_count = [0 : len(shim_counts) - 1]) {
+                translate([
+                    i_tolerance * plot + plot / 2,
+                    i_shim_count * plot + plot / 2,
+                    0
+                ]) {
+                    // So now we have X and Y as tolerances[i_tolerance] and
+                    // shim_counts[i_shim_count], and they can be used to make
+                    // each individual test.
+                    // Here, for example, they're passed as arguments to an
+                    // external cavity() module.
+                    translate([0, 0, -1]) horn_cavity(
+                        diameter = servo_shaft_diameter
+                            + test_fit_tolerances[i_tolerance] * 2,
+                        shim_count = shim_counts[i_shim_count],
+                        height = test_fit_height + 10
+                    );
+                }
+            }
+        }
+    }
+}
+
+
+module horn_cavity(
+    diameter,
+    height,
+    shim_count = 3,
+    shim_width = 1,
+    shim_length = .5,
+) {
+    e = .005678;
+
+    difference() {
+        cylinder(
+            h = height,
+            d = diameter
+        );
+
+        if (shim_count > 0) {
+            for (i = [0 : shim_count - 1]) {
+                rotate([0, 0, i * 360 / shim_count]) {
+                    translate([
+                        shim_width / -2,
+                        diameter / 2 - shim_length,
+                        -e
+                    ]) {
+                        cube([shim_width, shim_length, height + e * 2]);
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 if (build_servo_gear) {
     if (orient_for_build) {
@@ -300,27 +405,21 @@ if (build_servo_gear) {
 
 if (build_cam) {
     if (orient_for_build) {
-        translate([0, -30, -1]) cam();
+        translate([0, -30, 0]) cam(orient_for_build=true);
     } else {
         cam();
     }
 }
 
+
 if (build_servo_mount) {
     if (orient_for_build) {
-        translate([40,0, z_z_axis_support + z_servo_plate]) servo_mount();
+        translate([20,0, z_z_axis_support + z_servo_plate]) servo_mount();
     } else {
         servo_mount();
     }
 }
 
-//if (build_mounting_plate) {
-//    if (orient_for_build) { 
-//        translate([-7, 20, -dz_top_of_servo_ears]) mounting_plate();
-//    } else {
-//        mounting_plate();
-//    }
-//}
 
 if (build_mounting_plate_spacers) {
     if (orient_for_build) { 
@@ -330,4 +429,8 @@ if (build_mounting_plate_spacers) {
     }
 }
 
+
+if (build_test_fit_servo) {
+    translate([-50, -70, 0]) horn_goldilocks_array();
+}
 
