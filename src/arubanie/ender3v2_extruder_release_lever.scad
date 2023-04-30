@@ -296,6 +296,7 @@ module servo_gear(orient_for_build=false) {
         render(convexity=10) difference() {
             union() {
                 gear_form();
+                can(d=11, h=5.8, center=BELOW);
                 can(d=9, h=5.8, taper=13, center=BELOW);
                 can(d=10, h=4.8, center=ABOVE);
             }
