@@ -25,6 +25,9 @@ build_servo_gear = true;
 
 
 cam_alpha = 1; // [0.25, 1]
+d_cam_clearance = 19; // [5: 0.5: 20]
+d_extruder_gear_clearance = 22; // [5: 0.5: 25]
+d_idler_gear_clearance = 18; // [1: 0.5: 30]
 
 show_mocks = true;
 show_z_axis_support = true;
@@ -58,6 +61,7 @@ spring_arm_end_diameter = 11.76;
 spring_arm_end = [12.55-spring_arm_end_diameter/2, spring_arm_end_diameter, z_spring_arm];
 
 
+
 M4_nut_thickness = 3.2;
 M4_washer_thickness = 0.5;
 
@@ -72,9 +76,15 @@ servo_translation = [x_servo, y_servo, z_servo];
 dz_top_of_servo_ears = z_servo + 11;
 echo("dz_top_of_servo_ears", dz_top_of_servo_ears);
 
-dx_extruder_base = 5;
+
 
 dz_spring_arm = bottom_of_plate_to_top_of_spring_arm - z_z_axis_support;
+
+stepper_translation = [-21-6, 5, 0];
+idler_translation = [-24, 20, 0];
+
+z_extruder_base = dz_spring_arm - z_spring_arm;
+dx_extruder_base = 5;
 
 dz_cam = bottom_of_plate_to_top_of_spring_arm - z_spring_arm - z_z_axis_support + 2;  
 echo("dz_cam", dz_cam);
@@ -105,54 +115,61 @@ module z_axis_support() {
 }
 
 
-module spring_arm(as_clearance=false, clearance=0.2) {
-    dz = as_clearance ? 5 : dz_spring_arm;
-    
+module spring_arm(as_clearance=false, clearance=0.2) {    
     effective_clearance = as_clearance ? clearance : 0;
-    color("brown") translate([-dx_extruder_base+1 + effective_clearance, 0, dz]) {
-        block([9.29, 24, z_spring_arm], center=BELOW+BEHIND+RIGHT);
-        translate([0, 24, 0]) {
-            can(d = spring_arm_end_diameter + 2 * effective_clearance, h = z_spring_arm, center=BEHIND+BELOW);
-            translate([-spring_arm_end_diameter/2, 0, 0]) block(spring_arm_end + [clearance, clearance, clearance], center=BEHIND+BELOW);
+    y_end = 24 + spring_arm_end_diameter/2;
+    
+    module profile(x, dx, dy) {
+        translate([-dx, y_end-dy, 0]) 
+            block([x, 0.1, z_spring_arm] + [2*clearance, 0, clearance], center=BEHIND+ABOVE); 
+    }
+    module shape() {
+        hull() {
+            translate([0, y_end, 0]) 
+                        can(d = spring_arm_end_diameter + 2 * effective_clearance, h = z_spring_arm, center=BEHIND+ABOVE+LEFT);
+            profile(spring_arm_end.x, spring_arm_end_diameter/2, 0);
+            profile(12.71, 0, 10.33);
         }
         hull() {
-            block([9.29, 10, z_spring_arm], center=BELOW+BEHIND+LEFT);
-            translate([-1.2, 0, 0]) block([8.15, 12, z_spring_arm], center=BELOW+BEHIND+LEFT);
+            profile(12.71, 0, 10.33);
+            profile(13.66, 0, 13.22);
+            profile(13.66, 0, 16.69);
+            profile(8.91, 0, 22.58);
         }
-        translate([-1.5, 0, 0]) block([8.15, 25, z_spring_arm], center=BELOW+BEHIND+LEFT);
-    }
-}
-
-
-module filament_clip(orient_for_build=false) {
-    clip_height = 4;
-    wall = 2;
-    end_clip = [spring_arm_end.x + spring_arm_end_diameter/2, spring_arm_end.y, clip_height] + [2*wall, 0, 0];
-    front_clip = [spring_arm_end_diameter/2, 15, clip_height];
-    dz = orient_for_build ? z_spring_arm/2+wall : z_spring_arm;
-    rotation = orient_for_build ? [180, 0, 0] : [0, 0, 0];
-    translate([-0.2, 0, dz]) rotate(rotation) {
-        difference() {
-            translate([-dx_extruder_base+1+wall, 24+wall, z_spring_arm/2+wall]) {
-                block(end_clip, center=BELOW+BEHIND);
-                block(front_clip, center=BELOW+BEHIND+LEFT);  
-            }
-            spring_arm(as_clearance=true, clearance=0.2); 
+        hull() {
+            profile(8.91, 0, 22.58);
+            profile(8.91, 0, 31.87);
+        }
+        hull() {
+            profile(8.91, 0, 31.87);
+            profile(8.24, 2.45, 34.18);
+            profile(8.24, 2.45, 41.92);
+        }
+        hull() {
+            profile(8.24, 2.45, 41.92); 
+            profile(8.24, 2.45, 49.70);
+            translate([-8.24-2.45, y_end-49.70, z_spring_arm/2]) rotate([0, 90, 0]) cylinder(d=z_spring_arm, h=8.24);
+            
         }
     }
+    color("brown") 
+        translate([-dx_extruder_base+1 + effective_clearance, 0, z_extruder_base]) 
+            shape();
 }
+
 
 
 
 module extruder_base() {
     color("chocolate") 
         translate([-dx_extruder_base, -16, 0]) 
-            block([42, 42, dz_spring_arm - z_spring_arm], center=ABOVE+BEHIND+RIGHT);
+            block([42, 42, z_extruder_base], center=ABOVE+BEHIND+RIGHT);
 }
 
 
 module stepper() {
-    translate([-21-6, 5, 0]) 
+    
+    translate(stepper_translation) 
         rotate([180, 0, 0]) 
             motor(Nema17, NemaMedium, dualAxis=false);
 }
@@ -330,7 +347,6 @@ module filament_guide_screws(as_clearance=false) {
     translate([20, 18, 0]) item();
 }
 
-// ***************************************************************************************************
 
 module filament_guide(orient_for_build=false) {
     z_filament_entrance = 9;
@@ -352,11 +368,56 @@ module filament_guide(orient_for_build=false) {
     } else {
         color("violet") located_shape();
     }
-    
 }
 
 
-
+module filament_clip(orient_for_build=false) {
+    clip_height = 7.5; //10;
+    wall = 2;
+    clip = [12.71, 22.58, clip_height] + 2*[wall, wall, 0];
+    dz = z_extruder_base + z_spring_arm + wall;
+    //rotation = orient_for_build ? [180, 0, 0] : [0, 0, 0];
+    //rotate(rotation) {
+    a_lot = 100;
+    module cam_clearance() {
+        translate([0, 4, 0]) can(d=d_cam_clearance, h=a_lot);
+    }
+    module extruder_gear_clearance() {
+        translate(stepper_translation) {
+            can(d=d_extruder_gear_clearance, h=a_lot);
+        }
+    }
+    module idler_gear_clearance() {
+        translate(idler_translation) {
+            can(d=d_idler_gear_clearance, h=a_lot);
+        }
+    }
+    module filament_clearance() {
+        filament_clearance = 2;
+        translate([0, 15, z_extruder_base + 5.31]) 
+            rotate([0, 90, 0]) 
+                can(d=1.75 + filament_clearance, h=10);
+    }
+    
+    module shape() {
+        difference() {
+            translate([-dx_extruder_base+1+wall, 5, dz])
+                block(clip, center=BELOW+BEHIND+RIGHT);
+            spring_arm(as_clearance=true, clearance=0.2); 
+            cam_clearance();
+            extruder_gear_clearance();
+            idler_gear_clearance();
+            filament_clearance();
+        }
+    }
+    if (orient_for_build) {
+        rotate([180, 0, 0]) 
+            translate([0, 0, -dz]) 
+                shape();
+    } else { 
+        color("magenta") shape();
+    }
+}
 
 module servo_mount() {
     a_lot = 100;
@@ -419,7 +480,6 @@ module cam(orient_for_build=false) {
                     can(d=cam_min_diameter, h=h_cam, center=BELOW);
                     can(d=cam_min_diameter-chamfer, h=chamfer, center=ABOVE);
                 }
-                
             }
         }
     }
@@ -430,7 +490,6 @@ module cam(orient_for_build=false) {
             translate([1.5, -cam_offset, 0]) chamfered_can(chamfer_bottom=false);
         }        
     }
-    
     module servo_adapter() {
         can(d=cam_min_diameter, h=6, center=ABOVE);
         render(convexity=10) difference() {
@@ -443,7 +502,6 @@ module cam(orient_for_build=false) {
         }
           
     }
-    
     module assembly() {
         render(convexity=10) difference() {
             union() {
@@ -455,7 +513,6 @@ module cam(orient_for_build=false) {
             translate([-cam_min_diameter/2, 0, 0]) plane_clearance(BEHIND);
         }        
     }
-    
     if (orient_for_build) {
          translate([0, 0, h_cam + 6])
             rotate([180, 0, 0]) assembly();
