@@ -25,8 +25,8 @@ build_servo_gear = true;
 
 
 cam_alpha = 1; // [0.25, 1]
-d_cam_clearance = 19; // [5: 0.5: 20]
-d_extruder_gear_clearance = 22; // [5: 0.5: 25]
+d_cam_clearance = 22.0; // [5: 0.5: 20]
+d_extruder_gear_clearance = 22.5; // [5: 0.5: 25]
 d_idler_gear_clearance = 18; // [1: 0.5: 30]
 
 show_mocks = true;
@@ -93,7 +93,7 @@ h_cam = bottom_of_plate_to_top_of_spring_arm - z_z_axis_support - dz_cam;
 
 od_ptfe_tubing = 4.05;
 
-z_axis_translation = [(7.9+4.7)/2-2.5, (23.2+11.4)/2, 0];
+z_axis_translation = [(7.9+4.7)/2-2.5, (23.2+11.4)/2+2, 0];
 z_axis_bearing_extent = [8, 24, 5];
 od_z_axis_bearing = 11;
 
@@ -372,15 +372,16 @@ module filament_guide(orient_for_build=false) {
 
 
 module filament_clip(orient_for_build=false) {
-    clip_height = 7.5; //10;
+    clip_height = z_spring_arm ;
     wall = 2;
     clip = [12.71, 22.58, clip_height] + 2*[wall, wall, 0];
     dz = z_extruder_base + z_spring_arm + wall;
     //rotation = orient_for_build ? [180, 0, 0] : [0, 0, 0];
     //rotate(rotation) {
     a_lot = 100;
+    entrance = [10, 10, wall+clip_height-1.1];
     module cam_clearance() {
-        translate([0, 4, 0]) can(d=d_cam_clearance, h=a_lot);
+        translate([0, 0, 0]) can(d=d_cam_clearance, h=a_lot);
     }
     module extruder_gear_clearance() {
         translate(stepper_translation) {
@@ -392,22 +393,26 @@ module filament_clip(orient_for_build=false) {
             can(d=d_idler_gear_clearance, h=a_lot);
         }
     }
-    module filament_clearance() {
-        filament_clearance = 2;
-        translate([0, 15, z_extruder_base + 5.31]) 
+    module entrance_clearance() {
+        translate([6., 14., z_extruder_base + 5.31]) 
             rotate([0, 90, 0]) 
-                can(d=1.75 + filament_clearance, h=10);
+                can(d=2.5, taper=14.8, h=20);
     }
     
     module shape() {
         difference() {
-            translate([-dx_extruder_base+1+wall, 5, dz])
-                block(clip, center=BELOW+BEHIND+RIGHT);
+            union() {
+                translate([-dx_extruder_base+1+wall, 5, dz]) 
+                    block(clip, center=BELOW+BEHIND+RIGHT);
+                translate([-dx_extruder_base+1+wall, 8, dz])
+                    block(entrance, center=BELOW+FRONT+RIGHT);
+            }
             spring_arm(as_clearance=true, clearance=0.2); 
             cam_clearance();
             extruder_gear_clearance();
             idler_gear_clearance();
-            filament_clearance();
+            z_axis_threaded_rod(as_clearance=true, clearance=1);
+            entrance_clearance();
         }
     }
     if (orient_for_build) {
@@ -634,7 +639,7 @@ module horn_cavity(
 
 if (build_servo_gear) {
     if (orient_for_build) {
-       translate([-15, -30, 0]) servo_gear(orient_for_build=true); 
+       translate([-15, -25, 0]) servo_gear(orient_for_build=true); 
     } else {
        servo_gear(orient_for_build=false);
     }
@@ -643,7 +648,7 @@ if (build_servo_gear) {
 
 if (build_cam) {
     if (orient_for_build) {
-        translate([0, -30, 0]) cam(orient_for_build=true);
+        translate([0, -25, 0]) cam(orient_for_build=true);
     } else {
         cam();
     }
@@ -661,7 +666,7 @@ if (build_servo_mount) {
 
 if (build_mounting_plate_spacers) {
     if (orient_for_build) { 
-        translate([-12, 15, 0]) servo_screws(as_spacers=true, orient_for_build=true);
+        translate([-12, 40, 0]) servo_screws(as_spacers=true, orient_for_build=true);
     } else {
         servo_screws(as_spacers=true);
     }
@@ -670,7 +675,7 @@ if (build_mounting_plate_spacers) {
 
 if (build_filament_guide) {
     if (orient_for_build) {
-        translate([0, -10, 0]) filament_guide(orient_for_build=true);
+        translate([-5, 20, 0]) filament_guide(orient_for_build=true);
     } else {
         filament_guide();
     }
@@ -679,7 +684,7 @@ if (build_filament_guide) {
 
 if (build_filament_clip) {
     if (orient_for_build) {
-        translate([0, 15, 0]) filament_clip(orient_for_build=true);
+        translate([10, 40, 0]) filament_clip(orient_for_build=true);
     } else {
         filament_clip();
     }
