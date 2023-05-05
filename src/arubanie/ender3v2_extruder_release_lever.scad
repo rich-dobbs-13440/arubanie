@@ -11,23 +11,21 @@ use <lib/ptfe_tubing.scad>
 orient_for_build = false;
 
 
-build_drill_guide = true;
-build_test_fit_servo = true;
-
-build_filament_guide = false;
+build_filament_guide_faceplate = true;
+build_filament_guide = true;
 build_filament_clip = true;
-
-
 build_cam = true;
 build_servo_mount = true;
 build_mounting_plate_spacers = true;
 build_servo_gear = true;
+build_drill_guide = true;
+build_test_fit_servo = true;
 
 
 cam_alpha = 1; // [0.25, 1]
-d_cam_clearance = 22.0; // [5: 0.5: 20]
+d_cam_clearance = 24.0; // [5: 0.5: 20]
 d_extruder_gear_clearance = 22.5; // [5: 0.5: 25]
-d_idler_gear_clearance = 18; // [1: 0.5: 30]
+d_idler_gear_clearance = 19; // [1: 0.5: 30]
 
 show_mocks = true;
 show_z_axis_support = true;
@@ -36,7 +34,7 @@ show_servo = true;
 cam_min_diameter = 9.5;
 cam_offset = 3;
 
-z_servo_plate = 0.5; //[0.5:"Position test", 1:"Trial", 2:"Solid"]
+z_servo_plate = 2.5; //[0.5:"Position test", 1:"Trial", 2:"Solid", 2.5:"Flush"]
 
 servo_clearance = 0; //[0: "Futaba S3003", 0:"Radio Shack 2730766"]
 
@@ -81,7 +79,11 @@ idler_translation = [-24, 20, 0];
 z_extruder_base = dz_spring_arm - z_spring_arm;
 dx_extruder_base = 5;
 
+filament_guide_translation = [20, 12, 0];
 filament_entrance_translation = [-4, 14., z_extruder_base + 5.31];
+
+l_filament_entrance = 23;
+multiplex_translation = filament_entrance_translation + [l_filament_entrance-1, 0, 0];
 
 dz_cam = bottom_of_plate_to_top_of_spring_arm - z_spring_arm - z_z_axis_support + 2;  
 echo("dz_cam", dz_cam);
@@ -336,7 +338,7 @@ module filament_guide_screws(as_clearance=false) {
                         screw("M2.5x20",  $fn=12);
                     }
                 }
-                nut("M2.5");
+                translate([0, 0, 2]) nut("M2.5");
             }
         }
     }
@@ -344,32 +346,96 @@ module filament_guide_screws(as_clearance=false) {
     translate([20, 18, 0]) item();
 }
 
+module multiplex_clearance() {
+    translate(multiplex_translation) 
+        rotate([0, -90, 0]) 
+            can(d=20, taper=2.0, h=21, center=BELOW);
+}
+
+
+module multiplex_entrance_guide() {
+    module entrance() {
+        block([0.1, 2*multiplex_translation.z, 2*multiplex_translation.z], center = FRONT);
+    }
+    translate(multiplex_translation-filament_guide_translation) {
+        hull() {
+            block([0.1, 5, 5], center = FRONT);
+            translate([15, 0, 0]) entrance();
+            translate([19, 0, 0]) entrance();
+        }
+    }
+    
+}
+
 
 module filament_guide(orient_for_build=false) {
     z_filament_entrance = 9.5;
-    guide = [15, 20, 20];
-    translation = [20, 12, 0];
+    screw_block = [5, 20, 15];
+    entrance_guide = [8, 7, 13];
+
+    
+
     module located_shape() {
         difference() {
-            translate(translation) {
-                block(guide, center=ABOVE);
+            translate(filament_guide_translation) {
+                block(screw_block, center=ABOVE);
+                translate([-1, 2, 0]) block(entrance_guide, center=ABOVE+BEHIND);
+                multiplex_entrance_guide();
             }
             filament_guide_screws(as_clearance=true);
             z_axis_bearing(as_clearance=true);
             z_axis_threaded_rod(as_clearance=true, clearance=0.3);
-            translate(filament_entrance_translation)
-                for (az = [-10, 0]) {
-                    for (ay = [-10, 0, 10]) {
-                        rotate([0, ay, az]) 
-                            ptfe_tubing(od=4, as_clearance=true, center=FRONT, l=40);
-                    }
-                }
+            translate(filament_entrance_translation) {
+                ptfe_tubing(od=4, as_clearance=true, center=FRONT, l=l_filament_entrance);
+            }
+            multiplex_clearance();
         }
     }
     if (orient_for_build) {
-        translate(-translation) located_shape();
+        translate(-filament_guide_translation) located_shape();
     } else {
         color("violet") located_shape();
+    }
+}
+
+module filament_guide_faceplate(orient_for_build=false) {
+    wall = 2;
+    clip = [5, 2*multiplex_translation.z, 2*multiplex_translation.z] + 2* [wall, wall, -2];
+    module clip() {
+        difference() {
+            translate(multiplex_translation + [20, 0,-2]) {
+                block(clip , center=BEHIND);
+            }
+            filament_guide(orient_for_build=false);
+            translate([-0.2, 0, 0]) multiplex_clearance();
+        }
+    }
+    module ptfe_sockets() {
+        difference() {
+            translate(multiplex_translation + [20, 0, -2]) {        
+                block([6, clip.y, 2*multiplex_translation.z + 5] , center=FRONT);
+            }
+            plane_clearance(BELOW);
+            for (az = [-15, -5, 5, 15]) {
+                for (ay = [-15, -5, 5, 15]) {
+                    translate(multiplex_translation) {
+                        rotate([0, ay, az]) {
+                            translate([22, 0, 0])
+                            ptfe_tubing(od=4, as_clearance=true, center=FRONT, l=100); 
+                        }
+                    }
+                }
+            }      
+        }
+    }
+    if (orient_for_build) {
+        clip();
+        ptfe_sockets();
+    } else {
+        color("aquamarine") {
+            clip();
+            ptfe_sockets();
+        }
     }
 }
 
@@ -382,9 +448,9 @@ module filament_clip(orient_for_build=false) {
     //rotation = orient_for_build ? [180, 0, 0] : [0, 0, 0];
     //rotate(rotation) {
     a_lot = 100;
-    entrance = [7, 10, wall+clip_height-1.1];
+    entrance = [4, 6, clip.z];
     module cam_clearance() {
-        translate([0, 0, 0]) can(d=d_cam_clearance, h=a_lot);
+        translate([3, 0, 0]) can(d=d_cam_clearance, h=a_lot);
     }
     module extruder_gear_clearance() {
         translate(stepper_translation) {
@@ -407,7 +473,7 @@ module filament_clip(orient_for_build=false) {
             union() {
                 translate([-dx_extruder_base+1+wall, 5, dz]) 
                     block(clip, center=BELOW+BEHIND+RIGHT);
-                translate([-dx_extruder_base+1+wall, 8, dz])
+                translate([-dx_extruder_base+1+wall, 11., dz])
                     block(entrance, center=BELOW+FRONT+RIGHT);
             }
             spring_arm(as_clearance=true, clearance=0.2); 
@@ -682,6 +748,15 @@ if (build_filament_guide) {
     } else {
         filament_guide();
     }
+}
+
+if (build_filament_guide_faceplate) {
+    if (orient_for_build) {
+        translate([0, 0, 0]) filament_guide_faceplate(orient_for_build=true);
+    } else {
+        filament_guide_faceplate();
+    }
+    
 }
 
 
