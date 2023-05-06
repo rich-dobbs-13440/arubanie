@@ -12,6 +12,8 @@ use <lib/ptfe_tubing.scad>
 orient_for_build = false;
 
 build_filament_actuator = true;
+build_filament_actuator_body = true;
+build_filament_actuator_packing_gland_face = true;
 build_filament_guide_faceplate = true;
 build_filament_guide = true;
 build_filament_clip = true;
@@ -58,7 +60,7 @@ cam_offset = 3;
 x_actuator = 100;
 z_actuator = 100;
 
-clamp_opening = 0.5; // [0.25, 0.5, 0.75, 1]
+
 
 module end_of_customization() {}
 
@@ -723,128 +725,12 @@ module horn_cavity(
     }
 }
 
-module filament_actuator(orient_for_build=false) {
-    a_lot = 1000;
-    actuator_range_of_motion = 50;
-    filament_diameter = 1.75;
-    filament_clearance = 0.5;
-    slot_width = 3; // For an M3 nut to ride include
-    strut_width = 3;
-    clamp_thickness = 2;
-    traveller_length = 10;
-    traveler_engagement = 1;
-    traveler_clearance = 0.4;
-    x = 2 * strut_width + filament_diameter + 2 * clamp_thickness; 
-    y = actuator_range_of_motion + traveller_length;
-    z = 2 * strut_width + slot_width + filament_diameter + 2*filament_clearance + 2 * traveler_engagement;    
-    dz_slot = strut_width + slot_width/2 + traveler_engagement + traveler_clearance;
-    module traveler_clearance() {
-        z_traveler = z - 2 * strut_width - 2*traveler_clearance;
-        translate([0, 0, strut_width]) block([slot_width+5, a_lot, z_traveler], center=ABOVE); 
-    }
-    module filament_clearance() {
-        translate([0, 0, dz_slot + slot_width/2 + filament_clearance + filament_diameter/2]) rotate([90, 0, 0]) can(d=2.5, h=200);
-    }
-    
-    module slot_hole() {
-        rotate([0, 90, 0]) translate([0, 0, 25]) hole_through("M3", cld=0.4, $fn=12);
-    }
-    module slot_clearance() {
-        translate([0, 0, dz_slot]) { 
-            hull() {
-                slot_hole();
-                translate([0, a_lot, 0]) slot_hole();
-            } 
-        }        
-    }
-    module clamp_hole() {
-        translate([0, 0, 25]) hole_through("M2", cld=0.4, $fn=12);
-    }    
-    module clamp_slot_clearance(clamp_opening, transition) {
-        translate([0, 0, dz_slot]) { 
-            center_reflect([1, 0, 0]) {            
-                if (transition > 0) {
-                    hull() {
-                        translate([2, 0, 0]) clamp_hole();
-                        translate([2 + clamp_opening, transition, 0]) clamp_hole();
-                    }
-                }            
-                translate([2 + clamp_opening, transition, 0]) {
-                    hull() {
-                        clamp_hole();
-                        translate([0, a_lot, 0]) clamp_hole();
-                    } 
-                }
-            }
-        }        
-    }    
 
-    module slot_block(length, clamp_opening, transition) {
-        slot_block = [x, length, z];
-        difference() {
-            block(slot_block, center = ABOVE+RIGHT);
-            slot_clearance();
-            clamp_slot_clearance(clamp_opening, transition);
-            traveler_clearance();
-            filament_clearance();       
-        }
-    }
-    
-    module end_block() {
-        difference() {
-            block([x, 5, z], center=ABOVE+RIGHT);
-            filament_clearance();  
-        }
-        
-    }
-
-    
-    module shape() { 
-        center_reflect([0, 1, 0]) {
-            slot_block(length=actuator_range_of_motion/2, clamp_opening=0, transition=0);
-            translate([0, actuator_range_of_motion/2, 0]) slot_block(length=traveller_length + 3, clamp_opening=1, transition=3);
-            translate([0, actuator_range_of_motion/2 + traveller_length + 3, 0]) end_block();
-        }
-    }
-    if (orient_for_build) { 
-        // Split in half for printing in two pieces
-        translate([0, 0, 0]) rotate([0, 0, 0]) {
-            difference() {
-                shape();
-                translate([0, 0, dz_slot]) plane_clearance(ABOVE);
-            }
-        }
-        translate([x + 5, 0, z]) rotate([0, 180, 0]) {
-            difference() {
-                shape();
-                translate([0, 0, dz_slot]) plane_clearance(BELOW);
-            }
-        }
-        
-    } else {    
-        color("teal") translate([x_actuator, y_actuator, z_actuator]) rotate([90, 0, 0]) shape();
-    }
-    
-    
-
-
-//        slot_block(top_half=false, bottom_half=true);
-//        translate([20, 0, z]) rotate([0, 180, 0]) slot_block(clamp_opening = 0, top_half=true, bottom_half=false);
-//    }    
-    //   , top_half=true, bottom_half=true)
-//                if (!top_half) {
-//                translate([0, 0, dz_slot]) plane_clearance(ABOVE);
-//            } 
-//            if (!bottom_half) {
-//                translate([0, 0, dz_slot]) plane_clearance(BELOW);
-//            } 
- 
-}
 
 
 if (build_servo_gear) {
     if (orient_for_build) {
-       translate([-15, -25, 0]) servo_gear(orient_for_build=true); 
+       translate([-15, -28, 0]) servo_gear(orient_for_build=true); 
     } else {
        servo_gear(orient_for_build=false);
     }
@@ -906,7 +792,11 @@ if (build_filament_clip) {
 
 if (build_filament_actuator) {
     if (orient_for_build) {
-        translate([60, 0, 0]) filament_actuator(orient_for_build=true);
+        translate([60, 0, 0]) 
+            filament_actuator(
+                orient_for_build=true, 
+                build_body=build_filament_actuator_body, 
+                build_packing_gland_face = build_filament_actuator_packing_gland_face);
     } else {
         filament_actuator();
     }
@@ -915,7 +805,7 @@ if (build_filament_actuator) {
 
 if (build_drill_guide) {
     if (orient_for_build) { 
-        translate([-28, 15, 0]) drill_guide(orient_for_build=true);
+        translate([-18, -70, 0]) drill_guide(orient_for_build=true);
     } else {
         drill_guide();
     }     
@@ -923,6 +813,6 @@ if (build_drill_guide) {
 
 
 if (build_test_fit_servo) {
-    translate([-20, -70, 0]) horn_goldilocks_array();
+    translate([0, -70, 0]) horn_goldilocks_array();
 }
 
