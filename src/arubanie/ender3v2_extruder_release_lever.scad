@@ -790,17 +790,7 @@ if (build_filament_clip) {
     }
 }
 
-if (build_filament_actuator) {
-    if (orient_for_build) {
-        translate([60, 0, 0]) 
-            filament_actuator(
-                orient_for_build=true, 
-                build_body=build_filament_actuator_body, 
-                build_packing_gland_face = build_filament_actuator_packing_gland_face);
-    } else {
-        filament_actuator();
-    }
-}
+
 
 
 if (build_drill_guide) {
