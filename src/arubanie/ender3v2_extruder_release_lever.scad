@@ -11,9 +11,7 @@ use <lib/ptfe_tubing.scad>
 /* [Output Control] */
 orient_for_build = false;
 
-build_filament_actuator = true;
-build_filament_actuator_body = true;
-build_filament_actuator_packing_gland_face = true;
+
 build_filament_guide_faceplate = true;
 build_filament_guide = true;
 build_filament_clip = true;

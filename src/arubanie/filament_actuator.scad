@@ -13,6 +13,7 @@ orient_for_build = false;
 
 show_mocks = true;
 
+build_slide = true;
 build_cage_lower = true;
 build_cage_upper = true;
 build_packing_gland_face = true;
@@ -81,7 +82,10 @@ packing_gland_face = [x, y_packing_gland, z-dz_slot];
 cage_length_half_length = actuator_range_of_motion/2 + y_traveller + 3 + y_end_block;
 gland_translation = [0, cage_length_half_length+1, dz_slot-1];
 
-
+// slide_extra should include engagement with mounting, as well as extra for clearance.
+// Guess for now!
+slide_extra = 10;
+slide_length = actuator_range_of_motion + traveller.y + slide_extra;
 
 module traveller_clearance() {
     z_tc = z - 2 * strut_width;
@@ -218,8 +222,8 @@ module packing_gland_face(orient_for_build) {
 module actuator_cage() { 
     center_reflect([0, 1, 0]) {
         slot_block(length=actuator_range_of_motion/2, clamp_opening=0, transition=0);
-        translate([0, actuator_range_of_motion/2, 0]) slot_block(length=traveller_length + 3, clamp_opening=1, transition=3);
-        translate([0, actuator_range_of_motion/2 + traveller_length + 3, 0]) end_block();
+        translate([0, actuator_range_of_motion/2, 0]) slot_block(length=y_traveller + 3, clamp_opening=1, transition=3);
+        translate([0, actuator_range_of_motion/2 + y_traveller + 3, 0]) end_block();
     }
 }
 
@@ -255,13 +259,19 @@ module clamp(orient_for_build, as_clearance=false, x_clamping_interference = 0.1
     }
 }
 
-module ptfe_glides(as_clearance=false) {
+module ptfe_glide(h, as_clearance, clearance=0.2) {
     hollow = as_clearance ? 0 : 2.0;
-    color("white") 
-        center_reflect([1, 0, 0]) 
-            translate([traveller.x/2+1.5, 0, traveller.z/2]) 
-                rotate([90, 0, 0]) 
-                    can(d=4.0, hollow=hollow, h=100);
+    actual_clearance = as_clearance ? clearance: 0;
+    color("white") can(d=4.0 + 2 * actual_clearance, hollow=hollow, h=h);
+}
+
+module ptfe_glides(as_clearance=false) {
+    center_reflect([1, 0, 0]) 
+        translate([traveller.x/2+0.75, 0, 0]) 
+            rotate([90, 0, 0]) 
+                ptfe_glide(h = 100, as_clearance = as_clearance);
+    translate([0, 0, traveller.z+1.4]) rotate([90, 0, 0]) ptfe_glide(h = 100, as_clearance = as_clearance);
+                    
 }
 
 // ***************************************************************************
@@ -269,13 +279,20 @@ module ptfe_glides(as_clearance=false) {
 module traveller(orient_for_build, screw_name, screw_family, show_mocks=false) {
     dz = strut_width  + traveller_clearance;
     
+    module blank() {
+        hull() {
+            block([traveller.x, traveller.y, 3], center=ABOVE);
+            #translate([0, 0, nutheight + 4]) block([nutheight + 4, traveller.y, 0.1], center=BELOW);
+            translate([0, 0, traveller.z]) block([4, traveller.y, 0.1], center=BELOW);
+        }
+    }
+    
     module shape() {
         color("brown") difference() {
-            block(traveller, center=ABOVE);
+            blank();
             translate([0, 0, -dz]) filament_clearance();
-            //center_reflect([0, 1, 0]) translate([0, 5, dz_slot-dz]) slot_hole(as_slot_clearance=false, as_guide_hole=true);
-            translate([0, 0, nutheight+2]) nutcatch_sidecut(screw_family);
-            translate([0, 0, 6]) hole_through(screw_family, $fn=12);
+            translate([0, 0, nutheight + 2]) nutcatch_sidecut(screw_family, clk=0.2, clh=0.2);
+            translate([0, 0, nutheight + 4 + filament_diameter/2 + 1]) hole_through(screw_family, $fn=12); // dz_filament
             ptfe_glides(as_clearance=true);
 
         }
@@ -284,7 +301,7 @@ module traveller(orient_for_build, screw_name, screw_family, show_mocks=false) {
                 translate([0, 0, nutheight+2]) nut(screw_family, $fn=12);
                 rotate([180, 0, 0]) translate([0, 0, 1.5]) screw(screw_name, $fn=12);
             }
-            ptfe_glides();
+            //ptfe_glides();
             
         }
     }
@@ -307,6 +324,23 @@ module actuator_cage_upper() {
     difference() {
         actuator_cage();
         translate([0, 0, dz_slot]) plane_clearance(BELOW);
+    }
+}
+
+module slide(orient_for_build = false, length=10, show_mocks = show_mocks) {
+    z_capture = 4/2 - 1.5 + 0.75;
+    
+    module tube(as_clearance) {
+        extra_length = as_clearance ? 10 : 0;
+        rotate([90, 0, 0]) ptfe_glide(h = length + extra_length, as_clearance = as_clearance);
+    }
+    difference() {
+        block([6, length, 6]); 
+        tube(as_clearance = true);
+        translate([0, 0, z_capture]) plane_clearance(ABOVE);
+    }
+    if (show_mocks) {
+        tube(as_clearance = false);
     }
 }
 
@@ -375,5 +409,19 @@ if (build_clamp) {
     } else {
         clamp(orient_for_build = false);
     }    
+}
+
+if (build_slide) {
+    if (orient_for_build) {
+        translate([-35, 0, 0]) slide(orient_for_build = true, length = slide_length);
+    } else {
+        translate([0, -traveller.z-4.7, 0]) 
+            rotate([-90, 0, 0])
+                slide(orient_for_build = false, length = slide_length, show_mocks = show_mocks);
+        center_reflect([1, 0, 0]) 
+            translate([-traveller.x/2, -4.3, 0])        
+                rotate([0, 0, 45]) rotate([90, 0, 0])
+                    slide(orient_for_build = false, length = slide_length, show_mocks = show_mocks);  
+    }   
 }
     
