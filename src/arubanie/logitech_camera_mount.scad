@@ -41,6 +41,19 @@ tilt_back = 15;
 
 dy_body_clamp = camera_back_cutout.y/2+2; 
 
+
+module bare_logitech_615_camera_selfie_mount() {
+    a_lot = 100;
+    block([2, 40, 6], center=FRONT+ABOVE);
+    difference() {
+        block([30, 70, 3], center=ABOVE+BEHIND);
+        translate([-6, 0, 0]) can(d=2.69, h=a_lot);
+        translate([-20, 0, 0]) can(d=6.35, h=a_lot);
+    }
+}
+
+bare_logitech_615_camera_selfie_mount();
+
 module logitech_c920_camera(show_body = true, show_top_hinge = true, camera_tilt = 0, as_clearance = false, camera_clearance=0.2) {
     clearance = as_clearance ? camera_clearance : 0;
     dz_body = (camera_lens_face.z - camera_body.z)/2;
