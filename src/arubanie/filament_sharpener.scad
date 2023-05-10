@@ -8,6 +8,7 @@ show_shaver_mocks = false;
 show_slicer_mocks = true;
 build_shaver_sharpener = false;
 build_slicer_base = true;
+build_slicer = true;
 
 shaver_point_angle = 15;
 
@@ -32,7 +33,7 @@ blade_hole_translation = [blade_extent.x/2, blade_extent.y/2 + blade_edge_width/
 
 
 
-module pencil_sharpener_blade(as_clearance=false, clearance=0) {
+module pencil_sharpener_blade(as_clearance=false, clearance=0, access_from=ABOVE) {
     actual_clearance = as_clearance ? clearance : 0;
     clearances = 2*[actual_clearance, actual_clearance, a_lot]; 
     module shape() {
@@ -46,7 +47,16 @@ module pencil_sharpener_blade(as_clearance=false, clearance=0) {
         translate(blade_hole_translation) rotate([180, 0, 0]) screw("M2x6", $fn=12);
     }
     if (as_clearance) {
-        translate([-clearance, -clearance, -clearance]) block(blade_extent + clearances, center=FRONT+RIGHT+ABOVE);
+        if (access_from == ABOVE) {
+            translate([-clearance, -clearance, -clearance]) block(blade_extent + clearances, center=FRONT+RIGHT+ABOVE);
+        } else if (access_from == BELOW) {
+            translate([-clearance, -clearance, blade_extent.z + clearance]) block(blade_extent + clearances, center=FRONT+RIGHT+BELOW);
+        } else if (access_from == BELOW+BEHIND) {
+            translate([-clearance, -clearance, blade_extent.z + clearance]) block(blade_extent + clearances, center=FRONT+RIGHT+BELOW);
+            translate([-clearance, -clearance-2, blade_extent.z + clearance]) block(blade_extent + clearances, center=FRONT+RIGHT+BELOW);
+        } else {
+            assert(false);
+        }
         translate(blade_hole_translation + [0, 0, 25]) hole_through("M2", $fn=12);
     } else {
         color("silver") {
@@ -63,12 +73,12 @@ module shaver_positioned_blade(as_clearance=false, clearance=0) {
 }
 
 
-module slicer_positioned_blade(as_clearance=false, clearance=0)
+module slicer_positioned_blade(dy_blade=dy_blade, as_clearance=false, clearance=0, access_from=ABOVE)
 {
     translate([0, dy_blade, 0]) {
         rotate([0, 0, -blade_angle]) {
             translate([-blade_end_gap, 0, 0]) {
-                pencil_sharpener_blade(as_clearance=as_clearance, clearance=clearance);
+                pencil_sharpener_blade(as_clearance=as_clearance, clearance=clearance, access_from=access_from);
             }
         }
     }
@@ -138,7 +148,7 @@ if (build_shaver_sharpener) {
 }
 
 module slicer_positioned_filament(point_angle, as_clearance=true, clearance=0.0) {
-    rotate([0, point_angle, 0]) rod(d=filament_diameter + 2*clearance, l=30);
+    color("magenta") rotate([0, point_angle, 0]) rod(d=filament_diameter + 2*clearance, l=100);
 }
 
 
@@ -146,23 +156,30 @@ module slicer_base() {
     module slider_clearance() {
         hull() {
             center_reflect([0, 1, 0]) 
-                translate([7, blade_extent.y+8, -2]) 
-                    rotate([180, 0, 0]) hole_through("M2", $fn=12, h=2, hcld=0);
+                translate([7, blade_extent.y+8, -3]) 
+                    rotate([180, 0, 0]) hole_through("M2", $fn=12, h=3, hcld=0.4);
         }
     }
-    module rotator() {
-        rotate([0, slicer_point_angle, 0]) rod(d=filament_diameter + 4, l=14, center=FRONT);
-        rotate([0, slicer_point_angle, 0]) rod(d=filament_diameter + 4, l=4, center=BEHIND);
+    module rotator(include_front = false, include_behind = false) {
+        if (include_front) {
+            rotate([0, slicer_point_angle, 0]) rod(d=filament_diameter + 4, l=16, center=FRONT);
+        }
+        if (include_behind) {
+            rotate([0, slicer_point_angle, 0]) rod(d=filament_diameter + 4, l=4, center=BEHIND);
+        }
     }
     color("brown") {
         difference() {
             union() {
-                block([10, 15, 5], center=BELOW+FRONT+RIGHT);
-                block([10, 15, 5], center=BELOW+FRONT+LEFT);
-                block([3, 5, 5], center=BELOW+BEHIND);
+                translate([3, 0, 0]) block([8, 15, 5], center=BELOW+FRONT+RIGHT);
+                translate([3, 0, 0]) block([8, 15, 5], center=BELOW+FRONT+LEFT);
+                rotator(include_front=true, include_behind=true);
+                
             }
             slicer_positioned_filament(point_angle=slicer_point_angle, as_clearance=true, clearance=0.2);
             slider_clearance();
+            plane_clearance(ABOVE);
+            //translate(blade_hole_translation + [0, 0, 25]) hole_through("M2", $fn=12);
         }  
      }
      
@@ -170,4 +187,21 @@ module slicer_base() {
  
  if (build_slicer_base) {
     slicer_base();
+ }
+ 
+ if (build_slicer) {
+    color("violet") {
+        translate([0, dy_blade, 0]) 
+            difference() {
+                union() {
+                    slicer_positioned_blade(dy_blade=0, as_clearance=true, clearance = 1); 
+                    translate([3, 3, 0]) block([6, 7, wall], center=ABOVE+FRONT+RIGHT); 
+                }
+                plane_clearance(BELOW);
+                translate([0, 0, 2]) plane_clearance(ABOVE);
+                slicer_positioned_blade(dy_blade=0, as_clearance=true, clearance = 0.2, access_from=BELOW+BEHIND);
+                // Just need a second hole, so move up and to the right
+                translate([0, 13, 5]) slicer_positioned_blade(dy_blade=0, as_clearance=true, clearance = 0.2, access_from=ABOVE); 
+            }
+    }
  }
