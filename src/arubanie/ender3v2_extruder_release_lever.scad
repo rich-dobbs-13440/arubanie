@@ -1,3 +1,6 @@
+
+
+
 include <lib/logging.scad>
 include <lib/centerable.scad>
 use <lib/shapes.scad>
@@ -8,13 +11,13 @@ include <MCAD/stepper.scad>
 use <NopSCADlib/vitamins/rod.scad>
 use <lib/ptfe_tubing.scad>
 
+include <ender3v2_z_axis_mocks.scad>
+include <ender3v2_filament_guide.scad>
+
+
 /* [Output Control] */
 orient_for_build = false;
 
-
-build_filament_guide_faceplate = true;
-build_filament_guide = true;
-build_filament_clip = true;
 build_cam = true;
 build_servo_mount = true;
 build_mounting_plate_spacers = true;
@@ -42,11 +45,6 @@ z_servo_plate = 2.5; //[0.5:"Position test", 1:"Trial", 2:"Solid", 2.5:"Flush"]
 test_fit_height = 0.5; // [0.25, 1, 2.5, 4]
 test_fit_tolerances = [0.4, 0.5, 0.6, 0.7]; // initial: [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1],
 
-/* [Filament Clip Design] */
-
-d_cam_clearance = 24.0; // [5: 0.5: 20]
-d_extruder_gear_clearance = 22.5; // [5: 0.5: 25]
-d_idler_gear_clearance = 19; // [1: 0.5: 30]
 
 /* [Cam Design] */
 
@@ -62,15 +60,7 @@ z_actuator = 100;
 
 module end_of_customization() {}
 
-z_z_axis_support = 2.56;
-plate_behind_right = [6.3, 34, z_z_axis_support];
-plate_front_edge = [23, 0.1, z_z_axis_support];
-plate_behind_left = [6.3-1, 16, z_z_axis_support];
 
-bottom_of_plate_to_top_of_spring_arm = 17.59;
-z_spring_arm = 10.53;
-spring_arm_end_diameter = 11.76;
-spring_arm_end = [12.55-spring_arm_end_diameter/2, spring_arm_end_diameter, z_spring_arm];
 
 M4_nut_thickness = 3.2;
 M4_washer_thickness = 0.5;
@@ -85,19 +75,12 @@ servo_translation = [x_servo, y_servo, z_servo];
 dz_top_of_servo_ears = z_servo + 11;
 echo("dz_top_of_servo_ears", dz_top_of_servo_ears);
 
-dz_spring_arm = bottom_of_plate_to_top_of_spring_arm - z_z_axis_support;
 
-stepper_translation = [-21-6, 5, 0];
-idler_translation = [-24, 20, 0];
 
-z_extruder_base = dz_spring_arm - z_spring_arm;
-dx_extruder_base = 5;
 
-filament_guide_translation = [20, 12, 0];
-filament_entrance_translation = [-4, 14., z_extruder_base + 5.31];
 
-l_filament_entrance = 23;
-multiplex_translation = filament_entrance_translation + [l_filament_entrance-1, 0, 0];
+
+
 
 dz_cam = bottom_of_plate_to_top_of_spring_arm - z_spring_arm - z_z_axis_support + 2;  
 echo("dz_cam", dz_cam);
@@ -106,9 +89,7 @@ h_cam = bottom_of_plate_to_top_of_spring_arm - z_z_axis_support - dz_cam;
 
 od_ptfe_tubing = 4.05;
 
-z_axis_translation = [(7.9+4.7)/2-2.5, (23.2+11.4)/2+2, 0];
-z_axis_bearing_extent = [8, 24, 5];
-od_z_axis_bearing = 11;
+
 
 
 y_actuator = filament_entrance_translation.y;
@@ -118,77 +99,6 @@ STAINLESS_STEEL = "#CFD4D9";
 BLACK_IRON = "#3a3c3e";
 
 
-module z_axis_support() {
-    color("Gray", alpha=1) {
-        hull() { 
-            block(plate_behind_right, center = BELOW+BEHIND+RIGHT);
-            translate([0, plate_behind_right.y, 0]) 
-                block(plate_front_edge, center = BELOW+FRONT+RIGHT);
-            translate([plate_behind_left.x-plate_behind_right.x, 0, 0]) 
-                block(plate_behind_left, center=BELOW+BEHIND+LEFT);     
-        } 
-    }
-}
-
-
-module spring_arm(as_clearance=false, clearance=0.2) {    
-    effective_clearance = as_clearance ? clearance : 0;
-    y_end = 24 + spring_arm_end_diameter/2;
-    
-    module profile(x, dx, dy) {
-        translate([-dx, y_end-dy, 0]) 
-            block([x, 0.1, z_spring_arm] + [2*clearance, 0, clearance], center=BEHIND+ABOVE); 
-    }
-    module shape() {
-        hull() {
-            translate([0, y_end, 0]) 
-                        can(d = spring_arm_end_diameter + 2 * effective_clearance, h = z_spring_arm, center=BEHIND+ABOVE+LEFT);
-            profile(spring_arm_end.x, spring_arm_end_diameter/2, 0);
-            profile(12.71, 0, 10.33);
-        }
-        hull() {
-            profile(12.71, 0, 10.33);
-            profile(13.66, 0, 13.22);
-            profile(13.66, 0, 16.69);
-            profile(8.91, 0, 22.58);
-        }
-        hull() {
-            profile(8.91, 0, 22.58);
-            profile(8.91, 0, 31.87);
-        }
-        hull() {
-            profile(8.91, 0, 31.87);
-            profile(8.24, 2.45, 34.18);
-            profile(8.24, 2.45, 41.92);
-        }
-        hull() {
-            profile(8.24, 2.45, 41.92); 
-            profile(8.24, 2.45, 49.70);
-            translate([-8.24-2.45, y_end-49.70, z_spring_arm/2]) rotate([0, 90, 0]) cylinder(d=z_spring_arm, h=8.24);
-            
-        }
-    }
-    color("brown") 
-        translate([-dx_extruder_base+1 + effective_clearance, 0, z_extruder_base]) 
-            shape();
-}
-
-
-
-
-module extruder_base() {
-    color("chocolate") 
-        translate([-dx_extruder_base, -16, 0]) 
-            block([42, 42, z_extruder_base], center=ABOVE+BEHIND+RIGHT);
-}
-
-
-module stepper() {
-    
-    translate(stepper_translation) 
-        rotate([180, 0, 0]) 
-            motor(Nema17, NemaMedium, dualAxis=false);
-}
 
 
 module servo(as_clearance = false, clearance = 0) {
@@ -204,59 +114,7 @@ module servo(as_clearance = false, clearance = 0) {
 }
 
 
-module z_axis_threaded_rod(as_clearance=false, clearance=0.2) {
-    translate(z_axis_translation) { 
-        if (as_clearance) {
-            can(d=8 + 2*clearance, h=50);
-        } else {
-            starts = 4;
-            pitch = 2;
-            leadscrew(d=8 , l=50, lead=starts * pitch, starts=starts, center = true);  
-        }
-    }  
-}
 
-
-module z_axis_bearing(as_clearance=false, clearance=0.2) {
-    module screw_item() {
-        if (as_clearance) {
-            translate([0, 0, 4]) hole_through("M3", h=5); 
-        } else {
-            screw("M3x12");
-        }
-    }
-    module screws() {
-        color(STAINLESS_STEEL) {
-            translate([0, 0, z_z_axis_support]) 
-                center_reflect([0, 1, 0]) 
-                    translate([0, 9, 0]) 
-                        screw_item(); 
-        }        
-    }
-    translate(z_axis_translation + [0, 0, -z_z_axis_support]) {
-        color(BRONZE) {
-            intersection() {
-                block(z_axis_bearing_extent, center=BELOW);
-                can(d=z_axis_bearing_extent.y, h=4, center=BELOW, $fn=36);
-            }
-            if (as_clearance) {
-                hull() {
-                    d = 11 + 2 * clearance;
-                    can(d=d, h=3.5, center=ABOVE);
-                    translate([0, 15, 0]) can(d=d, h=3.5, center=ABOVE);
-                }
-            } else {
-                can(d=11, h=3.5, center=ABOVE);
-            }
-        }
-        if (as_clearance) {
-            hull() screws();
-        } else {
-            screws();
-        }
-
-    }
-}
 
 
 if (show_mocks && !orient_for_build) {
@@ -272,7 +130,7 @@ if (show_mocks && !orient_for_build) {
         servo(as_clearance=false);
     }
     stepper();
-    filament_guide_screws(as_clearance=false);
+    //filament_guide_screws(as_clearance=false);
     
 }
 
@@ -333,183 +191,6 @@ module servo_mount_screws(as_clearance=false, as_pilot_holes=false) {
     }
 }
 
-
-module filament_guide_screws(as_clearance=false) {
-    module item() {
-        if (as_clearance) {
-            h_clearance = 4;
-            translate([0, 0, -z_z_axis_support-h_clearance]) {  
-                rotate([180, 0, 0]) {
-                    hole_through("M2.5", h=h_clearance, cld=0.04, $fn=12);
-                }
-            }
-            translate([0, 0, -1]) {
-                rotate([180, 0, 0]) {
-                    nutcatch_parallel("M2.5", clh=2, clk=1);
-                }
-            }             
-        } else {
-            color(BLACK_IRON) {
-                translate([0, 0, -z_z_axis_support]) {
-                    rotate([180, 0, 0]) {
-                        screw("M2.5x20",  $fn=12);
-                    }
-                }
-                translate([0, 0, 2]) nut("M2.5");
-            }
-        }
-    }
-    translate([20, 6, 0]) item();
-    translate([20, 18, 0]) item();
-}
-
-module multiplex_clearance() {
-    translate(multiplex_translation) 
-        rotate([0, -90, 0]) 
-            can(d=20, taper=2.0, h=21, center=BELOW);
-}
-
-
-module multiplex_entrance_guide(as_clearance = false, clearance=0.2) {
-    actual_clearance = as_clearance ? clearance : 0;
-    clearances = 2 * [actual_clearance, actual_clearance, actual_clearance];
-    entrance = [0.1, 2*multiplex_translation.z, 2*multiplex_translation.z];
-    module entrance() {
-        block(entrance + clearances, center = FRONT);
-    }
-    translate(multiplex_translation-filament_guide_translation) {
-        hull() {
-            block([0.1, 5, 5], center = FRONT);
-            translate([15, 0, 0]) entrance();
-            translate([19, 0, 0]) entrance();
-        }
-    }
-    
-}
-
-
-module filament_guide(orient_for_build=false, as_clearance = false, clearance=0.2) {
-    z_filament_entrance = 9.5;
-    screw_block = [5, 20, 15];
-    entrance_guide = [8, 7, 13];
-    module located_shape() {
-        render(convexity=10) difference() {
-            translate(filament_guide_translation) {
-                block(screw_block, center=ABOVE);
-                translate([-1, 2, 0]) block(entrance_guide, center=ABOVE+BEHIND);
-                multiplex_entrance_guide(as_clearance, clearance);
-            }
-            filament_guide_screws(as_clearance=true);
-            z_axis_bearing(as_clearance=true);
-            z_axis_threaded_rod(as_clearance=true, clearance=0.3);
-            translate(filament_entrance_translation) {
-                ptfe_tubing(od=4, as_clearance=true, center=FRONT, l=l_filament_entrance);
-            }
-            multiplex_clearance();
-        }
-    }
-    if (orient_for_build) {
-        translate(-filament_guide_translation) located_shape();
-    } else {
-        color("violet") located_shape();
-    }
-}
-
-module filament_guide_faceplate(orient_for_build=false) {
-    wall = 2;
-    clip = [5, 2*multiplex_translation.z, 2*multiplex_translation.z] + 2* [wall, wall, -2];
-    module clip() {
-        render() difference() {
-            translate(multiplex_translation + [20, 0,-2]) {
-                block(clip , center=BEHIND);
-            }
-            translate([0, 0, 0]) filament_guide(orient_for_build=false, as_clearance=true);
-            translate([0, 0, -0.5]) filament_guide(orient_for_build=false, as_clearance=true);
-            translate([-0.2, 0, 0]) multiplex_clearance();
-        }
-    }
-    module ptfe_sockets() {
-        difference() {
-            translate(multiplex_translation + [20, 0, -2]) {        
-                block([6, clip.y, 2*multiplex_translation.z + 5] , center=FRONT);
-            }
-            plane_clearance(BELOW);
-            for (az = [-12, -0, 12]) {
-                for (ay = [-12, -0, 12]) {
-                    translate(multiplex_translation) {
-                        rotate([0, ay, az]) {
-                            translate([22, 0, 0])
-                            ptfe_tubing(od=4, as_clearance=true, center=FRONT, l=100); 
-                        }
-                    }
-                }
-            }      
-        }
-    }
-    if (orient_for_build) {
-        clip();
-        ptfe_sockets();
-    } else {
-        color("aquamarine") {
-            clip();
-            ptfe_sockets();
-        }
-    }
-}
-
-
-module filament_clip(orient_for_build=false) {
-    clip_height = z_spring_arm ;
-    wall = 2;
-    clip = [12.71, 22.58, clip_height] + 2*[wall, wall, 0];
-    dz = z_extruder_base + z_spring_arm + wall;
-    //rotation = orient_for_build ? [180, 0, 0] : [0, 0, 0];
-    //rotate(rotation) {
-    a_lot = 100;
-    entrance = [4, 6, clip.z];
-    module cam_clearance() {
-        translate([3, 0, 0]) can(d=d_cam_clearance, h=a_lot);
-    }
-    module extruder_gear_clearance() {
-        translate(stepper_translation) {
-            can(d=d_extruder_gear_clearance, h=a_lot);
-        }
-    }
-    module idler_gear_clearance() {
-        translate(idler_translation) {
-            can(d=d_idler_gear_clearance, h=a_lot);
-        }
-    }
-    module entrance_clearance() {
-        translate(filament_entrance_translation) 
-            rotate([0, -90, 0]) 
-                can(d=13, taper=2.5, h=20, center=BELOW);
-    }
-    
-    module shape() {
-        difference() {
-            union() {
-                translate([-dx_extruder_base+1+wall, 5, dz]) 
-                    block(clip, center=BELOW+BEHIND+RIGHT);
-                translate([-dx_extruder_base+1+wall, 11., dz])
-                    block(entrance, center=BELOW+FRONT+RIGHT);
-            }
-            spring_arm(as_clearance=true, clearance=0.2); 
-            cam_clearance();
-            extruder_gear_clearance();
-            idler_gear_clearance();
-            z_axis_threaded_rod(as_clearance=true, clearance=1);
-            entrance_clearance();
-        }
-    }
-    if (orient_for_build) {
-        rotate([180, 0, 0]) 
-            translate([0, 0, -dz]) 
-                shape();
-    } else { 
-        color("magenta") shape();
-    }
-}
 
 module servo_mount() {
     a_lot = 100;
@@ -762,31 +443,6 @@ if (build_mounting_plate_spacers) {
 }
 
 
-if (build_filament_guide) {
-    if (orient_for_build) {
-        translate([-40, -10, 0]) filament_guide(orient_for_build=true);
-    } else {
-        filament_guide();
-    }
-}
-
-if (build_filament_guide_faceplate) {
-    if (orient_for_build) {
-        translate([-50, -20, 0]) filament_guide_faceplate(orient_for_build=true);
-    } else {
-        filament_guide_faceplate();
-    }
-    
-}
-
-
-if (build_filament_clip) {
-    if (orient_for_build) {
-        translate([10, 40, 0]) filament_clip(orient_for_build=true);
-    } else {
-        filament_clip();
-    }
-}
 
 
 
