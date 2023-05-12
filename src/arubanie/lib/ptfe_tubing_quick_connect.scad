@@ -10,41 +10,56 @@ build_c_clip = true;
 
 /* [Quick_connect_design] */
 show_cross_section = false;
+insert_clip = false;
 
-tubing_od = 4;
+tubing_od = 4 + 0;
+
+
+
+/* [Collet Design] */
 tubing_allowance = 0.3;
-collet_retention_wall = 0.5;
-kerf = 1.5;
 
+collet_retention_wall = 0.5;
 collet_wall = 1.5;
 collet_clamp_wall = 1;
-body_wall = 1;
-
-
-h_face = 3;
-h_neck = 4;
-h_clamp = 3;
-h_assembly_taper = 1.5;
-
-h_fingernail_gap = 1;
-h_collet_retention = 2;
-h_clamp_taper = 1;
-h_cavity_clearance = 1;
-
-h_clip = h_neck - h_collet_retention; // Need to calculate
-
-h_body_cavity = h_clamp + h_assembly_taper + h_neck - h_collet_retention - h_clamp_taper + h_cavity_clearance;
-
-h_body = h_fingernail_gap + h_body_cavity + 2;
+collet_entrance_clearance = 3;
+collet_kerf = 1.5;
 
 d_neck = tubing_od + 2*collet_wall;
 d_collet_face = d_neck + 4;
 od_collet_clamp = d_neck + 2*collet_clamp_wall;
+
+h_face = 3;
+h_neck = 4.4;
+h_clamp = 3;
+h_assembly_taper = 1.5;
+
+/* [Body Design] */
+
+body_wall = 1;
+
+h_fingernail_gap = 1;
+h_collet_retention = 2;
+h_clamp_taper = 2;
+h_cavity_clearance = 1; 
+h_body_exit = 2;
+id_tubing_exit = tubing_od + 2;
+alpha_body = 1; //[0.25, 1]
+
+h_body_cavity = h_clamp + h_assembly_taper + h_cavity_clearance;
+h_body = h_collet_retention + h_clamp_taper + h_body_cavity + h_body_exit; 
 d_collet_retention = od_collet_clamp - 2*collet_retention_wall;
 od_body = od_collet_clamp + 2 * body_wall;
-od_clip = d_collet_face + 1;
 
-alpha_body = 0.25; //[0.25, 1]
+
+/* [Clip Design] */
+opening_fraction = 0.8;
+x_handle_fraction = .9;
+clip_wedge_angle = 10; 
+z_clip_clearance = 0.75;
+h_clip = h_neck - h_collet_retention - z_clip_clearance;; // Need to calculate
+
+od_clip = d_collet_face + 1;
 
 module end_of_customization() {}
 
@@ -66,9 +81,9 @@ module quick_connect_collet(tubing_allowance=0) {
                     can(d=od_collet_clamp,  taper=d_neck, h=h_assembly_taper, center=ABOVE);
             }
             can(d=tubing_od + 2 * tubing_allowance, h=a_lot);
-            can(d=tubing_od+2, taper=tubing_od + 2 * tubing_allowance, h=h_face/2); 
-            translate([0, 0, 4]) block([kerf, a_lot, a_lot], center=ABOVE);
-            translate([0, 0, 4]) block([a_lot, kerf, a_lot], center=ABOVE);
+            can(d=tubing_od + collet_entrance_clearance, taper=tubing_od + 2 * tubing_allowance, h=h_face/2); 
+            translate([0, 0, h_face+h_clip]) block([collet_kerf, a_lot, a_lot], center=ABOVE);
+            translate([0, 0, h_face+h_clip]) block([a_lot, collet_kerf, a_lot], center=ABOVE);
             if (show_cross_section) {
                 plane_clearance(RIGHT);
             }             
@@ -81,7 +96,7 @@ module quick_connect_body(orient_for_build = false) {
         render(convexity=10) difference() {
             union() {
                 can(d=d_collet_face - 2, taper=od_body, h=h_fingernail_gap, center=ABOVE);
-                translate([0, 0, h_fingernail_gap]) can(d=od_body, h=h_body, center=ABOVE);
+                translate([0, 0, h_fingernail_gap]) can(d=od_body, h=h_body - h_fingernail_gap , center=ABOVE);
             }
             can(d=tubing_od + 2 * tubing_allowance, h=a_lot);
             translate([0, 0, 0]) 
@@ -92,7 +107,7 @@ module quick_connect_body(orient_for_build = false) {
                 can(d=od_collet_clamp, h=h_body_cavity, center=ABOVE);
             // Taper at outlet, in case elephant foot interfers with tubing pass through
             translate([0, 0, h_collet_retention+h_clamp_taper + h_body_cavity]) 
-                can(d=tubing_od, taper=tubing_od + 8, h=4, center=ABOVE);            
+                can(d=tubing_od, taper=id_tubing_exit, h=h_body_exit, center=ABOVE);            
             if (show_cross_section) {
                 plane_clearance(RIGHT);
             }
@@ -100,26 +115,35 @@ module quick_connect_body(orient_for_build = false) {
     }
     color("blue", alpha=alpha_body) {
         if (orient_for_build) {
-             translate([0, 0, h_fingernail_gap + h_body]) rotate([180, 0, 180]) shape();
-        } else {   
-            translate([0, 0, 5]) shape();
+             translate([0, 0, h_body]) rotate([180, 0, 180]) shape();
+        } else { 
+            // For display, the default is in the open position, without clamping on the tube.  
+            translate([0, 0, h_face]) shape();
         }
     }
 }
  
 module c_clip(orient_for_build) {
     sprue = [od_clip + 2, 2, 1];
+    x_handle = x_handle_fraction * od_clip;
+    y_handle_upright = 2;
+    y_handle_gap = 0.5; 
+    y_handle = od_clip/2 + y_handle_gap + y_handle_upright;
+    z_handle_upright = h_clip + 2;
+
     module shape() {
         render(convexity=10)  difference() {
             union() {
                 can(d=od_clip, h=h_clip, center=ABOVE);
-                translate([0, -d_neck/2, 0]) block([6, 5, h_clip], center=ABOVE+LEFT);
-                translate([0, -d_neck/2-3, 0]) block([6, 2, h_clip + 2], center=ABOVE+LEFT);
+                block([x_handle, y_handle, h_clip], center=ABOVE+LEFT);
+                
+                translate([0, -y_handle, 0]) block([x_handle, y_handle_upright, z_handle_upright], center=ABOVE+RIGHT);
                 block(sprue, center=ABOVE);
             }
             can(d=d_neck, h=a_lot);
-            block([0.8*d_neck, a_lot, a_lot], center=RIGHT);
-            translate([0, od_clip/2, 0]) rotate([45, 0, 0]) plane_clearance(RIGHT); 
+            block([opening_fraction*d_neck, a_lot, a_lot], center=RIGHT);
+            //rotate([clip_wedge_angle, 0, 0]) translate([0, od_clip/2, h_clip/2] 
+            translate([0, 0.1*d_neck, 0]) rotate([-clip_wedge_angle, 0, 0]) translate([0, 0, h_clip]) plane_clearance(RIGHT+ABOVE); 
             if (show_cross_section) {
                 plane_clearance(RIGHT);
             }  
@@ -144,7 +168,8 @@ if (build_body) {
         dx_body = d_collet_face/2 + od_body/2 + od_clip + 1;
         translate([dx_body, 0, 0]) quick_connect_body(orient_for_build=true);
     } else {
-        quick_connect_body(orient_for_build=false);
+        dz = insert_clip ? h_clip : 0;
+        translate([0, 0, dz]) quick_connect_body(orient_for_build=false);
     }
 }
 
@@ -153,7 +178,9 @@ if (build_c_clip) {
         dx_c_clip = d_collet_face/2 + 0.5 + od_clip/2;
         translate([dx_c_clip, 0, 0]) c_clip(orient_for_build=true);
     } else {
-        c_clip(orient_for_build=false);
+        if (insert_clip) {
+            c_clip(orient_for_build=false);
+        }
     }        
 }
   
