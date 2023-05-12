@@ -53,7 +53,7 @@ od_body = od_collet_clamp + 2 * body_wall;
 
 
 /* [Clip Design] */
-opening_fraction = 0.9;
+opening_fraction = 0.85;
 x_handle_fraction = .9;
 clip_wedge_angle = 10; 
 z_clip_clearance = 0.55;
