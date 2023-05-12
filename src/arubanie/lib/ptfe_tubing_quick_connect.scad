@@ -57,8 +57,11 @@ opening_fraction = 0.8;
 x_handle_fraction = .9;
 clip_wedge_angle = 10; 
 z_clip_clearance = 0.75;
+y_handle_upright = 2;
+y_handle_gap = 0.5;
+z_handle_ridge = 2;
+    
 h_clip = h_neck - h_collet_retention - z_clip_clearance;; // Need to calculate
-
 od_clip = d_collet_face + 1;
 
 module end_of_customization() {}
@@ -124,12 +127,12 @@ module quick_connect_body(orient_for_build = false) {
 }
  
 module c_clip(orient_for_build) {
+    // Use a sprue to connect the three small parts, which increased bed adhesion. 
+    // The pieces break off the sprue without an issue.
     sprue = [od_clip + 2, 2, 1];
     x_handle = x_handle_fraction * od_clip;
-    y_handle_upright = 2;
-    y_handle_gap = 0.5; 
     y_handle = od_clip/2 + y_handle_gap + y_handle_upright;
-    z_handle_upright = h_clip + 2;
+    z_handle_upright = h_clip + z_handle_ridge;
 
     module shape() {
         render(convexity=10)  difference() {
@@ -143,7 +146,7 @@ module c_clip(orient_for_build) {
             can(d=d_neck, h=a_lot);
             block([opening_fraction*d_neck, a_lot, a_lot], center=RIGHT);
             //rotate([clip_wedge_angle, 0, 0]) translate([0, od_clip/2, h_clip/2] 
-            translate([0, 0.1*d_neck, 0]) rotate([-clip_wedge_angle, 0, 0]) translate([0, 0, h_clip]) plane_clearance(RIGHT+ABOVE); 
+            translate([0, 0.25*d_neck, 0]) rotate([-clip_wedge_angle, 0, 0]) translate([0, 0, h_clip]) plane_clearance(RIGHT+ABOVE); 
             if (show_cross_section) {
                 plane_clearance(RIGHT);
             }  
