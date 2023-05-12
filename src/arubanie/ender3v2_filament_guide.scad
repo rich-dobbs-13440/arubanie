@@ -33,6 +33,7 @@ filament_entrance_translation = [-4, 14., z_extruder_base + 5.31];
 
 l_filament_entrance = 23;
 multiplex_translation = filament_entrance_translation + [l_filament_entrance-1, 0, 0];
+faceplace_clip_translation = multiplex_translation + [20, 0, -2];
 
 if (show_mocks && !orient_for_build) {
     //servo_mount_screws(as_clearance=false);
@@ -45,6 +46,7 @@ if (show_mocks && !orient_for_build) {
     extruder_base();
     stepper();
     filament_guide_screws(as_clearance=false);
+    filament_guide_faceplate_screws(as_clearance = false, locate = true);
     
 }
 
@@ -94,6 +96,7 @@ module filament_guide(orient_for_build=false, as_clearance = false, clearance=0.
                 ptfe_tubing(od=4, as_clearance=true, center=FRONT, l=l_filament_entrance);
             }
             multiplex_clearance();
+            filament_guide_faceplate_screws(as_clearance=true, locate = true);
         }
     }
     if (orient_for_build) {
@@ -159,26 +162,56 @@ module multiplex_entrance_guide(as_clearance = false, clearance=0.2) {
     
 }
 
+wall = 2;
+faceplate_clip = [5, 2*multiplex_translation.z, 2*multiplex_translation.z] + 2* [wall, wall, -2];
 
 
+module filament_guide_faceplate_screws(as_clearance=true, locate = false) {
+    location_translation = locate ? faceplace_clip_translation + [0, 0, 2] : [0, 0, 2];
+    color(BLACK_IRON) {
+        translate(location_translation) {
+            center_reflect([0, 1, 0]) {
+                center_reflect([0, 0, 1]) {
+                    rotate([90, 0, 0]) {
+                        if (as_clearance) {
+                            translate([-3, faceplate_clip.z/2, -faceplate_clip.y/2 + 6.5]) 
+                                hole_through("M2", $fn=12);
+                        } else {
+                            translate([-3, faceplate_clip.z/2, faceplate_clip.y/2]) 
+                                screw("M2x4");
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+}
 
 module filament_guide_faceplate(orient_for_build=false) {
-    wall = 2;
-    clip = [5, 2*multiplex_translation.z, 2*multiplex_translation.z] + 2* [wall, wall, -2];
+ 
     module clip() {
+        difference() {
+            block(faceplate_clip, center=BEHIND);
+            filament_guide_faceplate_screws(as_clearance=true); 
+        } 
+    }
+    
+    module located_clip() {
         render() difference() {
-            translate(multiplex_translation + [20, 0,-2]) {
-                block(clip , center=BEHIND);
+            translate(faceplace_clip_translation) {
+                clip();
             }
             translate([0, 0, 0]) filament_guide(orient_for_build=false, as_clearance=true);
             translate([0, 0, -0.5]) filament_guide(orient_for_build=false, as_clearance=true);
             translate([-0.2, 0, 0]) multiplex_clearance();
         }
+        
     }
     module ptfe_sockets() {
         difference() {
             translate(multiplex_translation + [20, 0, -2]) {        
-                block([6, clip.y, 2*multiplex_translation.z + 5] , center=FRONT);
+                block([6, faceplate_clip.y, 2*multiplex_translation.z + 5] , center=FRONT);
             }
             plane_clearance(BELOW);
             for (az = [-12, -0, 12]) {
@@ -193,12 +226,12 @@ module filament_guide_faceplate(orient_for_build=false) {
             }      
         }
     }
-    if (orient_for_build) {
-        clip();
-        ptfe_sockets();
-    } else {
-        color("aquamarine") {
-            clip();
+    color("aquamarine") {    
+        if (orient_for_build) {
+            located_clip();
+            ptfe_sockets();
+        } else {
+            located_clip();
             ptfe_sockets();
         }
     }
