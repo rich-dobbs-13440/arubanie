@@ -177,6 +177,7 @@ module end_cap(orient_for_build) {
 
 
 module packing_gland_face(orient_for_build) {
+    dz_filament = 100;
     module located_shape() {
         difference() {
             translate(gland_translation) block(packing_gland_face, center=ABOVE+RIGHT);
