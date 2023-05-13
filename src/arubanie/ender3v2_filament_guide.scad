@@ -149,7 +149,7 @@ module filament_guide_screws(as_clearance=false) {
             h_clearance = 6;
             translate([0, 0, -z_z_axis_support-h_clearance]) {  
                 rotate([180, 0, 0]) {
-                    hole_through("M3", h=h_clearance, cld=0.04, $fn=12);
+                    hole_through("M3", cld=0.04, $fn=12);
                 }
             }
 //            translate([0, 0, -1]) {

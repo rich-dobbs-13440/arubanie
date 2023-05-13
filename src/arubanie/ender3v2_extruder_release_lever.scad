@@ -26,6 +26,7 @@ build_drill_guide = false;
 build_test_fit_servo = true;
 
 show_mocks = true;
+show_modified_z_axis = false;
 show_z_axis_support = true;
 show_servo = true;
 
@@ -129,7 +130,7 @@ if (show_mocks && !orient_for_build) {
         servo(as_clearance=false);
     }
     stepper();
-    //filament_guide_screws(as_clearance=false);
+    filament_guide_screws(as_clearance=false);
     
 }
 
