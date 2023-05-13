@@ -28,7 +28,7 @@ build_traveller = true;
 ptfe_slide_clearance = 0.5; // [0.5:Actual, 1:test]
 ptfe_snap_clearance = 0.2;
 part_push_clearance  = 0.2;
-shaft_clearance = 0.2;
+shaft_clearance = 0.4;
 elephant_clearance = 1;
 
 /* [Glide Design] */
@@ -40,8 +40,9 @@ dx_glides = r_glide + od_ptfe_tube/2 + glide_filament_clearance;
 
 /* [Gear Design] */
 gear_height = 5;
-gear_diameter = 20;
+gear_diameter = 21.84;
 hub_height = 4.6;
+hub_diameter = 11.5;
 z_gear_clearance = 1;
 h_traveller_glide = 4;
 
@@ -149,14 +150,11 @@ module ptfe_glides(orient_for_build=false, show_vitamins=false, as_clearance=fal
         }
     }   
     module blank() {
-        triangle_placement(r=r_glide + glide_engagement + clearance) {
-            core();
-            if (as_traveller_clearance) {
-                ptfe_tube(as_clearance=true, h=slide_length, clearance=ptfe_slide_clearance);                
-            }
+        triangle_placement(r=r_glide + glide_engagement + clearance) core();
+        if (as_traveller_clearance) {
+            triangle_placement(r=r_glide + glide_engagement)
+                ptfe_tube(as_clearance=true, h=slide_length, clearance=0);                
         }
-        
-                      
     }
     module shape() {
         as_tube_clearance = as_traveller_clearance ? false : true;
@@ -190,12 +188,13 @@ module clamp_shaft(
     shaft_length = slide_length + 2*z_end_cap + 2*z_clearance + 2*gear_height;
     translation = orient_for_build ? [0, 0, shaft_length/2] : [-dx_clamp_shaft, 0, 0];    
     module blank() {
-        d = 
+        d_end = 
             as_clearance ? 2 * r_shaft_end  + 2 * clearance : 
-            as_gear_clearance ? 2 * r_shaft_end  + 2 * clearance :
+            as_gear_clearance ? 2 * r_shaft_end  + 2 * shaft_clearance :
             2 * r_shaft_end;
+        r_arm = as_gear_clearance ? r_shaft + sqrt(3) * shaft_clearance : r_shaft;
         hull() {
-            triangle_placement(r=r_shaft) can(d=d, h=shaft_length, $fn=50);
+            triangle_placement(r=r_arm) can(d=d_end, h=shaft_length, $fn=50);
         }
     }
     module shape() {
@@ -222,7 +221,7 @@ module traveller_gear(orient_for_build, show_vitamins) {
     translation = orient_for_build ? [0, 0, 0] : [-dx_clamp_shaft, 0, 0];
     module glides(as_clearance, clearance) {
         dz = 3;
-        r = .9*r_shaft + od_ptfe_tube/2 - ptfe_slide_clearance;
+        r = 0.95*r_shaft + od_ptfe_tube/2 - ptfe_slide_clearance;
         rotate([0, 0, 60]) 
             translate([0, 0, hub_height + h_traveller_glide/2 + 1])
                 triangle_placement(r=r) ptfe_tube(as_clearance=as_clearance, h=h_traveller_glide, clearance=clearance);
@@ -233,7 +232,7 @@ module traveller_gear(orient_for_build, show_vitamins) {
             clamp_shaft(as_gear_clearance=true, clearance=ptfe_slide_clearance);
         }
         render() difference() {
-            translate([0, 0, hub_height]) can(d=2 * r_shaft+3.8, h=h_traveller_glide + 2, center=ABOVE);
+            translate([0, 0, hub_height]) can(d=hub_diameter, h=h_traveller_glide + 2, center=ABOVE);
             clamp_shaft(as_gear_clearance=true, clearance=ptfe_slide_clearance);
             glides(as_clearance=true, clearance=ptfe_snap_clearance);
         }
