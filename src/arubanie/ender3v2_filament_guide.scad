@@ -7,18 +7,26 @@ include <MCAD/servos.scad>
 include <MCAD/stepper.scad>
 use <NopSCADlib/vitamins/rod.scad>
 use <lib/ptfe_tubing.scad>
+use <lib/ptfe_tubing_quick_connect.scad>
 
 include <ender3v2_z_axis_mocks.scad>
+
+
+
 
 /* [Output Control] */
 orient_for_build = false;
 
 build_filament_guide_faceplate = true;
-build_filament_guide = true;
+build_filament_guide_cone = true;
 build_filament_clip = true;
+build_quick_connects = true;
 
 show_mocks = true;
 show_z_axis_support = true;
+show_modified_z_axis = false;
+
+
 
 /* [Filament Clip Design] */
 
@@ -26,7 +34,21 @@ d_cam_clearance = 24.0; // [5: 0.5: 20]
 d_extruder_gear_clearance = 22.5; // [5: 0.5: 25]
 d_idler_gear_clearance = 19; // [1: 0.5: 30]
 
+filament_screw_locations = [
+    [14, 6, 0],
+    [24, 4, 0],
+    [22, 22, 0],
+    z_axis_tapped_screw_translation,
+];
+
+
+/* [Quick Connects Design] */
+dz_quick_connects = 46; // [30 : 0.5 : 60]
+
 module end_of_customization() {}
+
+
+
 
 filament_guide_translation = [20, 12, 0];
 filament_entrance_translation = [-4, 14., z_extruder_base + 5.31];
@@ -47,14 +69,15 @@ if (show_mocks && !orient_for_build) {
     stepper();
     filament_guide_screws(as_clearance=false);
     filament_guide_faceplate_screws(as_clearance = false, locate = true);
+    quick_connect_screws();
     
 }
 
-if (build_filament_guide) {
+if (build_filament_guide_cone) {
     if (orient_for_build) {
-        translate([-40, -10, 0]) filament_guide(orient_for_build=true);
+        translate([-40, -10, 0]) filament_guide_cone(orient_for_build=true);
     } else {
-        filament_guide();
+        filament_guide_cone();
     }
 }
 
@@ -76,18 +99,31 @@ if (build_filament_clip) {
     }
 }
 
+if (build_quick_connects) {
+    quick_connects();
+}
 
 
-module filament_guide(orient_for_build=false, as_clearance = false, clearance=0.2) {
+
+module filament_guide_cone(orient_for_build=false, as_clearance = false, clearance=0.2) {
     z_filament_entrance = 9.5;
-    screw_block = [5, 20, 15];
-    entrance_guide = [8, 7, 13];
+    entrance_guide = [11, 7, 13];
+    
+    module screw_block() {
+        hull() {
+            for (screw_location = filament_screw_locations) {
+                translate(screw_location) can(d=8, h=4, center=ABOVE);
+            }
+        }
+    }
     module located_shape() {
         render(convexity=10) difference() {
-            translate(filament_guide_translation) {
-                block(screw_block, center=ABOVE);
-                translate([-1, 2, 0]) block(entrance_guide, center=ABOVE+BEHIND);
-                multiplex_entrance_guide(as_clearance, clearance);
+            union() {
+                translate(filament_guide_translation) {
+                    translate([-1, 2, 0]) block(entrance_guide, center=ABOVE+BEHIND);
+                    multiplex_entrance_guide(as_clearance, clearance);
+                }
+                screw_block();
             }
             filament_guide_screws(as_clearance=true);
             z_axis_bearing(as_clearance=true);
@@ -110,30 +146,32 @@ module filament_guide(orient_for_build=false, as_clearance = false, clearance=0.
 module filament_guide_screws(as_clearance=false) {
     module item() {
         if (as_clearance) {
-            h_clearance = 4;
+            h_clearance = 6;
             translate([0, 0, -z_z_axis_support-h_clearance]) {  
                 rotate([180, 0, 0]) {
-                    hole_through("M2.5", h=h_clearance, cld=0.04, $fn=12);
+                    hole_through("M3", h=h_clearance, cld=0.04, $fn=12);
                 }
             }
-            translate([0, 0, -1]) {
-                rotate([180, 0, 0]) {
-                    nutcatch_parallel("M2.5", clh=2, clk=1);
-                }
-            }             
+//            translate([0, 0, -1]) {
+//                rotate([180, 0, 0]) {
+//                    nutcatch_parallel("M3", clh=2, clk=1);
+//                }
+//            }             
         } else {
-            color(BLACK_IRON) {
+            color("silver") {
                 translate([0, 0, -z_z_axis_support]) {
                     rotate([180, 0, 0]) {
                         screw("M2.5x20",  $fn=12);
                     }
                 }
-                translate([0, 0, 2]) nut("M2.5");
+                translate([0, 0, 2]) nut("M3");
             }
         }
     }
-    translate([20, 6, 0]) item();
-    translate([20, 18, 0]) item();
+    for (screw_location = filament_screw_locations) {
+        translate(screw_location)
+            item();
+    }
 }
 
 
@@ -165,6 +203,8 @@ module multiplex_entrance_guide(as_clearance = false, clearance=0.2) {
 wall = 2;
 faceplate_clip = [5, 2*multiplex_translation.z, 2*multiplex_translation.z] + 2* [wall, wall, -2];
 
+quick_connect_screw_block = [28, 14, 18];
+
 
 module filament_guide_faceplate_screws(as_clearance=true, locate = false) {
     location_translation = locate ? faceplace_clip_translation + [0, 0, 2] : [0, 0, 2];
@@ -192,7 +232,10 @@ module filament_guide_faceplate(orient_for_build=false) {
  
     module clip() {
         difference() {
-            block(faceplate_clip, center=BEHIND);
+            union() {
+                block(faceplate_clip, center=BEHIND);
+                //translate([0, 0, -8]) 
+            }
             filament_guide_faceplate_screws(as_clearance=true); 
         } 
     }
@@ -212,6 +255,7 @@ module filament_guide_faceplate(orient_for_build=false) {
         difference() {
             translate(multiplex_translation + [20, 0, -2]) {        
                 block([6, faceplate_clip.y, 2*multiplex_translation.z + 5] , center=FRONT);
+                block(quick_connect_screw_block, center=FRONT);
             }
             plane_clearance(BELOW);
             for (az = [-12, -0, 12]) {
@@ -219,11 +263,12 @@ module filament_guide_faceplate(orient_for_build=false) {
                     translate(multiplex_translation) {
                         rotate([0, ay, az]) {
                             translate([22, 0, 0])
-                            ptfe_tubing(od=4, as_clearance=true, center=FRONT, l=100); 
+                                ptfe_tubing(od=4, as_clearance=true, center=FRONT, l=100); 
                         }
                     }
                 }
-            }      
+            } 
+            quick_connect_screws(as_clearance=true);
         }
     }
     color("aquamarine") {    
@@ -289,6 +334,73 @@ module filament_clip(orient_for_build=false) {
                 shape();
     } else { 
         color("magenta") shape();
+    }
+}
+
+
+
+
+module quick_connect_screws(as_clearance=false) {
+    module multiplex(dz) {
+        for (ax = [-6, 6]) {
+            for (ay = [-6, 6]) {
+                rotate([ax, ay, 0]) {
+                    translate([0, 0, dz]) {
+                        children();
+                    }
+                }
+            }
+        }            
+    }
+    translate(multiplex_translation) {
+        rotate([0, 90, 0]) {    
+            multiplex(dz_quick_connects + 6) {
+                if (as_clearance) {
+                    hole_through("M3", l=12);
+                } else {
+                    screw("M3x10");
+                }
+            }
+        }
+    }
+}
+
+
+module quick_connects(orient_for_build = false) {
+    dz_cutoff = dz_quick_connects + 2;
+    module bodies() {
+        
+        translate([0, 0, -dz_cutoff]) 
+        difference() {
+            for (ax = [-12, -0, 12]) {
+                for (ay = [-12, -0, 12]) {
+                    rotate([ax, ay, 0]) {
+                        translate([0, 0, dz_quick_connects]) {
+                            quick_connect_body(orient_for_build=true);
+                        }
+                    }
+                }
+            }
+            translate([0, 0, dz_cutoff]) plane_clearance(BELOW);
+        } 
+    }
+    module shape() {
+        render(convexity=10) difference() {
+            translate([0, 0, 0.01]) scale([1.2, 1.2, 1]) hull() bodies();
+            hull() bodies();
+            translate([0, 0, 2]) plane_clearance(ABOVE);
+        }
+        bodies();
+    }
+    color("purple") {
+        if (orient_for_build) {
+            shape();
+        } else  {
+            translate(multiplex_translation) 
+                rotate([0, 90, 0]) 
+                    translate([0, 0, dz_cutoff]) 
+                        shape(); 
+        }
     }
 }
 

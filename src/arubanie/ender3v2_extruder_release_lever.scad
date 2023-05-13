@@ -12,7 +12,7 @@ use <NopSCADlib/vitamins/rod.scad>
 use <lib/ptfe_tubing.scad>
 
 include <ender3v2_z_axis_mocks.scad>
-include <ender3v2_filament_guide.scad>
+use <ender3v2_filament_guide.scad>
 
 
 /* [Output Control] */
@@ -22,7 +22,7 @@ build_cam = true;
 build_servo_mount = true;
 build_mounting_plate_spacers = true;
 build_servo_gear = true;
-build_drill_guide = true;
+build_drill_guide = false;
 build_test_fit_servo = true;
 
 show_mocks = true;
@@ -62,8 +62,7 @@ module end_of_customization() {}
 
 
 
-M4_nut_thickness = 3.2;
-M4_washer_thickness = 0.5;
+
 
 servo_mount_blank = [25, 48, z_servo_plate];
 dy_servo_mount = 33 - servo_mount_blank.y;
@@ -92,7 +91,7 @@ od_ptfe_tubing = 4.05;
 
 
 
-y_actuator = filament_entrance_translation.y;
+//y_actuator = filament_entrance_translation.y;
 
 BRONZE = "#b08d57";
 STAINLESS_STEEL = "#CFD4D9";
@@ -163,33 +162,7 @@ module servo_screws(as_clearance=false, as_spacers=false, orient_for_build=false
 }
 
 
-module servo_mount_screws(as_clearance=false, as_pilot_holes=false) {
-    m3_screw_translation = [13, 26, 0];
-    if (as_clearance) {
-        translate([0, 0, -100-z_z_axis_support-z_servo_plate]) // -z_z_axis_support-z_servo_plate])  
-            rotate([180, 0, 0]) 
-                hole_through("M4", h=100, $fn=12);
-        translate(m3_screw_translation + [0, 0, -100-z_z_axis_support-z_servo_plate]) 
-            rotate([180, 0, 0]) 
-                hole_through("M3", h=100, $fn=12);
-        //translate([0, 0, 20+M4_nut_thickness]) hole_through("M4", cld=0.6, $fn=12);
-        // Need space fo nut and washer to rotate
-        can(d=9.2, h=dz_cam, center=ABOVE); 
-    } else if (as_pilot_holes) {
-        translate([0, 0, 25]) hole_through("M3", $fn=12);
-        translate(m3_screw_translation + [0, 0, 25]) hole_through("M2.5",$fn=12); 
-    } else {
-        color("silver") {
-            translate(m3_screw_translation) screw("M3x6", $fn=12);
-            translate(m3_screw_translation + [0, 0, -4]) nut("M3");
-            translate([0, 0, -z_z_axis_support]) 
-                rotate([180, 0, 0]) screw("M4x20", $fn=12);
-            rotate([180, 0, 0]) nut("M4");
-            translate([0, 0, M4_nut_thickness]) 
-                rotate([180, 0, 15]) nut("M4"); 
-        }    
-    }
-}
+
 
 
 module servo_mount() {
@@ -442,18 +415,6 @@ if (build_mounting_plate_spacers) {
     }
 }
 
-
-
-
-
-
-if (build_drill_guide) {
-    if (orient_for_build) { 
-        translate([-18, -70, 0]) drill_guide(orient_for_build=true);
-    } else {
-        drill_guide();
-    }     
-}
 
 
 if (build_test_fit_servo) {

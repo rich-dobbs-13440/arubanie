@@ -9,6 +9,8 @@ use <NopSCADlib/vitamins/rod.scad>
 
 
 show_mocks = true;
+show_modified_z_axis = true;
+build_drill_guide = false;
 
 module end_of_customization() {}
 
@@ -28,9 +30,14 @@ od_z_axis_bearing = 11;
 
 dz_spring_arm = bottom_of_plate_to_top_of_spring_arm - z_z_axis_support;
 
+z_axis_tapped_screw_translation = [13, 26, 0];
+
 z_extruder_base = dz_spring_arm - z_spring_arm;
 dx_extruder_base = 5;
 
+
+M4_nut_thickness = 3.2;
+M4_washer_thickness = 0.5;
 
 stepper_translation = [-21-6, 5, 0];
 idler_translation = [-24, 20, 0];
@@ -167,6 +174,49 @@ module z_axis_bearing(as_clearance=false, clearance=0.2) {
 }
 
 
+module servo_mount_screws(as_clearance=false, as_pilot_holes=false, screw_length=20) {
+    
+    if (as_clearance) {
+        translate([0, 0, -100 -z_z_axis_support-z_servo_plate])  
+            rotate([180, 0, 0]) 
+                hole_through("M4", h=100, $fn=12);
+        translate(z_axis_tapped_screw_translation + [0, 0, -100-z_z_axis_support-z_servo_plate]) 
+            rotate([180, 0, 0]) 
+                hole_through("M3", h=100, $fn=12);
+        //translate([0, 0, 20+M4_nut_thickness]) hole_through("M4", cld=0.6, $fn=12);
+        // Need space fo nut and washer to rotate
+        can(d=9.2, h=dz_cam, center=ABOVE); 
+    } else if (as_pilot_holes) {
+        translate([0, 0, 25]) hole_through("M3", $fn=12);
+        translate(z_axis_tapped_screw_translation + [0, 0, 25]) hole_through("M2.5",$fn=12); 
+    } else {
+        color("silver") {
+            screw_name = str("M3x", screw_length); 
+            translate(z_axis_tapped_screw_translation) screw(screw_name, $fn=12);
+            translate(z_axis_tapped_screw_translation + [0, 0, -4]) nut("M3");
+            translate([0, 0, -z_z_axis_support]) 
+                rotate([180, 0, 0]) screw("M4x20", $fn=12);
+            rotate([180, 0, 0]) nut("M4");
+            translate([0, 0, M4_nut_thickness]) 
+                rotate([180, 0, 15]) nut("M4"); 
+        }    
+    }
+}
+
+
+module drill_guide(orient_for_build=false) {
+    z_drill_guide = 2;
+    difference() {
+        translate([-5, -5, 0]) 
+            block([21, 35, z_drill_guide], center=ABOVE+FRONT+RIGHT);
+        z_axis_threaded_rod(as_clearance = true);
+        z_axis_bearing(as_clearance = true);
+        servo_mount_screws(as_pilot_holes=true);
+    }  
+    
+}
+
+
 if (show_mocks) {
     z_axis_support();
     z_axis_threaded_rod();
@@ -175,3 +225,12 @@ if (show_mocks) {
     extruder_base();
     stepper();    
 }
+
+if (show_modified_z_axis) {
+    servo_mount_screws(as_clearance=false);
+}
+
+if (build_drill_guide) {
+    drill_guide();    
+}
+
