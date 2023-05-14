@@ -410,16 +410,21 @@ module clamp_gear(orient_for_build, show_vitamins) {
     translation = [-dx_clamp_gear, 0, dz_clamp_screw];
     s = s_slider + 2 * slider_clearance;
     a_lot = 100;
+    h_neck = 2;
     module shape() {
-        render(convexity=20) difference() {
-            base_gear(teeth=9);
-            //block([s, s, a_lot]);
-        }
+        //render(convexity=20) difference() {
+        base_gear(teeth=9);
+        can(d=id_bearing, taper= id_bearing + 4, h=h_neck, center=BELOW);
+        translate([0, 0, -h_neck]) 
+            can(d=id_bearing, h=h_bearing, center=BELOW);
+        translate([0, 0, -h_neck-h_bearing]) 
+            can(d=id_bearing, h=h_slider, center=BELOW, $fn=6);
     }
 
     color("violet", alpha=alpha_clamp_gear) {
         if (orient_for_build) {
-            translate([0, 0, 0]) shape();
+            dz = h_neck + h_bearing + h_slider ;
+            translate([0, 0, dz]) shape();
         } else {
             translate(translation) rotate([0, -90, 0])  shape();
         } 
