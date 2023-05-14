@@ -5,18 +5,24 @@ use <lib/not_included_batteries.scad>
 include <nutsnbolts-master/cyl_head_bolt.scad>
 include <nutsnbolts-master/data-metric_cyl_head_bolts.scad>
 include <MCAD/servos.scad>
+include <NopSCADlib/vitamins/ball_bearings.scad>
 use <PolyGear/PolyGear.scad>
 //use <lib/ptfe_tubing.scad>
 
 d_filament = 1.75 + 0.;
 od_ptfe_tube = 4 + 0;
 
+od_bearing = 22.0 + 0;
+id_bearing = 8.0 + 0;
+h_bearing = 7.0 + 0;;
+
+
 /* [Output Control] */
 
 orient_for_build = false;
 
 show_vitamins = true;
-show_cross_section = false;
+
 
 build_end_caps = true;
 build_both_end_caps = true;
@@ -25,9 +31,15 @@ build_shaft = true;
 build_shaft_gear = true;
 build_traveller = true;
 build_clamp_gear = true;
+build_clamp_slide = true;
+build_slider_shaft_bearing_insert = true;
 
 alpha_clamp_gear = 1; // [0.25 : transparent, 1: solid]
-clamping_lift = 0; // [-0.2: 0.1: 1]
+alpha_clamp_gear_slide = 1; // [0.25 : transparent, 1: solid]
+alpha_traveller = 1; // [0.25 : transparent, 1: solid]
+clamping_lift = 0; // [0: 0.1: 1]
+
+show_cross_section = false;
 
 /* [Clearances] */ 
 ptfe_slide_clearance = 0.5; // [0.5:Actual, 1:test]
@@ -46,26 +58,32 @@ dx_glides = r_glide + od_ptfe_tube/2 + glide_filament_clearance;
 
 /* [Gear Design] */
 gear_height = 5;
-gear_diameter = 26.5;
+// 9 teeth => 16.9
+clamp_gear_diameter = 16.9 + 0; 
+// 19 teeth => 34.3
+shaft_gear_diameter = 34.3 + 0; //[15: 0.1: 40]
 hub_height = 4.6;
 hub_diameter = 12.5;
 z_gear_clearance = 1;
 h_traveller_glide = 8;
+dz_shaft_gear = 3; // [0: 0.1: 10]
 
 s_slider = 6;
-
+h_slider = 4.6; // [3: 0.1 : 7]
+screw_length = 8; //[4, 6, 8, 10]
 
 /* [Clamp Shaft Design] */
-r_shaft_end = 0.5;
-r_shaft = 2.5;
+r_shaft_end = 0.1;
+r_shaft = id_bearing/2;
+r_rider = 4.5; // [1: .1 : 10]
 gear_filament_clearance = 6;
-dx_clamp_shaft = gear_diameter/2 + d_filament/2 + gear_filament_clearance;
+dx_clamp_shaft = shaft_gear_diameter/2 + d_filament/2 + gear_filament_clearance;
 d_shaft_clearance = 2 * (r_shaft + r_shaft_end + shaft_clearance);
 
 /* [End Cap Design] */
 end_cap_pad = 4;
-dx_end_cap = -dx_clamp_shaft - gear_diameter/2 - end_cap_pad; 
-x_end_cap = dx_glides  + r_glide + dx_clamp_shaft + gear_diameter/2 + od_ptfe_tube/2 + 2 * end_cap_pad; // [1:0.1:40]
+dx_end_cap = -dx_clamp_shaft - shaft_gear_diameter/2 - end_cap_pad; 
+x_end_cap = dx_glides  + r_glide + dx_clamp_shaft + shaft_gear_diameter/2 + od_ptfe_tube/2 + 2 * end_cap_pad; // [1:0.1:40]
 y_end_cap = max(d_shaft_clearance, 2*dx_glides); 
 z_end_cap = 6; // [1:0.1:20]
 
@@ -74,13 +92,21 @@ end_cap = [x_end_cap, y_end_cap, z_end_cap];
 
 /* [Traveller Design] */
 
-traveller = [x_end_cap, y_end_cap, 2];
+
+z_traveller = 2; // [0.5:"Test fit", 2:"Prototype", 4:"Production"]
+bearing_block_wall = z_traveller;
+
 dx_traveller = dx_end_cap;
+z_bearing_engagement = 2.5; //[0.5:"Test fit", 1:"Prototype", 2.5:"Production"]
 
 module end_of_customization() {}
 
+BRONZE = "#b08d57";
+STAINLESS_STEEL = "#CFD4D9";
+BLACK_IRON = "#3a3c3e";
+
 module filament(as_clearance) {
-    d = as_clearance ? 2.0 : d_filament;
+    d = as_clearance ? 2.5 : d_filament;
     alpha = as_clearance ? 0 : 1;
     color("red", alpha) {
         can(d=d, h=slide_length + 40, $fn=12);
@@ -202,7 +228,7 @@ module slider_shaft(
         as_clearance = false,
         as_gear_clearance = false,
         clearance = 0) {
-    a_lot = 50;
+    a_lot = 200;
     z_clearance = as_clearance ? a_lot : 0.01;    
     shaft_length = 
             as_gear_clearance ? a_lot :
@@ -220,11 +246,9 @@ module slider_shaft(
     }
     module shape() {
         color("green") {
-            render(convexity=10) difference() { 
+            render(convexity=10) intersection() { 
                 blank();
-                if (show_cross_section) {
-                    plane_clearance(ABOVE);
-                }
+                can(d=2*r_shaft - 2*shaft_clearance, h=a_lot);
             }
         }       
     }
@@ -234,14 +258,73 @@ module slider_shaft(
         translate([0, 0, shaft_length/2]) shape();
     } else {
         translate(translation) shape();
-    }
-    
+    } 
 }
 
-module base_gear() {
+module slider_shaft_bearing_insert(orient_for_build, show_vitamins) {
+    h_face = 2;
+    module blank() {
+        translate([0, 0, h_bearing/2 + h_face]) can(d=id_bearing, h=h_bearing+h_face+1, center=BELOW);
+        translate([0, 0, -h_bearing/2-1]) can(d=id_bearing - 2, taper=id_bearing, h = 1.3, center=BELOW);
+    }
+    module shape() {
+        translate([0, 0, h_bearing/2]) can(d=12, h = 2, hollow=id_bearing, center=ABOVE);
+        render(convexity=10) difference() {
+            blank();
+            slider_shaft(as_gear_clearance=true);
+        }
+    }
+    if (show_vitamins) {
+        ball_bearing(BB608);
+        slider_shaft(orient_for_build=true);
+    }
+    if (orient_for_build) {
+        translate([0, 0, h_bearing/2 + h_face]) rotate([180, 0, 0]) shape();
+    } else {
+        //translation = [0, 0, 0];  // centered on bearing
+        translation = [0, 0, -h_bearing/2];  // centered on top
+        translate(translation) shape();
+    } 
+}
+
+
+//
+
+
+module shaft_rider(h, orient_for_build, show_vitamins) {
+    a_lot = 200; 
+    module blank() {
+        can(d=id_bearing+od_ptfe_tube+3, h=h, center=ABOVE);
+    }
+    module shape() {    
+        render(convexity=10) difference() {
+            blank();
+            slider_shaft(as_gear_clearance=true);
+            rotate([0, 0, 60]) triangle_placement(r=r_rider) 
+                ptfe_tube(as_clearance=true, h=a_lot, clearance=ptfe_snap_clearance);            
+        }
+    }
+    if (show_vitamins) {
+        translate([0, 0, h/2]) 
+            rotate([0, 0, 60]) triangle_placement(r=r_rider) 
+                ptfe_tube(as_clearance=true, h=h, clearance=ptfe_snap_clearance);         
+        translate([0, 0, -5]) ball_bearing(BB608);
+        slider_shaft(orient_for_build=true);
+    }    
+    if (orient_for_build) {
+        translate([0, 0, 0]) rotate([0, 0, 0]) shape();
+    } else {
+        translation = [0, 0, 0];  
+        translate(translation) shape();
+    } 
+}
+
+
+
+module base_gear(teeth) {
     translate([0, 0, 1.2]) 
         bevel_gear(
-          n = 14,  // number of teeth
+          n = teeth,  // number of teeth
           m = 1.7,   // module
           w = 7,   // tooth width
           cone_angle     = 45,
@@ -250,8 +333,11 @@ module base_gear() {
           backlash       = 0.1);
 } 
 
+
+
+// shaft_rider(h=10, orient_for_build=orient_for_build, show_vitamins=show_vitamins);
 module shaft_gear(orient_for_build, show_vitamins) {
-    translation = orient_for_build ? [0, 0, 0] : [-dx_clamp_shaft, 0, 0];
+    translation = orient_for_build ? [0, 0, 0] : [-dx_clamp_shaft, 0, dz_shaft_gear];
     module glides(as_clearance, clearance) {
         dz = 3;
         r = 0.95*r_shaft + od_ptfe_tube/2 - ptfe_slide_clearance;
@@ -262,7 +348,7 @@ module shaft_gear(orient_for_build, show_vitamins) {
     }
     module shape() {
         render(convexity=20) difference() {
-            base_gear();
+            base_gear(teeth=19);
             slider_shaft(as_gear_clearance=true, clearance=ptfe_slide_clearance);
         }
         render() difference() {
@@ -287,25 +373,16 @@ module shaft_gear(orient_for_build, show_vitamins) {
 
 module clamp_gear(orient_for_build, show_vitamins) {
     dx = gear_filament_clearance + d_filament/2;
-    translation = [-dx, 0, gear_diameter/2];
+    translation = [-dx, 0, clamp_gear_diameter/2];
     s = s_slider + 2 * slider_clearance;
     a_lot = 100;
     module shape() {
         render(convexity=20) difference() {
-            base_gear();
+            base_gear(teeth=9);
             block([s, s, a_lot]);
         }
     }
-    if (show_vitamins) {
-        translate(translation) {
-            rotate([0, -90, 0]) {
-                translate([0, 0, 1.5+clamping_lift]) screw("M2x8");
-                translate([0, 0, 0+clamping_lift]) nut("M2");
-                // Stationary nut
-                translate([0, 0, -3]) nut("M2");
-            }
-        }
-    }
+
     color("violet", alpha=alpha_clamp_gear) {
         if (orient_for_build) {
             translate([0, 0, 0]) shape();
@@ -315,24 +392,75 @@ module clamp_gear(orient_for_build, show_vitamins) {
     }     
 }
 
+module clamp_slide(orient_for_build=true, show_vitamins=false) {
+    dx = gear_filament_clearance + d_filament/2 + h_slider-1;
+    translation = [-dx - clamping_lift, 0, clamp_gear_diameter/2];    
+    module shape() {
+        render() difference() {
+            block([s_slider, s_slider, h_slider], center=BELOW);
+            translate([0, 0, 25]) hole_through("M2", $fn=12);
+            translate([0, 0, -h_slider+1.5]) nutcatch_parallel("M2", clh=5, $fn=12);
+        }
+    }
+    if (show_vitamins) {
+        color(BLACK_IRON) {
+            translate([-clamping_lift-screw_length-d_filament/2 + 0.2, 0, gear_diameter/2]) 
+                rotate([0, -90, 0]) 
+                    screw(str("M2x", screw_length));
+            translate([-clamping_lift-d_filament/2 -7, 0, gear_diameter/2]) 
+                rotate([0, -90, 0]) 
+                    nut("M2");
+            // Stationary nut
+            *translate([-2.2, 0, gear_diameter/2]) 
+                rotate([0, 90, 0]) nut("M2");
+        }
+    }
+    color("brown", alpha=alpha_clamp_gear_slide) {
+        if (orient_for_build) {
+            rotate([0, 180, 0])  shape();
+        } else {
+            translate(translation) rotate([0, -90, 0])  shape();
+        } 
+    }  
+}
+
+
+
 module traveller(orient_for_build, show_vitamins) {
     //translation = orient_for_build ? [0, 0, 0] : [-dx_clamp_shaft, 0, 0];
     r_glide_mod = r_glide + od_ptfe_tube/2 + ptfe_slide_clearance;
     module blank() {
-        translate([dx_traveller, 0, 0]) block(traveller, center=BELOW+FRONT);
-        block([5.5, 8, gear_diameter/2 + 4], center=ABOVE+BEHIND);
-        block([3, 8, gear_diameter/2 + 4], center=ABOVE+FRONT);
-        translate([dx_glides, 0, -traveller.z]) can(d=2*r_glide_mod + 2, h=10, hollow=2*r_glide_mod + 1, center=ABOVE);
+        hull() {
+            translate([-dx_clamp_shaft, 0, 0]) 
+                can(d=od_bearing + 2*bearing_block_wall, h=z_traveller, center=ABOVE);
+            translate([dx_glides, 0, 0]) 
+                can(
+                    d=2*r_glide_mod + 2 + bearing_block_wall, 
+                    h=z_traveller, 
+                    hollow=2*r_glide_mod + 1, 
+                    center=ABOVE);
+        }
+        translate([-dx_clamp_shaft, 0, 0]) 
+                can(
+                    d=od_bearing + 2*bearing_block_wall, 
+                    hollow = od_bearing - 2,
+                    h=z_bearing_engagement +z_traveller, 
+                    center=ABOVE);        
+        
+        //translate([dx_traveller, 0, 0]) block(traveller, center=BELOW+FRONT);
+        block([5.5, 8, clamp_gear_diameter/2 + 4], center=ABOVE+BEHIND);
+        block([3, 8, clamp_gear_diameter/2 + 4], center=ABOVE+FRONT);
+        translate([dx_glides, 0, -z_traveller]) can(d=2*r_glide_mod + 2, h=10, hollow=2*r_glide_mod + 1, center=ABOVE);
         // riders on glides:
       
     }
     module clamp_screw_clearance() {
-        translate([0, 0, gear_diameter/2]) {
+        translate([0, 0, clamp_gear_diameter/2]) {
             rotate([0, 90, 0]) {
                 hole_through("M2", $fn = 12);
             } 
             translate([-2.2, 0, 0]) rotate([0, -90, 180]) {
-                nutcatch_sidecut("M2", $fn = 12);
+                nutcatch_sidecut("M2", $fn = 12, clh=.5);  
             }            
         }
     }
@@ -341,24 +469,27 @@ module traveller(orient_for_build, show_vitamins) {
         render(convexity=20) difference() {
             blank();
             
-            translate([-dx_clamp_shaft, 0, 0]) can(d=d_shaft_clearance, h=a_lot);
+            translate([-dx_clamp_shaft, 0, 0]) can(d=od_bearing, h=z_bearing_engagement, center=ABOVE);
             ptfe_tube(as_clearance=true, h=20, clearance=ptfe_snap_clearance);
             filament(as_clearance=true); 
             ptfe_glides(orient_for_build = false, as_traveller_clearance = true, clearance=ptfe_slide_clearance); 
             clamp_screw_clearance();
             
         }
-        translate([dx_glides, 0, -traveller.z]) 
+        translate([dx_glides, 0, -z_traveller]) 
             triangle_placement(r=r_glide_mod) block([1,4, 10], center=FRONT+ABOVE);  
         
         
     }    
     if (show_vitamins) {
-        //translate(translation ) glides(as_clearance=false, clearance=0);
+        translate([-dx_clamp_shaft, 0, -h_bearing/2 + z_bearing_engagement]) 
+            ball_bearing(BB608);
+        translate([-dx_clamp_shaft, 0, z_bearing_engagement])
+            slider_shaft_bearing_insert(orient_for_build=false, show_vitamins=false);
     }
-    color("orange") {
+    color("orange", alpha_traveller) {
         if (orient_for_build) {
-            translate([0, 0, traveller.z]) shape();
+            translate([0, 0, z_traveller]) shape();
         } else {
             translate([0, 0, 0]) shape();
         } 
@@ -398,6 +529,14 @@ if (build_shaft_gear) {
     }    
 }
 
+if (build_clamp_slide) {
+    if (orient_for_build) {
+        translate([40, 20, 0]) clamp_slide(orient_for_build=true, show_vitamins=false);
+    } else {
+        clamp_slide(orient_for_build=false, show_vitamins=show_vitamins);
+    }    
+}
+
 if (build_clamp_gear) {
     if (orient_for_build) {
         translate([60, 30, 0]) clamp_gear(orient_for_build=true, show_vitamins=false);
@@ -405,6 +544,23 @@ if (build_clamp_gear) {
         clamp_gear(orient_for_build=false, show_vitamins=show_vitamins);
     }    
 }
+
+if (build_clamp_gear) {
+    if (orient_for_build) {
+        translate([60, 30, 0]) clamp_gear(orient_for_build=true, show_vitamins=false);
+    } else {
+        clamp_gear(orient_for_build=false, show_vitamins=show_vitamins);
+    }    
+}
+
+if (build_slider_shaft_bearing_insert) {
+    if (orient_for_build) {
+        translate([60, -30, 0]) slider_shaft_bearing_insert(orient_for_build=true, show_vitamins=false);
+    } else {
+        //Is placed as a vitamin for the traveller
+    }      
+}
+
 
 if (build_traveller) {
     if (orient_for_build) {
