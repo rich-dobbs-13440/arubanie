@@ -23,7 +23,6 @@ orient_for_build = false;
 
 show_vitamins = true;
 
-
 build_end_caps = true;
 build_both_end_caps = true;
 build_ptfe_glides = true;
@@ -43,7 +42,8 @@ show_cross_section = false;
 
 /* [Clearances] */ 
 ptfe_slide_clearance = 0.5; // [0.5:Actual, 1:test]
-ptfe_snap_clearance = 0.2;
+// 0.15 was pretty tight, 0.2 was loose, might be interaction with r_rider though
+ptfe_snap_clearance = 0.17;
 part_push_clearance  = 0.2;
 shaft_clearance = 0.4;
 elephant_clearance = 1;
@@ -58,26 +58,51 @@ dx_glides = r_glide + od_ptfe_tube/2 + glide_filament_clearance;
 
 /* [Gear Design] */
 gear_height = 5;
-// 9 teeth => 16.9
-clamp_gear_diameter = 16.9 + 0; 
-// 19 teeth => 34.3
-shaft_gear_diameter = 34.3 + 0; //[15: 0.1: 40]
+
 hub_height = 4.6;
 hub_diameter = 12.5;
 z_gear_clearance = 1;
 h_traveller_glide = 8;
-dz_shaft_gear = 3; // [0: 0.1: 10]
+
+/* [Clamp Gear Design] */
+// 9 teeth => 16.9
+clamp_gear_diameter = 16.9 + 0; 
 
 s_slider = 6;
-h_slider = 4.6; // [3: 0.1 : 7]
-screw_length = 8; //[4, 6, 8, 10]
+h_slider = 5; // [3: 0.1 : 7]
+screw_length = 16; //[4, 6, 8, 10, 12, 16, 20]
+x_clamp_nut_block = 5.5;
+h_slide_to_bearing_offset = 4;
+h_slide_to_gear_offset = 2;
+dx_clamp_gear = x_clamp_nut_block + h_bearing + h_slide_to_bearing_offset + h_slider + h_slide_to_gear_offset;
+
+traveller_bearing_clearance = 4;
+dz_clamp_screw = od_bearing/2 + traveller_bearing_clearance; 
+    
+/* [ShaftGear Design] */
+// 19 teeth => 34.3
+shaft_gear_teeth = 19;
+shaft_gear_diameter = 34.3 + 0; //[15: 0.1: 40]
+dz_shaft_gear = 3; // [0: 0.1: 10]
+h_shaft_bearing_base = 1; // [0: 0.1: 10]
+
 
 /* [Clamp Shaft Design] */
 r_shaft_end = 0.1;
 r_shaft = id_bearing/2;
-r_rider = 4.5; // [1: .1 : 10]
+test_fit_shaft_rider = false;
+// 4.5, 4.4 yielded lots of play 
+r_rider = 4.2; // [1: .1 : 10]
 gear_filament_clearance = 6;
-dx_clamp_shaft = shaft_gear_diameter/2 + d_filament/2 + gear_filament_clearance;
+dx_clamp_shaft = 
+    x_clamp_nut_block 
+    + h_bearing 
+    + h_slide_to_bearing_offset 
+    + h_slider
+    + h_slide_to_gear_offset 
+    + shaft_gear_diameter/2;
+    
+dx_clamp_slide = x_clamp_nut_block + h_bearing + h_slide_to_bearing_offset + h_slider-1;    
 d_shaft_clearance = 2 * (r_shaft + r_shaft_end + shaft_clearance);
 
 /* [End Cap Design] */
@@ -334,32 +359,41 @@ module base_gear(teeth) {
 } 
 
 
+if (test_fit_shaft_rider) {
+    shaft_rider(h=5, orient_for_build=true, show_vitamins=false);
+}
 
-// shaft_rider(h=10, orient_for_build=orient_for_build, show_vitamins=show_vitamins);
 module shaft_gear(orient_for_build, show_vitamins) {
     translation = orient_for_build ? [0, 0, 0] : [-dx_clamp_shaft, 0, dz_shaft_gear];
-    module glides(as_clearance, clearance) {
-        dz = 3;
-        r = 0.95*r_shaft + od_ptfe_tube/2 - ptfe_slide_clearance;
-        rotate([0, 0, 60]) 
-            translate([0, 0, hub_height + h_traveller_glide/2 + 1])
-                triangle_placement(r=r) 
-                    ptfe_tube(as_clearance=as_clearance, h=h_traveller_glide, clearance=clearance);
+    module bearing_insert_clearance() {
+        hull() {
+            translate([0, 0, -2]) slider_shaft_bearing_insert(orient_for_build=false, show_vitamins=false);
+            translate([0, 0, -10]) slider_shaft_bearing_insert(orient_for_build=false, show_vitamins=false);
+        }        
     }
     module shape() {
         render(convexity=20) difference() {
-            base_gear(teeth=19);
-            slider_shaft(as_gear_clearance=true, clearance=ptfe_slide_clearance);
+            union() {
+                base_gear(teeth=shaft_gear_teeth);
+                can(d=shaft_gear_diameter-7, h = h_shaft_bearing_base, center=BELOW);
+            }
+            bearing_insert_clearance();
+            translate([0, 0, -1]) 
+                scale([0.9, 0.9, 1]) 
+                    hull() 
+                        shaft_rider(h=10, orient_for_build=false, show_vitamins=false);
+
+            
         }
-        render() difference() {
-            translate([0, 0, hub_height]) can(d=hub_diameter, h=h_traveller_glide, center=ABOVE);
-            slider_shaft(as_gear_clearance=true, clearance=ptfe_slide_clearance);
-            glides(as_clearance=true, clearance=ptfe_snap_clearance);
+        render(convexity=20) difference() {
+            shaft_rider(h=10, orient_for_build=false, show_vitamins=show_vitamins);
+            can(d=12, taper=0, h=6, center=ABOVE);
+            //bearing_insert_clearance();
         }
     }
     
     if (show_vitamins) {
-        translate(translation ) glides(as_clearance=false, clearance=0);
+        //translate(translation ) shaft_rider(h=10, orient_for_build=orient_for_build, show_vitamins=show_vitamins);
     }
     color("pink") {
         if (orient_for_build) {
@@ -372,14 +406,14 @@ module shaft_gear(orient_for_build, show_vitamins) {
 
 
 module clamp_gear(orient_for_build, show_vitamins) {
-    dx = gear_filament_clearance + d_filament/2;
-    translation = [-dx, 0, clamp_gear_diameter/2];
+    
+    translation = [-dx_clamp_gear, 0, dz_clamp_screw];
     s = s_slider + 2 * slider_clearance;
     a_lot = 100;
     module shape() {
         render(convexity=20) difference() {
             base_gear(teeth=9);
-            block([s, s, a_lot]);
+            //block([s, s, a_lot]);
         }
     }
 
@@ -393,8 +427,9 @@ module clamp_gear(orient_for_build, show_vitamins) {
 }
 
 module clamp_slide(orient_for_build=true, show_vitamins=false) {
-    dx = gear_filament_clearance + d_filament/2 + h_slider-1;
-    translation = [-dx - clamping_lift, 0, clamp_gear_diameter/2];    
+    
+    
+    translation = [-dx_clamp_slide - clamping_lift, 0, dz_clamp_screw];    
     module shape() {
         render() difference() {
             block([s_slider, s_slider, h_slider], center=BELOW);
@@ -404,10 +439,10 @@ module clamp_slide(orient_for_build=true, show_vitamins=false) {
     }
     if (show_vitamins) {
         color(BLACK_IRON) {
-            translate([-clamping_lift-screw_length-d_filament/2 + 0.2, 0, gear_diameter/2]) 
+            translate([-clamping_lift-screw_length-d_filament/2 + 0.2, 0, dz_clamp_screw]) 
                 rotate([0, -90, 0]) 
                     screw(str("M2x", screw_length));
-            translate([-clamping_lift-d_filament/2 -7, 0, gear_diameter/2]) 
+            translate([-clamping_lift-d_filament/2 -7, 0, dz_clamp_screw]) 
                 rotate([0, -90, 0]) 
                     nut("M2");
             // Stationary nut
@@ -429,6 +464,10 @@ module clamp_slide(orient_for_build=true, show_vitamins=false) {
 module traveller(orient_for_build, show_vitamins) {
     //translation = orient_for_build ? [0, 0, 0] : [-dx_clamp_shaft, 0, 0];
     r_glide_mod = r_glide + od_ptfe_tube/2 + ptfe_slide_clearance;
+
+
+    dx_clamp_bearing = -h_bearing/2 - x_clamp_nut_block;
+    
     module blank() {
         hull() {
             translate([-dx_clamp_shaft, 0, 0]) 
@@ -446,16 +485,14 @@ module traveller(orient_for_build, show_vitamins) {
                     hollow = od_bearing - 2,
                     h=z_bearing_engagement +z_traveller, 
                     center=ABOVE);        
-        
-        //translate([dx_traveller, 0, 0]) block(traveller, center=BELOW+FRONT);
-        block([5.5, 8, clamp_gear_diameter/2 + 4], center=ABOVE+BEHIND);
-        block([3, 8, clamp_gear_diameter/2 + 4], center=ABOVE+FRONT);
+        block([x_clamp_nut_block, 8, dz_clamp_screw + 4], center=ABOVE+BEHIND);
+        block([3, 8, dz_clamp_screw + 4], center=ABOVE+FRONT);
         translate([dx_glides, 0, -z_traveller]) can(d=2*r_glide_mod + 2, h=10, hollow=2*r_glide_mod + 1, center=ABOVE);
         // riders on glides:
       
     }
     module clamp_screw_clearance() {
-        translate([0, 0, clamp_gear_diameter/2]) {
+        translate([0, 0, dz_clamp_screw]) {
             rotate([0, 90, 0]) {
                 hole_through("M2", $fn = 12);
             } 
@@ -486,6 +523,8 @@ module traveller(orient_for_build, show_vitamins) {
             ball_bearing(BB608);
         translate([-dx_clamp_shaft, 0, z_bearing_engagement])
             slider_shaft_bearing_insert(orient_for_build=false, show_vitamins=false);
+        translate([dx_clamp_bearing, 0, dz_clamp_screw]) 
+            rotate([0, 90, 0]) ball_bearing(BB608);
     }
     color("orange", alpha_traveller) {
         if (orient_for_build) {
