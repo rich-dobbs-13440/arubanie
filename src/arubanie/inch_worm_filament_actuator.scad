@@ -105,8 +105,8 @@ h_shaft_rider = 9; // [5 : 0.1: 10]
 
 
 prong_locked = true;
-h_prong_clip = 2;
-h_extra = 0; // [0: 20]
+h_prong_clip = 4;
+h_prong_assembly_gap = 10; // [7: 20]
 dz_bearing_prong_mocks = 2; // [-5:0.1:5]
 dz_shaft_gear_prong_mocks = 0; // [-5:0.1:5]
 /* [Clamp Shaft Design] */
@@ -335,32 +335,46 @@ module bearing_insert_splinter(h) {
 
 //bearing_insert_splinter(h=20);
 
+module prong_screws(as_clearance=false, dz=0) {
+    h = 10;
+    if (as_clearance) {
+        center_reflect([0, 1, 0]) translate([-8, 3, h + dz]) hole_through("M2", h=h, $fn=12);
+    } else {
+        color(BLACK_IRON) {
+            center_reflect([0, 1, 0]) translate([-8, 3, dz]) screw("M2x6", $fn=12);
+        }
+    }
+} 
 
-module prong_assembly(locked=true, orient_for_build=false, show_mocks=false, h_extra = 3*h_prong_clip) {
+
+module prong_assembly(locked=true, orient_for_build=false, show_mocks=false, h_gap) {
     prong_insert_angle = 9; // [0: 0.1: 20]
     dy_prong_spacing = 11.8; // [5:0.1:20]   
-    h_total = h_bearing + h_prong_clip + h_extra;
     dx_insertion = 2.85;
     d_contact = 14.1;
     hinge_thickness = 0.3;
+    a_lot = 200;
+    h_below = h_gap - h_bearing + h_prong_clip;
+    dz_screws = -h_below + h_prong_clip/2;
     module prong() {
+        h_above = h_bearing + h_prong_clip;
         rotate([0, -prong_insert_angle, 0]) {
             render(convexity=10) difference() {            
                 rotate([0, prong_insert_angle, 0]) {
-                    bearing_insert_splinter(h_bearing);
-                    translate([-dx_insertion, 0, h_bearing]) block([5, 5.3, h_prong_clip], center=BEHIND+BELOW);
+                    bearing_insert_splinter(h_above);
+                    translate([-dx_insertion, 0, h_above]) block([5, 5.3, h_prong_clip], center=BEHIND+BELOW);
                 }
-                translate([0, 0, 5]) can(d=od_bearing, hollow=id_bearing, h=2*h_bearing, center=ABOVE);
+                translate([0, 0, 5]) can(d=od_bearing, hollow=id_bearing, h=a_lot, center=ABOVE);
             }
         }
-        h_below = h_prong_clip  + h_extra; 
+        
         translate([0, 0, -h_below]) bearing_insert_splinter(h_below);
         difference() {
             translate([-dx_insertion, 0, -h_below])
-                block([od_bearing/2-dx_insertion, id_bearing + 1, h_prong_clip], center=ABOVE+BEHIND);
+                block([6, 8, h_prong_clip], center=ABOVE+BEHIND);
             rotate([0, 0, 30]) plane_clearance(FRONT);
             rotate([0, 0, -30]) plane_clearance(FRONT);
-            #hole_through("M2"); 
+            #prong_screws(as_clearance=true, dz=dz_screws); 
         }                  
     }
     module pronate_prong() {
@@ -373,10 +387,11 @@ module prong_assembly(locked=true, orient_for_build=false, show_mocks=false, h_e
         
     }
     if (show_mocks) {
-        translate([0, 0, dz_bearing_prong_mocks]) 
+        *translate([0, 0, dz_bearing_prong_mocks]) 
             color("silver", 0.25) ball_bearing(BB608); 
-        translate([0, 0, dz_shaft_gear_prong_mocks]) 
+        *translate([0, 0, dz_shaft_gear_prong_mocks]) 
             shaft_gear(orient_to_center_of_rotation=true,  show_vitamins=false);
+        prong_screws(as_clearance=false, dz=dz_screws);
     }
     if (orient_for_build) {
         pronate_prong();
@@ -790,7 +805,7 @@ if (build_prong_assembly) {
     if (orient_for_build) {
         translate([20, -20, 0]) prong_assembly(orient_for_build=true);
     } else {
-        prong_assembly(locked=prong_locked, show_mocks=show_vitamins, h_extra=h_extra);
+        prong_assembly(locked=prong_locked, show_mocks=show_vitamins, h_gap=h_prong_assembly_gap);
     }     
 }
 
