@@ -105,6 +105,8 @@ h_shaft_rider = 9; // [5 : 0.1: 10]
 
 
 prong_locked = true;
+h_prong_clip = 2;
+
 
 /* [Clamp Shaft Design] */
 r_shaft_end = 0.1;
@@ -147,6 +149,10 @@ dx_traveller = dx_end_cap;
 z_bearing_engagement = 2.5; //[0.5:"Test fit", 1:"Prototype", 2.5:"Production"]
 
 module end_of_customization() {}
+
+
+//translate([0, 0, h_bearing/2 + 2]) ball_bearing(BB608);
+
 
 BRONZE = "#b08d57";
 STAINLESS_STEEL = "#CFD4D9";
@@ -317,8 +323,8 @@ module bearing_insert_splinter(h) {
         render(convexity=10) difference() {
             blank();
             slider_shaft(as_gear_clearance=true);
-            rotate([0, 0, 60]) plane_clearance(FRONT);
-            rotate([0, 0, -60]) plane_clearance(FRONT);
+            rotate([0, 0, 30]) plane_clearance(FRONT);
+            rotate([0, 0, -30]) plane_clearance(FRONT);
         }
     }   
     shape(); 
@@ -326,6 +332,55 @@ module bearing_insert_splinter(h) {
 
 
 
+//bearing_insert_splinter(h=20);
+
+
+module alt_prong_assembly() {
+    prong_insert_angle = 9; // [0: 0.1: 20]
+    dy_prong_spacing = 11.8; // [5:0.1:20]   
+    h_total = h_bearing + 4*h_prong_clip;
+    dx_insertion = 2.85;
+    d_contact = 14.1;
+    hinge_thickness = 0.3;
+    module prong() {
+        rotate([0, -prong_insert_angle, 0]) {
+            render(convexity=10) difference() {            
+                rotate([0, prong_insert_angle, 0]) {
+                    bearing_insert_splinter(h_bearing);
+                    translate([-dx_insertion, 0, h_bearing]) block([5, 5.3, h_prong_clip], center=BEHIND+BELOW);
+                }
+                translate([0, 0, 5]) can(d=od_bearing, hollow=id_bearing, h=2*h_bearing, center=ABOVE);
+            }
+        }
+        translate([0, 0, -4*h_prong_clip]) bearing_insert_splinter(4*h_prong_clip);
+        difference() {
+            translate([0, 0, -4*h_prong_clip]) 
+                can(d=d_contact+2*hinge_thickness, hollow=id_bearing, h=h_prong_clip, center=ABOVE);
+            rotate([0, 0, 30]) plane_clearance(FRONT);
+            rotate([0, 0, -30]) plane_clearance(FRONT); 
+        }                  
+    }
+    module pronate_prong() {
+        render(convexity=10) difference() {
+            rotate([0, 90, 0]) translate([dx_insertion, 0, 0]) prong();
+            plane_clearance(BELOW);
+            translate([0, 5, 0]) rotate([45, 0, 0]) plane_clearance(BELOW);
+            translate([0, -5, 0]) rotate([-45, 0, 0]) plane_clearance(BELOW);
+        }
+        
+    }
+    if (orient_for_build) {
+        pronate_prong();
+        translate([0, dy_prong_spacing, 0]) pronate_prong();
+        translate([0, -dy_prong_spacing, 0]) pronate_prong();
+    } else {
+        triangle_placement(0) {
+            prong();   
+        }
+    }
+}
+
+alt_prong_assembly();
 
 
 module prong_assembly(locked=true, orient_for_build=false, show_vitamins=false) {
