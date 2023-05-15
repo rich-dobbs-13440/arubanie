@@ -106,8 +106,9 @@ h_shaft_rider = 9; // [5 : 0.1: 10]
 
 prong_locked = true;
 h_prong_clip = 2;
-
-
+h_extra = 0; // [0: 20]
+dz_bearing_prong_mocks = 2; // [-5:0.1:5]
+dz_shaft_gear_prong_mocks = 0; // [-5:0.1:5]
 /* [Clamp Shaft Design] */
 r_shaft_end = 0.1;
 r_shaft = id_bearing/2;
@@ -335,10 +336,10 @@ module bearing_insert_splinter(h) {
 //bearing_insert_splinter(h=20);
 
 
-module alt_prong_assembly() {
+module prong_assembly(locked=true, orient_for_build=false, show_mocks=false, h_extra = 3*h_prong_clip) {
     prong_insert_angle = 9; // [0: 0.1: 20]
     dy_prong_spacing = 11.8; // [5:0.1:20]   
-    h_total = h_bearing + 4*h_prong_clip;
+    h_total = h_bearing + h_prong_clip + h_extra;
     dx_insertion = 2.85;
     d_contact = 14.1;
     hinge_thickness = 0.3;
@@ -352,12 +353,14 @@ module alt_prong_assembly() {
                 translate([0, 0, 5]) can(d=od_bearing, hollow=id_bearing, h=2*h_bearing, center=ABOVE);
             }
         }
-        translate([0, 0, -4*h_prong_clip]) bearing_insert_splinter(4*h_prong_clip);
+        h_below = h_prong_clip  + h_extra; 
+        translate([0, 0, -h_below]) bearing_insert_splinter(h_below);
         difference() {
-            translate([0, 0, -4*h_prong_clip]) 
-                can(d=d_contact+2*hinge_thickness, hollow=id_bearing, h=h_prong_clip, center=ABOVE);
+            translate([-dx_insertion, 0, -h_below])
+                block([od_bearing/2-dx_insertion, id_bearing + 1, h_prong_clip], center=ABOVE+BEHIND);
             rotate([0, 0, 30]) plane_clearance(FRONT);
-            rotate([0, 0, -30]) plane_clearance(FRONT); 
+            rotate([0, 0, -30]) plane_clearance(FRONT);
+            #hole_through("M2"); 
         }                  
     }
     module pronate_prong() {
@@ -369,10 +372,16 @@ module alt_prong_assembly() {
         }
         
     }
+    if (show_mocks) {
+        translate([0, 0, dz_bearing_prong_mocks]) 
+            color("silver", 0.25) ball_bearing(BB608); 
+        translate([0, 0, dz_shaft_gear_prong_mocks]) 
+            shaft_gear(orient_to_center_of_rotation=true,  show_vitamins=false);
+    }
     if (orient_for_build) {
         pronate_prong();
-        translate([0, dy_prong_spacing, 0]) pronate_prong();
-        translate([0, -dy_prong_spacing, 0]) pronate_prong();
+        //translate([0, dy_prong_spacing, 0]) pronate_prong();
+        //translate([0, -dy_prong_spacing, 0]) pronate_prong();
     } else {
         triangle_placement(0) {
             prong();   
@@ -380,10 +389,10 @@ module alt_prong_assembly() {
     }
 }
 
-alt_prong_assembly();
+//alt_prong_assembly();
 
 
-module prong_assembly(locked=true, orient_for_build=false, show_vitamins=false) {
+module old_prong_assembly(locked=true, orient_for_build=false, show_vitamins=false) {
     dx_insert = 2.9;
     dy_cut = 2.2; // [0:.1:5]
     prong_insertion_angle = 129; // [120:140]
@@ -535,11 +544,13 @@ module shaft_gear(orient_for_build = false, orient_to_center_of_rotation=false, 
     module shape() {
         render(convexity=20) difference() {
             base_gear(teeth=shaft_gear_teeth);
-            can(d=md_bearing-0.01, h=100);   
+            //can(d=md_bearing-0.01, h=100);
+            translate([0, 0, 6]) can(d=od_bearing + 1, h=100, center=ABOVE);
+            can(d=id_bearing, h=100);   
         }
-        shaft_rider(h=h_shaft_rider, orient_for_build=false, show_vitamins=false);
-        translate([0, 0, h_shaft_rider]) 
-            slider_shaft_bearing_insert(orient_for_build=true, protect_from_elephant_foot=false);
+//        shaft_rider(h=h_shaft_rider, orient_for_build=false, show_vitamins=false);
+//        translate([0, 0, h_shaft_rider]) 
+//            slider_shaft_bearing_insert(orient_for_build=true, protect_from_elephant_foot=false);
     }
     
     if (show_vitamins) {
@@ -779,7 +790,7 @@ if (build_prong_assembly) {
     if (orient_for_build) {
         translate([20, -20, 0]) prong_assembly(orient_for_build=true);
     } else {
-        prong_assembly(locked=prong_locked, show_vitamins=show_vitamins);
+        prong_assembly(locked=prong_locked, show_mocks=show_vitamins, h_extra=h_extra);
     }     
 }
 
