@@ -6,6 +6,7 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 include <nutsnbolts-master/data-metric_cyl_head_bolts.scad>
 include <MCAD/servos.scad>
 include <NopSCADlib/vitamins/ball_bearings.scad>
+include <NopSCADlib/vitamins/zipties.scad>
 use <PolyGear/PolyGear.scad>
 //use <lib/ptfe_tubing.scad>
 
@@ -16,6 +17,8 @@ od_bearing = 22.0 + 0;
 id_bearing = 8.0 + 0;
 h_bearing = 7.0 + 0;;
 md_bearing = 14.0 + 0;
+
+
 
 
 /* [Output Control] */
@@ -152,6 +155,10 @@ z_bearing_engagement = 2.5; //[0.5:"Test fit", 1:"Prototype", 2.5:"Production"]
 module end_of_customization() {}
 
 
+* color("green") ziptie(small_ziptie);
+
+* color("blue")  ziptie(small_ziptie, r = 5, t = 20); //! Draw specified ziptie wrapped around radius `r` 
+                                                    //and optionally through panel thickness `t`
 //translate([0, 0, h_bearing/2 + 2]) ball_bearing(BB608);
 
 
@@ -176,6 +183,21 @@ module ptfe_tube(as_clearance, h, clearance) {
 if (show_vitamins && !orient_for_build) {
     filament(as_clearance=false);
 }
+
+module ziptie_bearing_attachment()  {
+    a_lot = 100;
+    render(convexity=10) difference() {
+        can(d=md_bearing, h=4, center=ABOVE);
+        slider_shaft(as_gear_clearance=true);
+        triangle_placement(0) 
+            translate([-id_bearing/2, 0, 0]) 
+                rotate([0, -45, 0]) 
+                    block(1.5*[1.2, 2.5, a_lot], center=FRONT); 
+    }
+}
+
+
+ziptie_bearing_attachment();
 
 
 module end_cap(orient_for_build) {
