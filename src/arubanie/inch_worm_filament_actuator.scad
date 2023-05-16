@@ -27,10 +27,10 @@ orient_for_build = false;
 
 show_vitamins = true;
 
-test_bearing_block = true;
+
 build_shaft = true;
 build_shaft_gear = true;
-build_prong_assembly = true;
+build_prong_assembly = false;
 
 build_clamp_gear = true;
 build_clamp_slide = true;
@@ -38,6 +38,7 @@ build_traveller = true;
 build_end_caps = true;
 build_both_end_caps = true;
 build_ptfe_glides = true;
+build_ziptie_bearing_attachment = false;
 
 alpha_clamp_gear = 1; // [0.25 : transparent, 1: solid]
 alpha_clamp_gear_slide = 1; // [0.25 : transparent, 1: solid]
@@ -61,6 +62,12 @@ slider_clearance = 0.4;
 
 
 
+//*********************************************
+/* [Bearing Holder Design] */ 
+test_bearing_block = true;
+include_shaft_bearing_block_base = true;
+include_clamp_bearing_block_base = false;
+join_block = false;
 
 /* [Glide Design] */
 slide_length = 50; // [1 : 1 : 99.9]
@@ -89,8 +96,8 @@ s_slider = 6;
 h_slider = 5; // [3: 0.1 : 7]
 screw_length = 16; //[4, 6, 8, 10, 12, 16, 20]
 x_clamp_nut_block = 5.5;
-h_slide_to_bearing_offset = 4;
-h_slide_to_gear_offset = 2;
+h_slide_to_bearing_offset = -8;
+h_slide_to_gear_offset = 10;
 dx_clamp_gear = x_clamp_nut_block + h_bearing + h_slide_to_bearing_offset + h_slider + h_slide_to_gear_offset;
 
 traveller_bearing_clearance = 4;
@@ -197,7 +204,7 @@ module ziptie_bearing_attachment()  {
 }
 
 
-ziptie_bearing_attachment();
+
 
 
 module end_cap(orient_for_build) {
@@ -673,8 +680,56 @@ module clamp_slide(orient_for_build=true, show_vitamins=false) {
     }  
 }
 
+module bearing_holder(
+        bearing_clearance=0.3, 
+        h=2, 
+        cap=false, 
+        screw_attachment=false, 
+        wall = 1, 
+        show_mocks=false) {
+    
+    a_lot = 100;
+    id = od_bearing + 2 * bearing_clearance;
+    od = id + 2 * wall;
+    //can(d = od_bearing + 2 * wall, hollow = od_bearing - 2 * wall, h = 2*wall, center=BELOW);
+    can(d = od, hollow = id, h = h, center=ABOVE);
+    if (cap) {
+        translate([0, 0, h]) {
+            difference() {
+                can(d=od, h=1);
+                can(d=id, taper=id-2, h=2);
+            }
+        }
+    }
+    if (screw_attachment) {
+        d_screw = od/2 + 3;
+        difference() {
+            block([od + 12, 5, wall], center=ABOVE);
+            can(d=id, h=a_lot);
+            center_reflect([1, 0, 0]) 
+                translate([d_screw, 0, 25]) 
+                    hole_through("M2", $fn=12);
+        }
+        if (show_mocks) {
+            color(BLACK_IRON) 
+                center_reflect([1, 0, 0]) 
+                    translate([d_screw, 0, wall]) 
+                        screw("M2x6");
+        }
+    }
+}
+
+dx = od_bearing + 5;
+//translate([0*dx, 0, 0]) bearing_holder(1);  // Way too much
+//translate([1*dx, 0, 0])bearing_holder(0.5);  // Still too much
+//translate([2*dx, 0, 0]) bearing_holder(0.2);  // Too tight
+//translate([3*dx, 0, 0])bearing_holder(0.1);  // Too tight
+//translate([4*dx, 0, 0]) bearing_holder(bearing_clearance=0.3, h=4); 
+translate([4*dx, 0, 0]) bearing_holder(bearing_clearance=0.3, h=8, cap=true, screw_attachment=true);  
+//translate([5*dx, 0, 0])bearing_holder(0.4); // Too loose
 
 module bearing_block(show_vitamins=false) {
+    
     a_lot = 100;
     bearing_wall = 2;
     h_neck = 2;
@@ -682,18 +737,27 @@ module bearing_block(show_vitamins=false) {
     d_bearing_retention = od_bearing - 1;
     dz_shaft = clamp_gear_diameter/2 + h_bearing  + h_shaft_bearing_base;
     dx_clamp = shaft_gear_diameter/2 + h_bearing  + h_neck;
+    
+    module block_joiner() {
+        if (join_block) {
+            translate([dx_clamp+bearing_wall, 0, -dz_shaft]) 
+                block([2*bearing_wall, s/2, 2*bearing_wall], center=BEHIND);
+        }
+    }
     module blank() {
         union() {
-            hull() {
-                translate([0, 0, -dz_shaft]) can(d=s, h=2*bearing_wall);
-                translate([dx_clamp+bearing_wall, 0, -dz_shaft]) 
-                    block([2*bearing_wall, s/2, 2*bearing_wall], center=BEHIND);
+            if (include_shaft_bearing_block_base) {
+                hull() {
+                    translate([0, 0, -dz_shaft]) can(d=s, h=2*bearing_wall);
+                    block_joiner();
+                }
             }
-            hull() {
-                translate([dx_clamp, 0, 0]) rotate([0, 90, 0]) can(d=s, h=2*bearing_wall);
-                translate([dx_clamp+bearing_wall, 0, -dz_shaft]) 
-                    block([2*bearing_wall, s/2, 2*bearing_wall], center=BEHIND);
-            }   
+            if (include_clamp_bearing_block_base) {
+                hull() {
+                    translate([dx_clamp, 0, 0]) rotate([0, 90, 0]) can(d=s, h=2*bearing_wall);
+                    block_joiner();
+                }   
+            }
         }        
     }
     difference() {
@@ -872,7 +936,9 @@ if (build_traveller) {
     }    
 }
 
-
+if (build_ziptie_bearing_attachment) {
+    ziptie_bearing_attachment();
+}
 
 
 
