@@ -452,12 +452,16 @@ module tuned_M2_nutcatch_side_cut(as_clearance = true) {
     if (as_clearance) {
         nutcatch_sidecut("M2", $fn = 12, clh=.5); 
     } else {
-        #nut("M2");
+        nut("M2");
     }
 }
 
 
-module filament_clamp(include_mounting=true, include_servo_attachment=true, include_vitamins=true) {
+module filament_clamp(
+        include_mounting=true, 
+        include_servo_attachment=true, 
+        include_vitamins=true, 
+        as_mounting_screw_clearance=false) {
     z = 16;
     screw_wall = 2;
     wall = 2;
@@ -482,7 +486,7 @@ module filament_clamp(include_mounting=true, include_servo_attachment=true, incl
         translate([0, 0, -z/2]) block([x_clamp_nut_block, 14, wall], center=BEHIND+ABOVE);
         center_reflect([0, 1, 0]) {
             hull() {                        
-                #translate([-dx_clamp_bearing_to_clamp_nut_block-x_clamp_nut_block, od_bearing/2, -z/2]) 
+                translate([-dx_clamp_bearing_to_clamp_nut_block-x_clamp_nut_block, od_bearing/2, -z/2]) 
                     block([1, 6, wall], center=ABOVE+FRONT);
 
                 translate([0, 6, -z/2]) block([x_clamp_nut_block, 5, wall], center=ABOVE+BEHIND+RIGHT);
@@ -584,10 +588,14 @@ module filament_clamp(include_mounting=true, include_servo_attachment=true, incl
         pivot_screws(as_clearance = false);
         mounting_screws(as_clearance = false);  
     }
-    if (include_vitamins && !orient_for_build) {
-        vitamins();
+    if (as_mounting_screw_clearance) {
+        mounting_screws(as_clearance = true);
+    } else {
+        if (include_vitamins && !orient_for_build) {
+            vitamins();
+        }
+        shape();
     }
-    shape();
     
 }
 // **************************************************************************************
@@ -738,8 +746,19 @@ module traveller(orient_for_build, show_vitamins) {
 
 module clamp_skate_bearing_holder() {
     translate([-dx_clamp_bearing, 0, 0]) 
-        rotate([0, -90, 0])
+        rotate([0, -90, 0]) {
             skate_bearing_holder(cap=true, show_mocks=show_vitamins);
+            // Add attachment block
+            difference() {
+                union() {
+                    block([25, 25, 8], center=ABOVE);
+                    translate([3, 0, 0]) block([12, 43, 2], center=ABOVE+BEHIND);
+                }
+                skate_bearing_holder(as_clearance=true);
+                skate_bearing_retainer(as_screw_clearance=true);
+                translate([0, 0, -30]) rotate([0, 90, 0]) filament_clamp(as_mounting_screw_clearance = true);
+            }
+        }
 }
 
 

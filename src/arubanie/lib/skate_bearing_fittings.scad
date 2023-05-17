@@ -97,24 +97,30 @@ module skate_bearing_holder(
 module skate_bearing_retainer(wall = 1, orient_for_build=false, color_code="Crimson", show_mock=true, as_screw_clearance=false) {
     screw_offset = 10;
     module screw_holes(as_mocks=false) {
-        z_offset = as_mocks ? 0 : 25;
+        z_offset = as_mocks ? 0 : 0;
         center_reflect([1, 0, 0]) 
+        center_reflect([0, 1, 0]) 
             translate([screw_offset, screw_offset, z_offset]) 
         
                 if (as_mocks) {
                     color(BLACK_IRON) screw("M2x6");
                 } else {
-                    hole_through("M2", $fn=12); 
+                    center_reflect([0, 0, 1]) hole_through("M2", $fn=12); 
                 }
     }
-    if (show_mocks && !orient_for_build) {
-        screw_holes(as_mocks=true);
-    }    
-    color(color_code) {
-        render() difference() {
-            block([25, 25, wall], center=BELOW);
-            skate_bearing_holder(as_retaining_clearance=true);
-            screw_holes();
+
+    if (as_screw_clearance)  {
+        screw_holes(as_mocks=false);
+    } else {
+        if (show_mocks && !orient_for_build) {
+            screw_holes(as_mocks=true);  
+        }      
+        color(color_code) {
+            render() difference() {
+                block([25, 25, wall], center=BELOW);
+                skate_bearing_holder(as_retaining_clearance=true);
+                screw_holes();
+            }
         }
     }
 
@@ -127,3 +133,6 @@ if (build_bearing_holder) {
 if (build_retainer) {
     skate_bearing_retainer(orient_for_build = orient_for_build);
 }
+
+
+skate_bearing_retainer(as_screw_clearance=true);
