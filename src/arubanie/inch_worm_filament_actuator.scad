@@ -106,7 +106,7 @@ clamp_gear_diameter = 16.9 + 0;
 
 h_slider = 5; // [5: 0.1 : 8]
 screw_length = 10; //[4, 6, 8, 10, 12, 16, 20]
-x_clamp_nut_block = 5.5;
+x_clamp_nut_block = 7;
 h_slide_to_bearing_offset = 0;
 h_slide_to_gear_offset = 10;
 dx_clamp_gear = x_clamp_nut_block + h_bearing + h_slide_to_bearing_offset + h_slider + h_slide_to_gear_offset;
@@ -118,9 +118,9 @@ dz_clamp_screw = od_bearing/2 + traveller_bearing_clearance;
     
     
 /* [Shaft Gear Design] */
-// 19 teeth => 34.3
-shaft_gear_teeth = 23;
-shaft_gear_diameter = 41; //[30: 0.1: 50]
+// 19 teeth => 34.3, 22 teeth => 41, 17 teeth  = 31.6
+shaft_gear_teeth = 17;
+shaft_gear_diameter = 31.6; //[30: 0.1: 50]
 h_shaft_bearing_base = 2; // [0: 0.1: 10]
 h_shaft_rider = 9; // [5 : 0.1: 10]
 
@@ -600,10 +600,11 @@ module shaft_gear(orient_for_build = false, orient_to_center_of_rotation=false, 
         render(convexity=20) difference() {
             base_gear(teeth=shaft_gear_teeth);
             //can(d=md_bearing-0.01, h=100);
-            translate([0, 0, 6]) can(d=od_bearing + 1, h=100, center=ABOVE);
-            can(d=id_bearing, h=100);   
+            //translate([0, 0, 6]) 
+            //can(d=od_bearing + 1, h=100);
+            can(d=md_bearing, h=100);   
         }
-//        shaft_rider(h=h_shaft_rider, orient_for_build=false, show_vitamins=false);
+        shaft_rider(h=10, orient_for_build=false, show_vitamins=false);
 //        translate([0, 0, h_shaft_rider]) 
 //            slider_shaft_bearing_insert(orient_for_build=true, protect_from_elephant_foot=false);
     }
@@ -612,8 +613,8 @@ module shaft_gear(orient_for_build = false, orient_to_center_of_rotation=false, 
         dz_bb = -h_bearing/2 - clamp_gear_diameter/2 - h_shaft_bearing_base;
         dz_insert = dz_bb + h_bearing/2 ; // -clamp_gear_diameter/2;
 //        translate([0, 0, dz_bb]) ball_bearing(BB608);
-        translate([0, 0, dz_insert]) slider_shaft_bearing_insert();
-        //translate(translation ) shaft_rider(h=10, orient_for_build=orient_for_build, show_vitamins=show_vitamins);
+        //translate([0, 0, dz_insert]) slider_shaft_bearing_insert();
+        //translate(translation) shaft_rider(h=10, orient_for_build=orient_for_build, show_vitamins=show_vitamins);
     }
     color("pink", alpha_shaft_gear) {
         if (orient_for_build) {
@@ -812,9 +813,9 @@ module tuned_M2_nutcatch_side_cut(as_clearance = true) {
 
 
 module filament_clamp(include_mounting=true, include_servo_attachment=true, include_vitamins=true) {
-    z = 12;
+    z = 16;
     screw_wall = 2;
-    wall = 1;
+    wall = 2;
     x_mounting = 12;
     y_clamp_nut_block = 8;
     pivot_screw_length = 16;
@@ -855,14 +856,14 @@ module filament_clamp(include_mounting=true, include_servo_attachment=true, incl
             if (as_clearance) {
                 translate([-x_mounting, od_bearing/2 + 4, 0]) {
                     rotate([0, 90, 0]) {
-                        hole_through("M2", $fn = 12);
+                        hole_through("M2", cld=0.4, $fn = 12);
                     } 
                 } 
             }
         } 
         module vertical_mount() {
             if (as_clearance) {
-                translate([0,0, 25]) hole_through("M2", $fn = 12);
+                translate([0,0, 25]) hole_through("M2", cld=0.4, $fn = 12);
             }
         }
         center_reflect([0, 1, 0]) {
@@ -892,7 +893,7 @@ module filament_clamp(include_mounting=true, include_servo_attachment=true, incl
         center_reflect([0, 1, 0]) {
             translate([0, 3, 0]) { 
                 if (as_clearance) {
-                     rotate([90, 0, 0]) hole_through("M2");
+                     rotate([90, 0, 0]) hole_through("M2", $fn=12, cld=0.4);
                      rotate([0, -90, 90]) tuned_M2_nutcatch_side_cut(as_clearance=true);  
                 } else {
                     color(BLACK_IRON) {
@@ -953,8 +954,8 @@ module traveller_pivot_arms(orientation, show_vitamins) {
     id = od_ptfe_tube  + 2*ptfe_insert_clearance;
     od = id + 2*wall;
     iy_pivot = x_clamp_nut_block;
-    dy_inside_bearing = 1;
-    dx_pivot_arm = 9;
+    dy_inside_bearing = 2;
+    dx_pivot_arm = 6;
     dy_i = iy_pivot + dy_inside_bearing;
     arm_length = 20;
     x_yoke = 20;
@@ -1117,7 +1118,7 @@ if (build_shaft) {
 
 if (build_shaft_gear) {
     if (orient_for_build) {
-        translate([70, 0, 0]) shaft_gear(orient_for_build=true, show_vitamins=false);
+        translate([70, 0, 0]) shaft_gear(orient_for_build=true, show_vitamins=show_vitamins);
     } else {
         shaft_gear(orient_for_build=false, show_vitamins=show_vitamins);
     }    
