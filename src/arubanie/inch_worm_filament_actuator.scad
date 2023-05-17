@@ -11,6 +11,7 @@ include <NopSCADlib/vitamins/zipties.scad>
 use <PolyGear/PolyGear.scad>
 use <lib/servo_horn_cavity.scad>
 use <lib/triangular_bearing_shaft.scad>
+use <lib/skate_bearing_fittings.scad>
 
 
 d_filament = 1.75 + 0.;
@@ -75,6 +76,8 @@ elephant_clearance = 1;
 slider_clearance = 0.4;
 
 
+/* [Filament_clamp_design] */ 
+dx_clamp_bearing_to_clamp_nut_block = 13;
 
 //*********************************************
 /* [Bearing Holder Design] */ 
@@ -82,6 +85,8 @@ test_bearing_block = false;
 include_shaft_bearing_block_base = true;
 include_clamp_bearing_block_base = false;
 join_block = false;
+
+
 
 /* [Glide Design] */
 slide_length = 50; // [1 : 1 : 99.9]
@@ -119,7 +124,7 @@ dx_clamp_gear = x_clamp_nut_block + h_bearing + h_slide_to_bearing_offset + h_sl
 traveller_bearing_clearance = 4;
 dz_clamp_screw = od_bearing/2 + traveller_bearing_clearance; 
     
-     
+dx_clamp_bearing = dx_clamp_bearing_to_clamp_nut_block  + x_clamp_nut_block;     
     
     
 /* [Shaft Gear Design] */
@@ -154,19 +159,8 @@ end_cap = [x_end_cap, y_end_cap, z_end_cap];
 
 gear_filament_clearance = 6;
 
-    
- 
-   
-    
-  
-//
-
 
 shaft_length = slide_length + 2*z_end_cap +  2*gear_height; //+ 2*z_clearance
-
-
-
-
 
 
 /* [Traveller Design] */
@@ -183,7 +177,7 @@ module end_of_customization() {}
 
 * color("blue")  ziptie(small_ziptie, r = 5, t = 20); //! Draw specified ziptie wrapped around radius `r` 
                                                     //and optionally through panel thickness `t`
-//translate([0, 0, h_bearing/2 + 2]) ball_bearing(BB608);
+
 
 
 
@@ -365,55 +359,7 @@ module clamp_slide(orientation, show_vitamins=false) {
 //    }  
 }
 
-module bearing_holder(
-        bearing_clearance=0.3, 
-        h=2, 
-        cap=false, 
-        screw_attachment=false, 
-        wall = 1, 
-        show_mocks=false) {
-    
-    a_lot = 100;
-    id = od_bearing + 2 * bearing_clearance;
-    od = id + 2 * wall;
-    //can(d = od_bearing + 2 * wall, hollow = od_bearing - 2 * wall, h = 2*wall, center=BELOW);
-    can(d = od, hollow = id, h = h, center=ABOVE);
-    if (cap) {
-        translate([0, 0, h]) {
-            difference() {
-                can(d=od, h=1);
-                can(d=id, taper=id-2, h=2);
-            }
-        }
-    }
-    if (screw_attachment) {
-        d_screw = od/2 + 3;
-        difference() {
-            block([od + 12, 5, wall], center=ABOVE);
-            can(d=id, h=a_lot);
-            center_reflect([1, 0, 0]) 
-                translate([d_screw, 0, 25]) 
-                    hole_through("M2", $fn=12);
-        }
-        if (show_mocks) {
-            color(BLACK_IRON) 
-                center_reflect([1, 0, 0]) 
-                    translate([d_screw, 0, wall]) 
-                        screw("M2x6");
-        }
-    }
-}
 
-if (build_bearing_holder) {
-    dx = od_bearing + 5;
-    //translate([0*dx, 0, 0]) bearing_holder(1);  // Way too much
-    //translate([1*dx, 0, 0])bearing_holder(0.5);  // Still too much
-    //translate([2*dx, 0, 0]) bearing_holder(0.2);  // Too tight
-    //translate([3*dx, 0, 0])bearing_holder(0.1);  // Too tight
-    //translate([4*dx, 0, 0]) bearing_holder(bearing_clearance=0.3, h=4); 
-    translate([4*dx, 0, 0]) bearing_holder(bearing_clearance=0.3, h=8, cap=true, screw_attachment=true);  
-    //translate([5*dx, 0, 0])bearing_holder(0.4); // Too loose
-}
 
 module bearing_block(show_vitamins=false) {
     
@@ -479,7 +425,7 @@ module filament_clamp(include_mounting=true, include_servo_attachment=true, incl
     z = 16;
     screw_wall = 2;
     wall = 2;
-    x_mounting = 12;
+    
     y_clamp_nut_block = 8;
     pivot_screw_length = 16;
     module clamp_screw_clearance() {
@@ -500,24 +446,24 @@ module filament_clamp(include_mounting=true, include_servo_attachment=true, incl
         translate([0, 0, -z/2]) block([x_clamp_nut_block, 14, wall], center=BEHIND+ABOVE);
         center_reflect([0, 1, 0]) {
             hull() {                        
-                translate([-x_mounting-x_clamp_nut_block, od_bearing/2, -z/2]) 
-                    block([1, 6, wall], center=ABOVE+BEHIND);
+                #translate([-dx_clamp_bearing_to_clamp_nut_block-x_clamp_nut_block, od_bearing/2, -z/2]) 
+                    block([1, 6, wall], center=ABOVE+FRONT);
 
                 translate([0, 6, -z/2]) block([x_clamp_nut_block, 5, wall], center=ABOVE+BEHIND+RIGHT);
                 
             }
-            translate([-x_mounting-x_clamp_nut_block, od_bearing/2, 0]) {
+            translate([-dx_clamp_bearing_to_clamp_nut_block-x_clamp_nut_block, od_bearing/2, 0]) {
                 // Retain bearing
-                block([wall, 3, z], center=LEFT);
+                block([wall, 3, z], center=LEFT+FRONT);
                 // Screw pad
-                block([wall, 10, z], center=RIGHT);
+                block([wall, 10, z], center=RIGHT+FRONT);
             }
         }        
     }
     module mounting_screws(as_clearance = true) {
         module basic_bearing_mount() {
             if (as_clearance) {
-                translate([-x_mounting, od_bearing/2 + 4, 0]) {
+                translate([-dx_clamp_bearing_to_clamp_nut_block, od_bearing/2 + 4, 0]) {
                     rotate([0, 90, 0]) {
                         hole_through("M2", cld=0.4, $fn = 12);
                     } 
@@ -752,7 +698,13 @@ module traveller(orient_for_build, show_vitamins) {
             translate([0, 0, 0]) shape();
         } 
     }   
-}    
+}   
+
+module clamp_skate_bearing_holder() {
+    translate([-dx_clamp_bearing, 0, 0]) 
+        rotate([0, -90, 0])
+            skate_bearing_holder(cap=true, show_mocks=show_vitamins);
+}
 
 
 if (build_end_caps) {
@@ -838,6 +790,8 @@ if (build_traveller) {
         traveller(orient_for_build=false, show_vitamins=show_vitamins);
     }    
 }
+
+clamp_skate_bearing_holder();
 
 
 

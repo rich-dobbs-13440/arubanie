@@ -6,8 +6,8 @@ use <material_colors.scad>
 use <not_included_batteries.scad>
 include <nutsnbolts-master/cyl_head_bolt.scad>
 include <nutsnbolts-master/data-metric_cyl_head_bolts.scad>
-
-
+use <rcolyer-threads-scad/threads.scad>
+use <PolyGear/PolyGear.scad>
 
 
 od_bearing = 22.0 + 0;
@@ -19,11 +19,16 @@ md_bearing = 14.0 + 0;
 ptfe_snap_clearance = 0.17;
 ptfe_slide_clearance = 0.5; // [0.5:Actual, 1:test]
 
+
+/* [Output] */ 
+
 orient_for_build = true;
 show_vitamins = true;
 build_prong_assembly = true;
 build_ziptie_bearing_attachment = true;
 build_shaft = true;
+build_screw_clutch = true;
+build_shaft_rider = true;
 
 /* [Shaft Design] */
 
@@ -39,8 +44,12 @@ r_rider = 4.2; // [1: .1 : 10]
 
 
 // 0.15 was pretty tight, 0.2 was loose, might be interaction with r_rider though
-test_fit_shaft_rider = true;
 
+/* [Clutch Design] */
+n_thumb_wheel_teeth = 15; //[1:30]
+
+m_thumb_wheel = 1.9; // [1.5: .1 :2]
+/* [Prong Design] */
 prong_locked = true;
 h_prong_clip = 4;
 h_prong_assembly_gap = 10; // [7: 20]
@@ -49,7 +58,7 @@ dz_shaft_gear_prong_mocks = 0; // [-5:0.1:5]
 
 module end_of_customization() {}
 
-if (test_fit_shaft_rider) {
+if (build_shaft_rider) {
     shaft_rider(h=5, orient_for_build=true, show_vitamins=false);
 }
 
@@ -66,6 +75,77 @@ if (build_prong_assembly) {
 if (build_ziptie_bearing_attachment) {
     ziptie_bearing_attachment();
 }
+
+if (build_screw_clutch) {
+    screw_clutch();
+}
+
+module screw_clutch() {
+    
+    z_thumb_wheel = 6;
+
+    diameter = 14;
+    id = 9;
+    length = 4;
+
+    infinity = 100;
+    original_z_nut = 14;
+    z_nut = 2;
+    total_bolt_length = length+z_nut;
+    
+    module left_handed_hollow_bolt() {
+        color("lightpink") {
+            mirror([0, 0, 1]) right_handed_hollow_bolt();
+        }
+    }
+    
+    module right_handed_hollow_bolt() {
+        color("red") {
+            translate([0, 0, -length-z_nut]) {
+                render(convexity = 10) difference() {
+                    translate([0, 0, -original_z_nut+z_nut]) MetricBolt(diameter, length, tolerance=0.4);
+                    plane_clearance_below();
+                    cylinder(h=infinity, d=id, center=true);
+                } 
+            }  
+        }     
+    }   
+
+    module plane_clearance_below() {
+        translate([0, 0, -infinity/2]) cube([infinity, infinity, infinity], center=true);
+    }
+    
+    module thumb_wheel() {
+        color("orange") {
+            render(convexity = 10) {
+                center_reflect([0, 0, 1]) {
+                    MetricNut(diameter, z_thumb_wheel/2, tolerance=0.4);
+                }
+
+                difference() {
+                    spur_gear(
+                        n = n_thumb_wheel_teeth,  // number of teeth
+                        m = m_thumb_wheel,   // module
+                        z = z_thumb_wheel);   // thickness
+                        can(d=diameter+4, h=100);
+                }
+            }
+        }
+    }
+    if (orient_for_build) {
+        spacing = 2.5*diameter;
+        translate([+spacing, 0, total_bolt_length]) //rotate([180, 0, 0]) 
+        right_handed_hollow_bolt();
+        translate([-spacing, 0, total_bolt_length]) rotate([180, 0, 0]) left_handed_hollow_bolt();
+        translate([0, 0, z_thumb_wheel/2]) thumb_wheel();
+    } else {
+        right_handed_hollow_bolt();
+        left_handed_hollow_bolt();
+        thumb_wheel();
+    }
+    
+}
+
 
 
 module ptfe_tube(as_clearance, h, clearance) {
@@ -363,6 +443,7 @@ module slider_shaft_bearing_insert(
         } 
     }
 }
+
 
 
 
