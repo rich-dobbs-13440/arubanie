@@ -137,3 +137,11 @@ function center_str_to_center(center_as_str) =
     center_as_str == "BELOW" ? BELOW :
     assert(false, "Not implemented");
   
+module triangle_placement(r) {
+
+    for (angle = [0 : 120: 240]) {
+        rotate([0, 0, angle]) {
+            translate([r, 0, 0]) children();
+        }
+    }
+}

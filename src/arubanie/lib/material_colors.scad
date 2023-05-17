@@ -1,0 +1,3 @@
+BRONZE = "#b08d57";
+STAINLESS_STEEL = "#CFD4D9";
+BLACK_IRON = "#3a3c3e";
