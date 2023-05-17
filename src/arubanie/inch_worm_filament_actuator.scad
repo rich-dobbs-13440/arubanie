@@ -37,6 +37,7 @@ orient_for_build = orientation == ORIENT_FOR_BUILD;
 show_vitamins = true;
 show_filament = true;
 
+build_clamp_skate_bearing_holder = true;
 build_traveller_pivot_arms = true;
 
 build_shaft = true;
@@ -119,12 +120,14 @@ screw_length = 10; //[4, 6, 8, 10, 12, 16, 20]
 x_clamp_nut_block = 7;
 h_slide_to_bearing_offset = 0;
 h_slide_to_gear_offset = 10;
-dx_clamp_gear = x_clamp_nut_block + h_bearing + h_slide_to_bearing_offset + h_slider + h_slide_to_gear_offset;
+dx_clamp_bearing = dx_clamp_bearing_to_clamp_nut_block  + x_clamp_nut_block; 
+
+dx_clamp_gear = dx_clamp_bearing  + h_bearing;
 
 traveller_bearing_clearance = 4;
 dz_clamp_screw = od_bearing/2 + traveller_bearing_clearance; 
     
-dx_clamp_bearing = dx_clamp_bearing_to_clamp_nut_block  + x_clamp_nut_block;     
+    
     
     
 /* [Shaft Gear Design] */
@@ -140,13 +143,7 @@ dx_clamp_slide = x_clamp_nut_block + h_bearing + h_slide_to_bearing_offset + h_s
 /* [End Cap Design] */
 end_cap_pad = 4;
 
-dx_clamp_shaft = 
-    x_clamp_nut_block 
-    + h_bearing 
-    + h_slide_to_bearing_offset 
-    + h_slider
-    + h_slide_to_gear_offset 
-    + shaft_gear_diameter/2;
+dx_clamp_shaft = dx_clamp_bearing + h_bearing + shaft_gear_diameter/2;
 dx_end_cap = -dx_clamp_shaft - shaft_gear_diameter/2 - end_cap_pad; 
 x_end_cap = dx_glides  + r_glide + dx_clamp_shaft + shaft_gear_diameter/2 + od_ptfe_tube/2 + 2 * end_cap_pad; // [1:0.1:40]
 y_end_cap = 10; //max(d_shaft_clearance, 2*dx_glides); 
@@ -252,16 +249,41 @@ module shaft_gear(orient_for_build = false, orient_to_center_of_rotation=false, 
     translation = 
         orient_for_build ? [0, 0, 0] : 
         orient_to_center_of_rotation ? [0, 0, -clamp_gear_diameter/2] :
-        [-dx_clamp_shaft, 0, 0];
+        [-dx_clamp_shaft, 0, -clamp_gear_diameter/2];
+    
+    clearance = 0.5;  // 
+    
+    module splines(as_clearance) {
+        clearance = as_clearance ? 0.5 : 0;
+        clearances = 2*[clearance, clearance, clearance];
+        r = as_clearance ? md_bearing/2 - 1 : md_bearing/2 - 1 - clearance;
+        dz = as_clearance ? 0.2: 0;
+        spline = [2.5, 2, 2.5]; 
+        
+        rotate([0, 0, 15]) 
+            triangle_placement(r=r) 
+                translate([0, 0, -dz]) 
+                    block(spline + clearances, center=FRONT+ABOVE);
+        rotate([0, 0, -15]) 
+            triangle_placement(r=r) 
+                translate([0, 0, -dz]) 
+                    block(spline + clearances, center=FRONT+ABOVE);
+    }
+    module splined_shaft_rider() {
+        shaft_rider(h=10, orient_for_build=false, show_vitamins=false);
+        splines(as_clearance = false);
+    }
     module shape() {
         render(convexity=20) difference() {
             base_gear(teeth=shaft_gear_teeth);
             //can(d=md_bearing-0.01, h=100);
             //translate([0, 0, 6]) 
             //can(d=od_bearing + 1, h=100);
-            can(d=md_bearing, h=100);   
+            can(d=md_bearing+1 + 2*clearance, h=100);  
+            splines(as_clearance = true); 
         }
-        shaft_rider(h=10, orient_for_build=false, show_vitamins=false);
+
+
 //        translate([0, 0, h_shaft_rider]) 
 //            slider_shaft_bearing_insert(orient_for_build=true, protect_from_elephant_foot=false);
     }
@@ -276,8 +298,12 @@ module shaft_gear(orient_for_build = false, orient_to_center_of_rotation=false, 
     color("pink", alpha_shaft_gear) {
         if (orient_for_build) {
             translate([0, 0, h_shaft_bearing_base]) shape();
+            translate([50, 0, h_shaft_bearing_base]) splined_shaft_rider();
         } else {
-            translate(translation) shape();
+            translate(translation) {
+                shape();
+                splined_shaft_rider();
+            }
         } 
     }   
 }
@@ -791,7 +817,9 @@ if (build_traveller) {
     }    
 }
 
-clamp_skate_bearing_holder();
+if (build_clamp_skate_bearing_holder) {
+    clamp_skate_bearing_holder();
+}
 
 
 
