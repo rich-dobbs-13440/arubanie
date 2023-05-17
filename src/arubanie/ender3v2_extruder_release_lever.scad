@@ -13,6 +13,7 @@ use <lib/ptfe_tubing.scad>
 
 include <ender3v2_z_axis_mocks.scad>
 use <ender3v2_filament_guide.scad>
+use <lib/servo_horn_cavity.scad>
 
 
 /* [Output Control] */
@@ -23,7 +24,7 @@ build_servo_mount = true;
 build_mounting_plate_spacers = true;
 build_servo_gear = true;
 build_drill_guide = false;
-build_test_fit_servo = true;
+
 
 show_mocks = true;
 show_modified_z_axis = false;
@@ -43,8 +44,7 @@ z_servo = -24; // [-40: 0]
 servo_shaft_diameter = 5.78; //[5.78:"Radio Shaft Standard"]
 z_servo_plate = 2.5; //[0.5:"Position test", 1:"Trial", 2:"Solid", 2.5:"Flush"]
 
-test_fit_height = 0.5; // [0.25, 1, 2.5, 4]
-test_fit_tolerances = [0.4, 0.5, 0.6, 0.7]; // initial: [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1],
+
 
 
 /* [Cam Design] */
@@ -312,71 +312,9 @@ module servo_gear(orient_for_build=false) {
 }
 
 
-module horn_goldilocks_array(
-        plot = 10,
-        shim_counts = [0, 3, 6]) {
-    difference() {
-        cube([
-            plot * len(test_fit_tolerances),
-            plot * len(shim_counts),
-            test_fit_height
-        ]);
-
-        for (i_tolerance = [0 : len(test_fit_tolerances) - 1]) {
-            for (i_shim_count = [0 : len(shim_counts) - 1]) {
-                translate([
-                    i_tolerance * plot + plot / 2,
-                    i_shim_count * plot + plot / 2,
-                    0
-                ]) {
-                    // So now we have X and Y as tolerances[i_tolerance] and
-                    // shim_counts[i_shim_count], and they can be used to make
-                    // each individual test.
-                    // Here, for example, they're passed as arguments to an
-                    // external cavity() module.
-                    translate([0, 0, -1]) horn_cavity(
-                        diameter = servo_shaft_diameter
-                            + test_fit_tolerances[i_tolerance] * 2,
-                        shim_count = shim_counts[i_shim_count],
-                        height = test_fit_height + 10
-                    );
-                }
-            }
-        }
-    }
-}
 
 
-module horn_cavity(
-    diameter,
-    height,
-    shim_count = 3,
-    shim_width = 1,
-    shim_length = .5,
-) {
-    e = .005678;
 
-    difference() {
-        cylinder(
-            h = height,
-            d = diameter
-        );
-
-        if (shim_count > 0) {
-            for (i = [0 : shim_count - 1]) {
-                rotate([0, 0, i * 360 / shim_count]) {
-                    translate([
-                        shim_width / -2,
-                        diameter / 2 - shim_length,
-                        -e
-                    ]) {
-                        cube([shim_width, shim_length, height + e * 2]);
-                    }
-                }
-            }
-        }
-    }
-}
 
 
 
@@ -418,7 +356,5 @@ if (build_mounting_plate_spacers) {
 
 
 
-if (build_test_fit_servo) {
-    translate([0, -70, 0]) horn_goldilocks_array();
-}
+
 
