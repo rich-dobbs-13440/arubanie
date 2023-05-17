@@ -131,9 +131,9 @@ dz_clamp_screw = od_bearing/2 + traveller_bearing_clearance;
     
     
 /* [Shaft Gear Design] */
-// 19 teeth => 34.3, 22 teeth => 41, 17 teeth  = 31.6
-shaft_gear_teeth = 17;
-shaft_gear_diameter = 31.6; //[30: 0.1: 50]
+// 19 teeth => 35.1, 22 teeth => 41, 17 teeth  = 31.6
+shaft_gear_teeth = 19;
+shaft_gear_diameter = 35.1; //[30: 0.1: 50]
 h_shaft_bearing_base = 2; // [0: 0.1: 10]
 h_shaft_rider = 9; // [5 : 0.1: 10]
 
@@ -270,17 +270,26 @@ module shaft_gear(orient_for_build = false, orient_to_center_of_rotation=false, 
                     block(spline + clearances, center=FRONT+ABOVE);
     }
     module splined_shaft_rider() {
-        shaft_rider(h=10, orient_for_build=false, show_vitamins=false);
-        splines(as_clearance = false);
+        translate([0, 0, -9]) shaft_rider(h=30, orient_for_build=false, show_vitamins=false);
+        //splines(as_clearance = false);
     }
+    module set_screw_clearance() {
+        module holes(z) {
+            triangle_placement(r=0) translate([110, 0, z]) rotate([0, 90, 0]) hole_through("M2", h = 100);
+        }
+        holes(-3);
+        holes(14);
+    }
+    
     module shape() {
         render(convexity=20) difference() {
-            base_gear(teeth=shaft_gear_teeth);
-            //can(d=md_bearing-0.01, h=100);
-            //translate([0, 0, 6]) 
-            //can(d=od_bearing + 1, h=100);
-            can(d=md_bearing+1 + 2*clearance, h=100);  
-            splines(as_clearance = true); 
+            union() {
+                base_gear(teeth=shaft_gear_teeth);
+                translate([0, 0, -6]) can(d=20, h=24, center=ABOVE);
+                can(d=22, taper=27.5, h=6, center=BELOW);
+            }
+            can(d=md_bearing+1 + 2*clearance, h=100); 
+            set_screw_clearance(); 
         }
 
 
@@ -291,6 +300,7 @@ module shaft_gear(orient_for_build = false, orient_to_center_of_rotation=false, 
     if (show_vitamins) {
         dz_bb = -h_bearing/2 - clamp_gear_diameter/2 - h_shaft_bearing_base;
         dz_insert = dz_bb + h_bearing/2 ; // -clamp_gear_diameter/2;
+        //translate([0, -11, 12]) rotate([90, 0, 0]) screw("M2x6");
 //        translate([0, 0, dz_bb]) ball_bearing(BB608);
         //translate([0, 0, dz_insert]) slider_shaft_bearing_insert();
         //translate(translation) shaft_rider(h=10, orient_for_build=orient_for_build, show_vitamins=show_vitamins);
