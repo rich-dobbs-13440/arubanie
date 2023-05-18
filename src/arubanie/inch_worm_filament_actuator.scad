@@ -37,6 +37,7 @@ orient_for_build = orientation == ORIENT_FOR_BUILD;
 show_vitamins = true;
 show_filament = true;
 
+build_shaft_bearing_retainer = true;
 build_clamp_skate_bearing_holder = true;
 build_traveller_pivot_arms = true;
 
@@ -851,5 +852,40 @@ if (build_clamp_skate_bearing_holder) {
 }
 
 
+module shaft_bearing_retainer(orientation) {
+    wall = 2;
+    a_lot = 100;
+    x_beyond = 40;
+    dx = dx_clamp_bearing + h_bearing;
+    base = [x_beyond, 25, wall];
+    module enforce_clearances() {
+
+            difference() {
+                children();
+                translate([-shaft_gear_diameter/2, 0, 0]) can(d=16, h=a_lot);
+                rod(d=od_bearing, l=a_lot, center=BELOW);
+            }
+        
+    }
+    module shape() {
+        translate([-dx, 0, od_bearing/2]) {    
+            translate([-1, 0, -1]) {
+                block(base, center = ABOVE+BEHIND);
+                block([2, 25, 8], center = BELOW+BEHIND);
+            } 
+        }        
+    }
+//    *enforce_clearances() {
+//
+//    }   
+    shape();
+    translate() mirror([0, 0, 1]) shape(); 
+
+}
+
+if (build_shaft_bearing_retainer) {
+    translation  = orient_for_build ? [500, 0, 0] : [0, 0, 0]; 
+    translate(translation) shaft_bearing_retainer(orientation=orientation);   
+}
 
 
