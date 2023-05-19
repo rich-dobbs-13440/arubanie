@@ -1,3 +1,8 @@
+// This is for a Creality CR 6 SE!
+
+// Which screws are the original ones???
+
+
 include <lib/logging.scad>
 include <lib/centerable.scad>
 use <lib/shapes.scad>
@@ -7,14 +12,19 @@ include <nutsnbolts-master/cyl_head_bolt.scad>
 /* [Show] */
 
 show_adapter = true;
+show_original_screws = true;
 
-showrunout_detector = true;
+show_relocated_runout_detector = false;
+show_runout_detector_original = true;
 show_screws=true;
+show_filament_guide = true;
 testing = false;
 z_testing_connector = 20; // [0:0.5:20]
 z_testing_plate = 10; // [0:0.5:10]
 
 end_of_customization() {}
+
+a_lot = 100;
 
 runout_detector = [40, 31.12, 17.75];
 
@@ -23,6 +33,39 @@ dimmer_switch = [35.62, 40.12, 20];
 plate = [runout_detector.x, dimmer_switch.y, 6];
 
 connector = [10, 10, runout_detector.z];
+
+tapped_screw_location = [-5.34, 4.22, 0];
+
+
+
+dx_detector = 33.62 - 3.34;
+dy_detector = 27.06 - 4.22 ;
+
+    
+screw_offset_1 =  [5.34, 27.06, runout_detector.z];
+screw_offset_2 = [screw_offset_1.x - dx_detector, screw_offset_1.y - dy_detector, runout_detector.z];
+
+
+original_screw_offsets = [
+    screw_offset_1,
+    screw_offset_2
+];
+
+
+module original_screws() {
+    for (screw_offset = original_screw_offsets) {
+        translate(screw_offset)  color("green") screw("M4x20");
+    }    
+    
+}
+
+if (show_original_screws) {
+    original_screws();
+}
+
+if (show_runout_detector_original) {
+    color("magenta") translate([0, 0, 0]) block(runout_detector, center= ABOVE+RIGHT+BEHIND);
+}
 
 module M3(length, as_clearance = false, inset=false) {
     screw_family = "M3";
@@ -45,7 +88,7 @@ module runout_detector_screws(z) {
 }
 
 
-module runout_detector(show_screws=false) {
+module relocated_runout_detector(show_screws=false) {
     color("blue") {
         difference() { 
             block(runout_detector, center=ABOVE+FRONT+RIGHT);
@@ -57,8 +100,8 @@ module runout_detector(show_screws=false) {
     }
 }
 
-if (showrunout_detector) {
-    runout_detector();
+if (show_relocated_runout_detector) {
+    relocated_runout_detector();
 }
 
 
@@ -88,7 +131,7 @@ module plate(show_screws=false) {
     color("orange") {  
         //runout_detector_holes(plate.z);
         difference() { 
-             block(plate, center=BELOW+FRONT+RIGHT);
+            block(plate, center=BELOW+FRONT+RIGHT);
             runout_detector_screws(-plate.z) mirror([0, 0, 1]) M3(as_clearance=true, inset=true);
             dimmer_screws(plate.z) M3(as_clearance=true);
             translate([33.62 + 1, 34.46, -plate.z]) mirror([0, 0, 1])  M3(as_clearance=true, inset=true);
@@ -102,16 +145,18 @@ module plate(show_screws=false) {
 
 module connector_screws(z) {
     translate([-5.34, 4.22, z]) children();
-    translate([-5.34,26.06, z]) children();
+    //translate([-5.34,26.06, z]) children();
 }
 
 module connector() {
-    difference() {
-        union() {
-            block(connector, center=BEHIND+ABOVE+RIGHT);
-            block([connector.x, connector.y, plate.z], center=BEHIND+BELOW+RIGHT);
+    color("pink") {
+        difference() {
+            union() {
+                block(connector, center=BEHIND+ABOVE+RIGHT);
+                block([connector.x, connector.y, plate.z], center=BEHIND+BELOW+RIGHT);
+            }
+            connector_screws(-plate.z) mirror([0, 0, 1]) M3(as_clearance=true, inset=true);
         }
-        connector_screws(-plate.z) mirror([0, 0, 1]) M3(as_clearance=true, inset=true);
     }
 }
 
@@ -123,6 +168,8 @@ module adapter() {
     plate(show_screws);
     connector();
 }
+
+
 if (show_adapter) {
     if (testing) {
         difference() {
@@ -132,6 +179,34 @@ if (show_adapter) {
         }    
     } else {
         adapter();
+    }
+}
+
+// 20, 11
+
+
+
+if (show_filament_guide) {
+    z = testing ? 0.5 : 20;
+    x_gap = 18;
+    dx = 9.68;
+    echo("dx: ", dx);
+    guide_plate = [runout_detector.x, runout_detector.y, z];
+    extension =  [runout_detector.x + x_gap, 10, z];
+    entrance_plate = [2, 15, z];
+    for_test = true;
+    dz = for_test ? 0 : runout_detector.z;
+    difference() {
+        translate([dx, 0, dz]) {
+            block(guide_plate, center=BELOW+BEHIND+RIGHT);
+            translate([0, runout_detector.y, 0]) block(extension, center=BELOW+BEHIND+LEFT);
+            translate([-runout_detector.x-x_gap, runout_detector.y, 0])block(entrance_plate, center=BELOW+FRONT+LEFT);
+        }
+        original_screws();
+        if (testing) {
+            translate([-19, 20, 0]) plane_clearance(FRONT+LEFT);
+           
+        }
     }
 }
 
