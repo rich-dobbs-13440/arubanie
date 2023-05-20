@@ -37,26 +37,22 @@ connector = [10, 10, runout_detector.z];
 tapped_screw_location = [-5.34, 4.22, 0];
 
 
-
-dx_detector = 33.62 - 3.34;
-dy_detector = 27.06 - 4.22 ;
+   
 
     
 screw_offset_1 =  [5.34, 27.06, runout_detector.z];
-screw_offset_2 = [screw_offset_1.x - dx_detector, screw_offset_1.y - dy_detector, runout_detector.z];
+screw_offset_2 = [-24.94, 4.22, runout_detector.z];
+echo("screw_offset_2", screw_offset_2);
 
-
-original_screw_offsets = [
-    screw_offset_1,
-    screw_offset_2
-];
+//original_screw_offsets = [
+//    screw_offset_1,
+//    screw_offset_2
+//];
 
 
 module original_screws() {
-    for (screw_offset = original_screw_offsets) {
-        translate(screw_offset)  color("green") screw("M4x20");
-    }    
-    
+    color("black") translate(screw_offset_1) screw("M4x20");
+    color("green") translate(screw_offset_2) screw("M4x20");    
 }
 
 if (show_original_screws) {
@@ -64,7 +60,7 @@ if (show_original_screws) {
 }
 
 if (show_runout_detector_original) {
-    color("magenta") translate([0, 0, 0]) block(runout_detector, center= ABOVE+RIGHT+BEHIND);
+    color("magenta") translate([10, 0, 0]) block(runout_detector, center= ABOVE+RIGHT+BEHIND);
 }
 
 module M3(length, as_clearance = false, inset=false) {
