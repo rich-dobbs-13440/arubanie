@@ -17,14 +17,13 @@ orient_for_build = false;
 
 build_guide = true;
 build_outlet = true;
-build_inlet = true;
+build_inlet = false; // Currently, the inlet is built into the guide!
 
 /* [Guide design] */
 
 y_lip = 0.5;
 z_lip = 2;
 
-y_filament_offset = 15.8; // [15.0  : 0.05: 16,0]
 /* [Tube design] */
 
 od_ptfe_tube = 4 + 0;
@@ -60,7 +59,7 @@ runout_visualization = visualize_info(BLACK_PLASTIC_2, runout_alpha);
 
 module end_of_customization() {}
 
-entrance_translation = [0, 14.6, 10.0];
+entrance_translation = [0, 15, 11]; //[0, 14.6, 10.0];
 
 function visualize_info(color_code, alpha) = [color_code, alpha];
     
@@ -180,12 +179,13 @@ if (show_mocks && ! orient_for_build) {
 
 
 if (build_guide) {
-    guide(show_vitamins=show_vitamins, orient_for_build=orient_for_build); 
+    translation = orient_for_build ? [0, 0, 0] : [0, 0, 0];  // This is the main part, so keep it at the origin.
+    translate(translation) guide(show_vitamins=show_vitamins, orient_for_build=orient_for_build); 
 }
 
 if (build_outlet) {
     if (orient_for_build) {
-        translate([10, 10, 0]) outlet(orient_for_build=true);
+        translate([0, 20, 0]) outlet(orient_for_build=true);
     } else {
         outlet(orient_for_build=false); 
     }
@@ -193,7 +193,7 @@ if (build_outlet) {
 
 if (build_inlet) {
     if (orient_for_build) {    
-        translate([20, 20, 0]) inlet(orient_for_build=true);
+        translate([-10, 0, 0]) inlet(orient_for_build=true);
     } else {
         inlet(orient_for_build);
     }
@@ -283,6 +283,23 @@ module inlet(orient_for_build=false, as_clearance=false) {
 }
 
 
+module adjustment_screws(as_clearance = false) {
+    module item() {
+        if (as_clearance) {
+            translate([0, 0, 25])  hole_through("M2", cld=0.4, $fn=12);
+        } else {
+            translate([0, 0, z_lifted_screw]) screw("M2.5x16"); 
+        }
+    } 
+    translate([runout_detector_translation.x/2, entrance_translation.y, 0]) 
+        color(STAINLESS_STEEL)
+            center_reflect([1, 0, 0])  
+                translate([-5, -8, 0 ])
+                    item();
+                            
+}
+
+
 
 module guide(orient_for_build = false, show_vitamins = true) {
     //extruder_shim = [4, 1, 4];
@@ -290,12 +307,7 @@ module guide(orient_for_build = false, show_vitamins = true) {
     bottom_plate = [runout_detector_translation.x, 5, 4];
     lip = [bottom_plate.x, y_lip, 2 + runout_detector.z];
     if (show_vitamins) {
-        translate([runout_detector_translation.x/2, entrance_translation.y, 0]) 
-            color(STAINLESS_STEEL)
-                center_reflect([1, 0, 0]) 
-                    //center_reflect([0, 1, 0])  
-                        translate([-5, -8, z_lifted_screw ]) 
-                            screw("M2.5x16"); 
+        adjustment_screws() ;
     }
     
    
@@ -324,15 +336,20 @@ module guide(orient_for_build = false, show_vitamins = true) {
     module back_base() {
         x_clearance = 1;
         color("blue") {
-            translate([x_clearance, 0, 0]) {
-                hull() {
-                    block(bottom_plate - [x_clearance, 0, 0],  center=ABOVE+FRONT+RIGHT);
-                    translate([0, 2, 0]) can(d=10, h=4, center=FRONT+ABOVE+RIGHT);
-                    
+            difference() {
+                union() {
+                    translate([x_clearance, 0, 0]) {
+                        hull() {
+                            block(bottom_plate - [x_clearance, 0, 0],  center=ABOVE+FRONT+RIGHT);
+                            translate([0, 2, 0]) can(d=10, h=4, center=FRONT+ABOVE+RIGHT);
+                            
+                        }
+                        translate([8, 2, 0]) can(d=10, h=4, center=FRONT+ABOVE+RIGHT);  
+                    }  
+                    translate([x_clearance, 0, -z_lip]) block([bottom_plate.x + 4, y_lip, 6], center=ABOVE+FRONT+LEFT); 
                 }
-                translate([8, 2, 0]) can(d=10, h=4, center=FRONT+ABOVE+RIGHT);  
-            }  
-            translate([x_clearance, 0, -z_lip]) block([bottom_plate.x + 4, y_lip, 6], center=ABOVE+FRONT+LEFT);  
+                adjustment_screws(as_clearance=true);
+            } 
         }
     }
 
@@ -381,8 +398,7 @@ module guide(orient_for_build = false, show_vitamins = true) {
     }
     visualize(guide_visualization, guide_show_parts) {
         if (orient_for_build) {
-            translate([90, 0 , 0]) 
-            shape();
+            rotate([90, 0, 0]) translate([0, y_lip, 0]) shape();
         } else {
             shape();
         }
