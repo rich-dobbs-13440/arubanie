@@ -24,13 +24,13 @@ build_inlet = true;
 y_lip = 0.5;
 z_lip = 2;
 
-y_filament_offset = 15.4; // [15.0  : 0.05: 16,0]
+y_filament_offset = 15.8; // [15.0  : 0.05: 16,0]
 /* [Tube design] */
 
 od_ptfe_tube = 4 + 0;
 h_taper = 2;
 l_tube_holder = 7; 
-ptfe_tube_tolerance = 0.2;
+ptfe_tube_tolerance = 0.1;
 
 z_runout_detector_screw_lift = 2; //[0: 0.5: 2.5]
 
@@ -88,7 +88,7 @@ runout_detector = [40, 31.12, 17.75];
 runout_detector_filament_offset  = [0, 16, entrance_translation.z];
 runout_detector_translation = [19, entrance_translation.y - runout_detector_filament_offset.y, 0];
 runout_detector_x_screw_offset = 5;
-runout_detector_y_screw_offset = 4;
+runout_detector_y_screw_offset = 3.5;
 
 z_lifted_screw = runout_detector.z + z_runout_detector_screw_lift;
  
@@ -203,14 +203,14 @@ if (build_inlet) {
 
 
 module outlet(orient_for_build=false) {
-
+    id = 4.0 + 2*ptfe_tube_tolerance;
     dx_ptfe = l_tube_holder - h_taper;
     module shape() {    
         render(convexity=10) difference() {
             can(d=8, h=l_tube_holder, center=ABOVE);
-            translate([0, 0, l_tube_holder]) can(d=4.5, taper=6, h=h_taper, center=BELOW);
+            translate([0, 0, l_tube_holder]) can(d=id, taper=6, h=h_taper, center=BELOW);
             can(d=2.0, taper=3, h=h_taper, center=ABOVE);
-            translate([0, 0, 2]) can(d=4.5, h=a_lot, center=ABOVE);
+            translate([0, 0, 2]) can(d=id, h=a_lot, center=ABOVE);
         }
     }
     if (orient_for_build) {
@@ -231,23 +231,37 @@ module outlet(orient_for_build=false) {
 }
 
 
-
-
-
-
-
 module inlet(orient_for_build=false, as_clearance=false) {
-
+    id = 4.0 + 2*ptfe_tube_tolerance;
+    d_body = 8;
     module shape() {
         render(convexity=10) difference() {
-            can(d=8, h=l_tube_holder, center=ABOVE);
-            can(d=6, taper=4.5, h=h_taper, center=ABOVE);
-            translate([0, 0, l_tube_holder]) can(d=2, taper=5, h=h_taper, center=BELOW);
-            translate([0, 0, l_tube_holder-2]) can(d=4.5, h=a_lot, center=BELOW);
+            can(d=d_body, h=l_tube_holder, center=ABOVE);
+            hull() {
+                can(d=6, taper=id, h=h_taper, center=ABOVE);
+                block([0.1, 6, a_lot], center=BELOW+RIGHT);
+            }
+            translate([0, 0, l_tube_holder]) {
+                hull() {
+                    can(d=2, taper=5, h=h_taper, center=BELOW);
+                    block([0.1, 1.5, h_taper], center=BELOW+RIGHT);
+                }
+            }
+            hull() {
+                translate([0, 0, l_tube_holder-2]) {
+                    can(d=id, h=a_lot, center=BELOW);
+                    block([0.1, 6, a_lot], center=BELOW+RIGHT);
+                }
+            }
         }
     }
     if (as_clearance) {
-        translate(entrance_translation) rod(d=7.9, l=a_lot);
+        translate(entrance_translation) {
+            hull() {
+                rod(d=d_body-.1, l=a_lot);
+                block([a_lot, d_body/2 + 0.1, 1], center=RIGHT);
+            }
+        }
         
     } else if (orient_for_build) {
         translate([0, 0, l_tube_holder]) rotate([180, 0, 0]) shape();
@@ -273,14 +287,14 @@ module inlet(orient_for_build=false, as_clearance=false) {
 module guide(orient_for_build = false, show_vitamins = true) {
     //extruder_shim = [4, 1, 4];
     face = [4, 8, entrance_translation.z + 5];
-    bottom_plate = [runout_detector_translation.x, entrance_translation.y - 4, 2];
+    bottom_plate = [runout_detector_translation.x, 5, 4];
     lip = [bottom_plate.x, y_lip, 2 + runout_detector.z];
     if (show_vitamins) {
         translate([runout_detector_translation.x/2, entrance_translation.y, 0]) 
             color(STAINLESS_STEEL)
                 center_reflect([1, 0, 0]) 
-                    center_reflect([0, 1, 0])  
-                        translate([5, 8, z_lifted_screw ]) 
+                    //center_reflect([0, 1, 0])  
+                        translate([-5, -8, z_lifted_screw ]) 
                             screw("M2.5x16"); 
     }
     
@@ -308,10 +322,18 @@ module guide(orient_for_build = false, show_vitamins = true) {
     }        
 
     module back_base() {
-      color("blue") {
-          block(bottom_plate,  center=ABOVE+FRONT+RIGHT);  
-          translate([0, 0, -z_lip]) block([bottom_plate.x + 4, y_lip, 4], center=ABOVE+FRONT+LEFT);  
-      }
+        x_clearance = 1;
+        color("blue") {
+            translate([x_clearance, 0, 0]) {
+                hull() {
+                    block(bottom_plate - [x_clearance, 0, 0],  center=ABOVE+FRONT+RIGHT);
+                    translate([0, 2, 0]) can(d=10, h=4, center=FRONT+ABOVE+RIGHT);
+                    
+                }
+                translate([8, 2, 0]) can(d=10, h=4, center=FRONT+ABOVE+RIGHT);  
+            }  
+            translate([x_clearance, 0, -z_lip]) block([bottom_plate.x + 4, y_lip, 6], center=ABOVE+FRONT+LEFT);  
+        }
     }
 
     module runout_screw_tab() {
@@ -323,7 +345,7 @@ module guide(orient_for_build = false, show_vitamins = true) {
             difference() {
                 hull() {
                     translate([dx_screw, dy_screw, dz]) can(d=14, h=2, center=ABOVE);
-                    translate([dx_base, 0, dz]) #block([4, y_lip, 2], center=ABOVE+LEFT);  
+                    translate([dx_base, 0, dz]) block([4, y_lip, 2], center=ABOVE+LEFT);  
                 }
                 runout_detector(as_screw_clearance=true);
             }
