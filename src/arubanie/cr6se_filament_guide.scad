@@ -21,14 +21,20 @@ build_inlet = false; // Currently, the inlet is built into the guide!
 
 /* [Guide design] */
 adjustable_entrance = false;
-y_lip = 2;
+y_lip = 0;
 z_lip = 2;
 z_runout_screw_tab = 4;
+pivot_clearance_angle = 3;
+x_extruder_clearance = 0.5;
+x_runout_clearance =0.5;
+dx_slot = 0.1;
+dy_slot = 0.25;
+slot_translation = [dx_slot, dy_slot, 0];
 
 /* [Tube design] */
 
 od_ptfe_tube = 4 + 0;
-h_taper = 2;
+h_taper = 7;
 l_tube_holder = 7; 
 ptfe_tube_tolerance = 0.1;
 
@@ -107,7 +113,7 @@ dy_extruder_offset = -16.5;
 bracket_front = [57, 45.6, 4.7];
 dy_back_bracket = dy_extruder_offset + extruder.y + 4;
 
-module extruder() {
+module Extruder() {
     translate([0, dy_extruder_offset, 0]) {
         visualize(extruder_visualization) { 
             difference() {
@@ -118,7 +124,7 @@ module extruder() {
     }
 }
 
-module extruder_support_bracket() {
+module ExtruderSupportBracket() {
     visualize(bracket_visualization) {
         hull() {
             translate([-extruder.x, 0 , 0])  can(d=2, h=bracket_front.z, center=BELOW+RIGHT+FRONT);
@@ -174,9 +180,9 @@ module ZAxisIdlerRoller(offset_x = 0, offset_y = 0) {
 
 
 if (show_mocks && ! orient_for_build) {
-    runout_detector();
-    extruder();
-    extruder_support_bracket();
+    RunoutDetector();
+    Extruder();
+    ExtruderSupportBracket();
     ZAxisIdlerRoller(9.1, 16.5);
 }
 
@@ -217,7 +223,7 @@ module outlet(orient_for_build=false, as_clearance=false, ptfe_lining=false, l_t
         render(convexity=10) difference() {
             can(d=8, h=l_tube_holder, center=ABOVE);
             if (ptfe_lining) {
-                #can(d=2.0, taper=3, h=h_taper, center=ABOVE);
+                can(d=2.0, taper=3, h=h_taper, center=ABOVE);
                 translate([0, 0, l_tube_holder]) can(d=id, taper=6, h=h_taper, center=BELOW);
                 translate([0, 0, 2]) can(d=id, h=a_lot, center=ABOVE);
             } else {
@@ -261,9 +267,11 @@ module outlet(orient_for_build=false, as_clearance=false, ptfe_lining=false, l_t
 module inlet(orient_for_build=false, as_clearance=false, ptfe_lining = false, as_cavity=false, l_tube_holder=7) {
     echo("orient_for_build", orient_for_build); 
     enough = 20;
+    d_body = 8;
+    d_taper = ptfe_lining ? 5 : d_body;
     
     d_ptfe_clearance = ptfe_lining ? 4.0 + 2*ptfe_tube_tolerance : 0;
-    d_body = 8;
+    
     module cavity(ptfe_lining) {
         if (ptfe_lining) {
             hull() {
@@ -281,14 +289,14 @@ module inlet(orient_for_build=false, as_clearance=false, ptfe_lining = false, as
         }
         translate([0, 0, l_tube_holder]) {
             hull() {
-                can(d=2, taper=5, h=h_taper, center=BELOW);
+                can(d=2, taper=d_taper, h=h_taper, center=BELOW);
                 block([0.1, 1.5, h_taper], center=BELOW+RIGHT);
                 can(d=5, h=1, center=ABOVE);
             }
         }
         hull() {
             can(d=2, h=enough);
-            block([0.1, 1.5, enough], center=RIGHT);
+            block([0.1, 3, enough], center=RIGHT);
         }
     }
     
@@ -302,8 +310,10 @@ module inlet(orient_for_build=false, as_clearance=false, ptfe_lining = false, as
     if (as_clearance) {
         translate(entrance_translation) {
             hull() {
-                rod(d=d_body-.1, l=l_tube_holder + 0.01);
-                block([a_lot, d_body/2 + 0.1, 1], center=RIGHT);
+                rod(d=d_body-.01, l=a_lot);
+                if (ptfe_lining) {
+                    block([a_lot, d_body, 1], center=RIGHT);
+                }
             }
         }
     } else if (as_cavity) {
@@ -346,9 +356,12 @@ module adjustment_screws(as_clearance = false) {
 
 
 module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance = false) {
-    x_extruder_clearance = 1;
-    x_face = 4;
-    face = [4, 8, entrance_translation.z + 5];
+
+    x_face = z_runout_screw_tab;
+    face = [
+        x_face, 
+        entrance_translation.y, 
+        runout_detector.z - entrance_translation.z + z_runout_screw_tab];
     bottom_plate = [runout_detector_translation.x, 5, 4];
     lip = [bottom_plate.x, y_lip, 2 + runout_detector.z];
     if (show_vitamins) {
@@ -363,13 +376,12 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
         
         color("pink") 
         difference() {
-            translate([runout_detector_translation.x,  0, 0]) {
-                hull() {
-                    translate([0, entrance_translation.y, entrance_translation.z]) rod(d = x_face, l = 2, center=BEHIND);
-                    translate([0, -y_lip, runout_detector.z]) block([x_face, entrance_translation.y+8, 5], center=BELOW+BEHIND+RIGHT);
-                    translate([0, -y_lip, runout_detector.z]) block([x_face, runout_detector.y-4, 0.1], center=BELOW+BEHIND+RIGHT);  
-                }
-            }
+            translate([runout_detector_translation.x-x_runout_clearance,  0, 0]) 
+                translate([0, -y_lip, runout_detector.z + z_runout_screw_tab]) 
+                        block(face, center=BELOW+BEHIND+RIGHT);           
+            translate([runout_detector_translation.x - x_runout_clearance, entrance_translation.y, 0]) 
+                rotate([0, 0, -pivot_clearance_angle]) 
+                    plane_clearance(FRONT);
             inlet(as_clearance=true, ptfe_lining=adjustable_entrance);
         }
     }
@@ -398,33 +410,59 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
                         }
                         translate([8, 2, 0]) can(d=10, h=4, center=FRONT+ABOVE+RIGHT);  
                     }  
-                    translate([x_extruder_clearance, 0, -z_lip]) block([bottom_plate.x + 4, y_lip, 6], center=ABOVE+FRONT+LEFT); 
+                    translate([x_extruder_clearance, 0, -z_lip]) 
+                        block([bottom_plate.x + 4, y_lip, 6], center=ABOVE+FRONT+LEFT); 
                 }
                 adjustment_screws(as_clearance=true);
             } 
         }
     }
+    
+    d_screw_pad = 8;
 
     module runout_screw_tab() {
         color("orange") {
+            
             dx_screw = runout_detector_translation.x + runout_detector_screw_offsets[1].x;
             dy_screw  = runout_detector_translation.y + runout_detector_screw_offsets[1].y; 
             dz = runout_detector.z;
-            dx_base = runout_detector_translation.x;
+            dx_base = runout_detector_translation.x-x_runout_clearance;
+            base = [2*x_face, y_lip + entrance_translation.y, z_runout_screw_tab];
+            echo("base: ", base);
             difference() {
                 hull() {
-                    translate([dx_screw, dy_screw, dz]) can(d=14, h=z_runout_screw_tab, center=ABOVE);
-                    translate([dx_base, 0, dz]) block([2*x_face, y_lip, z_runout_screw_tab], center=ABOVE+LEFT);  
+                    translate([dx_screw, dy_screw, dz]) 
+                        can(d=d_screw_pad, h=z_runout_screw_tab, center=ABOVE);
+                    translate([dx_base, -y_lip, dz]) block(base, center=ABOVE+RIGHT);  
+                }
+                RunoutDetector(as_screw_clearance=true);
+                translate(slot_translation) RunoutDetector(as_screw_clearance=true);
+                translate(-slot_translation) RunoutDetector(as_screw_clearance=true);
+            }
+            // Add a lip at front of detector.  Can't be to big or it will interfere with the socket.
+            if (y_lip > 0) {
+                translate([runout_detector_translation.x, 0, 0]) 
+                    block([2, y_lip, runout_detector.z], center=ABOVE+FRONT+LEFT);
+            }
+        }
+    }
+    module runout_pivot() {
+        color("tan") {
+            difference() {
+                hull() {
+                    translate([runout_detector_translation.x, 0, 0] + runout_detector_screw_offsets[0]) 
+                        can(d=d_screw_pad, h=2, center=ABOVE);
+                    translate([runout_detector_translation.x, 0, runout_detector.z] ) 
+                        block([d_screw_pad,d_screw_pad, 2], center=ABOVE+RIGHT+FRONT);
                 }
                 RunoutDetector(as_screw_clearance=true);
             }
-            // Add a lip at front of detector.  Can't be to big or it will interfere with the socket.
-            translate([runout_detector_translation.x, 0, 0]) block([2, y_lip, runout_detector.z], center=ABOVE+FRONT+LEFT);
         }
     }
 
     module printing_support() {
-        support_block = adjustable_entrance ? [0.1, 2, 2] : [runout_detector_translation.x-x_extruder_clearance, 2, 2];
+        support_block = adjustable_entrance ? [0.1, 2, 2] : 
+                        [runout_detector_translation.x-x_extruder_clearance, 2, 2];
         //dy = adjustable_entrance ? 0: entrance_translation.y;
         color("limegreen") 
         render(convexity=10) difference() {
@@ -441,6 +479,12 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
                 outlet(as_clearance=true);
             }
             translate([0, entrance_translation.y, 0]) plane_clearance(RIGHT);
+            translate([x_extruder_clearance, entrance_translation.y, 0]) 
+                rotate([0, 0, pivot_clearance_angle]) 
+                    plane_clearance(BEHIND);
+            translate([runout_detector_translation.x - x_runout_clearance, entrance_translation.y, 0]) 
+                rotate([0, 0, -pivot_clearance_angle]) 
+                    plane_clearance(FRONT);
         }
     }
     
@@ -453,9 +497,12 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
         }
         runout_face();
         runout_screw_tab();
-        inlet(orient_for_build=false, ptfe_lining=adjustable_entrance, l_tube_holder=x_inlet);
+        runout_pivot();
+        translate([-x_runout_clearance, -0, 0]) 
+            inlet(orient_for_build=false, ptfe_lining=adjustable_entrance, l_tube_holder=x_inlet);
         if (!adjustable_entrance) {
-            translate([x_extruder_clearance, 0, 0]) outlet(orient_for_build=false, ptfe_lining=false, l_tube_holder=x_outlet);
+            translate([x_extruder_clearance, 0, 0]) 
+                outlet(orient_for_build=false, ptfe_lining=false, l_tube_holder=x_outlet);
         }
         printing_support();
     }
