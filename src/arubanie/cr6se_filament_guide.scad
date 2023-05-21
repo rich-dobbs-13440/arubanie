@@ -20,7 +20,7 @@ build_outlet = true;
 build_inlet = false; // Currently, the inlet is built into the guide!
 
 /* [Guide design] */
-adjustable_entrance = false;
+ptfe_lining = false;
 y_lip = 0;
 z_lip = 2;
 z_runout_screw_tab = 4;
@@ -34,7 +34,7 @@ slot_translation = [dx_slot, dy_slot, 0];
 /* [Tube design] */
 
 od_ptfe_tube = 4 + 0;
-h_taper = 7;
+
 l_tube_holder = 7; 
 ptfe_tube_tolerance = 0.1;
 
@@ -194,10 +194,10 @@ if (build_guide) {
         guide(
             show_vitamins=show_vitamins, 
             orient_for_build=orient_for_build,
-            adjustable_entrance=adjustable_entrance); 
+            ptfe_lining=ptfe_lining); 
 }
 
-if (build_outlet && adjustable_entrance) {
+if (build_outlet && ptfe_lining) {
     if (orient_for_build) {
         translate([0, 20, 0]) outlet(orient_for_build=true);
     } else {
@@ -209,7 +209,7 @@ if (build_inlet) {
     if (orient_for_build) {    
         translate([-10, 0, 0]) inlet(orient_for_build=true);
     } else {
-        inlet(orient_for_build, ptfe_lining = adjustable_entrance, as_cavity=as_cavity);
+        inlet(orient_for_build, ptfe_lining = ptfe_lining, as_cavity=as_cavity);
     }
 }
 
@@ -217,11 +217,13 @@ if (build_inlet) {
 
 
 module outlet(orient_for_build=false, as_clearance=false, ptfe_lining=false, l_tube_holder=7) {
+    d_body = ptfe_lining ? 8 : 4; 
     id = 4.0 + 2*ptfe_tube_tolerance;
+    h_taper = 5;
     dx_ptfe = l_tube_holder - h_taper;
     module shape() {    
         render(convexity=10) difference() {
-            can(d=8, h=l_tube_holder, center=ABOVE);
+            can(d=d_body, h=l_tube_holder, center=ABOVE);
             if (ptfe_lining) {
                 can(d=2.0, taper=3, h=h_taper, center=ABOVE);
                 translate([0, 0, l_tube_holder]) can(d=id, taper=6, h=h_taper, center=BELOW);
@@ -269,6 +271,7 @@ module inlet(orient_for_build=false, as_clearance=false, ptfe_lining = false, as
     enough = 20;
     d_body = 8;
     d_taper = ptfe_lining ? 5 : d_body;
+    h_taper = ptfe_lining ? 5 : l_tube_holder - 2; 
     
     d_ptfe_clearance = ptfe_lining ? 4.0 + 2*ptfe_tube_tolerance : 0;
     
@@ -294,9 +297,9 @@ module inlet(orient_for_build=false, as_clearance=false, ptfe_lining = false, as
                 can(d=5, h=1, center=ABOVE);
             }
         }
-        hull() {
+        #hull() {
             can(d=2, h=enough);
-            block([0.1, 3, enough], center=RIGHT);
+            block([0.1, 1.5, enough], center=RIGHT);
         }
     }
     
@@ -355,8 +358,10 @@ module adjustment_screws(as_clearance = false) {
 
 
 
-module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance = false) {
-
+module guide(orient_for_build = false, show_vitamins = true, ptfe_lining = false) {
+    d_screw_pad = 8;
+    x_inlet = ptfe_lining ? l_tube_holder :  runout_detector_translation.x/2;
+    x_outlet = ptfe_lining ? l_tube_holder : runout_detector_translation.x - x_inlet;
     x_face = z_runout_screw_tab;
     face = [
         x_face, 
@@ -365,8 +370,8 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
     bottom_plate = [runout_detector_translation.x, 5, 4];
     lip = [bottom_plate.x, y_lip, 2 + runout_detector.z];
     if (show_vitamins) {
-        if (adjustable_entrance) {
-            adjustment_screws();
+        if (ptfe_lining) {
+            //adjustment_screws();
         }
     }
     
@@ -382,7 +387,7 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
             translate([runout_detector_translation.x - x_runout_clearance, entrance_translation.y, 0]) 
                 rotate([0, 0, -pivot_clearance_angle]) 
                     plane_clearance(FRONT);
-            inlet(as_clearance=true, ptfe_lining=adjustable_entrance);
+            inlet(as_clearance=true, ptfe_lining=ptfe_lining);
         }
     }
     
@@ -418,7 +423,7 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
         }
     }
     
-    d_screw_pad = 8;
+
 
     module runout_screw_tab() {
         color("orange") {
@@ -459,29 +464,34 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
             }
         }
     }
+    module outlet_printing_support(){
+        color("yellow") 
+        render(convexity=10) difference() {
+            translate([0, 0, entrance_translation.z]) 
+                block([x_outlet, entrance_translation.y-1.5, 2], center=RIGHT+FRONT);
+//            hull() {
+//                translate([0, 0, entrance_translation.z]) block([x_outlet, 1, 2], center=FRONT+RIGHT);
+//                outlet(as_clearance=false, l_tube_holder=x_outlet); 
+//            }
+            //outlet(as_clearance=true);
+//            translate([0, entrance_translation.y, 0]) plane_clearance(RIGHT); 
+            translate([x_extruder_clearance, entrance_translation.y, 0]) 
+                rotate([0, 0, 18]) 
+                    plane_clearance(BEHIND);            
+        }
+                
+    }
 
-    module printing_support() {
-        support_block = adjustable_entrance ? [0.1, 2, 2] : 
-                        [runout_detector_translation.x-x_extruder_clearance, 2, 2];
-        //dy = adjustable_entrance ? 0: entrance_translation.y;
+    module inlet_printing_support() {
+//        support_block = ptfe_lining ? [0.1, 2, 2] : 
+//                        [runout_detector_translation.x-x_extruder_clearance, 2, 2];
+        //dy = ptfe_lining ? 0: entrance_translation.y;
         color("limegreen") 
         render(convexity=10) difference() {
-            hull() {
-                inlet(orient_for_build=false);
-                if (!adjustable_entrance) {
-                    translate([x_extruder_clearance, 0, 0]) outlet(orient_for_build=false, ptfe_lining=false);
-                }
-                translate([x_extruder_clearance, -y_lip, entrance_translation.z]) 
-                    block([runout_detector_translation.x-x_extruder_clearance, 1, 4], center=FRONT+RIGHT);
-            }
-            hull() {
-                inlet(as_clearance=true, ptfe_lining=adjustable_entrance);
-                outlet(as_clearance=true);
-            }
+            translate([runout_detector_translation.x, 0, entrance_translation.z]) 
+                block([x_inlet, entrance_translation.y-3.9, 2], center=RIGHT+BEHIND);
             translate([0, entrance_translation.y, 0]) plane_clearance(RIGHT);
-            translate([x_extruder_clearance, entrance_translation.y, 0]) 
-                rotate([0, 0, pivot_clearance_angle]) 
-                    plane_clearance(BEHIND);
+
             translate([runout_detector_translation.x - x_runout_clearance, entrance_translation.y, 0]) 
                 rotate([0, 0, -pivot_clearance_angle]) 
                     plane_clearance(FRONT);
@@ -489,9 +499,8 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
     }
     
     module parts() {
-        x_inlet = adjustable_entrance ? l_tube_holder :  runout_detector_translation.x/2;
-        x_outlet = x_inlet;
-        if (adjustable_entrance) {
+
+        if (ptfe_lining) {
             front_base();
             back_base();
         }
@@ -499,18 +508,21 @@ module guide(orient_for_build = false, show_vitamins = true, adjustable_entrance
         runout_screw_tab();
         runout_pivot();
         translate([-x_runout_clearance, -0, 0]) 
-            inlet(orient_for_build=false, ptfe_lining=adjustable_entrance, l_tube_holder=x_inlet);
-        if (!adjustable_entrance) {
+            inlet(orient_for_build=false, ptfe_lining=ptfe_lining, l_tube_holder=x_inlet);
+        if (!ptfe_lining) {
             translate([x_extruder_clearance, 0, 0]) 
                 outlet(orient_for_build=false, ptfe_lining=false, l_tube_holder=x_outlet);
         }
-        printing_support();
+        inlet_printing_support();
+        if (!ptfe_lining) {
+            outlet_printing_support();
+        }
     }
     
     module shape() {
         difference() {
             parts();
-            if (!adjustable_entrance) {
+            if (!ptfe_lining) {
                 translate(entrance_translation) rod(d = 2, l=a_lot);
             }  
         }
