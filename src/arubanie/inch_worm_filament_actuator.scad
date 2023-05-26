@@ -12,7 +12,7 @@ use <PolyGear/PolyGear.scad>
 use <lib/servo_horn_cavity.scad>
 use <lib/triangular_bearing_shaft.scad>
 use <lib/skate_bearing_fittings.scad>
-
+include <lib/material_colors.scad>
 
 d_filament = 1.75 + 0.;
 od_ptfe_tube = 4 + 0;
@@ -37,15 +37,13 @@ orient_for_build = orientation == ORIENT_FOR_BUILD;
 show_vitamins = true;
 show_filament = true;
 
-
+build_bearing_shaft_coupling = true;
 build_alt_shaft_gearing = true;
 
-build_shaft_bearing_retainer = true;
-build_clamp_skate_bearing_holder = true;
-build_traveller_pivot_arms = true;
+
 
 build_shaft = true;
-build_shaft_gear = true;
+build_shaft_gear = false; // Currently using the same beveled gear used for the clamp
 
 
 build_clamp_gear = true;
@@ -59,11 +57,12 @@ build_ptfe_glides = false;
 build_bearing_holder = false;
 build_traveller = false; // Old implementation is being incrementally replaced
 
-alpha_clamp_gear = 1; // [0.25 : transparent, 1: solid]
-alpha_clamp_gear_slide = 1; // [0.25 : transparent, 1: solid]
-alpha_filament_clamp = 1; // [0.25 : transparent, 1: solid]
-alpha_traveller = 1; // [0.25 : transparent, 1: solid]
-alpha_shaft_gear = 1; // [0.25 : transparent, 1: solid] 
+build_shaft_bearing_retainer = false;
+build_clamp_skate_bearing_holder = false;
+build_traveller_pivot_arms = false;
+
+
+
 clamping_lift = 0; // [0: 0.1: 1]
 
 show_cross_section = false;
@@ -83,6 +82,7 @@ slider_clearance = 0.4;
 
 /* [Filament_clamp_design] */ 
 dx_clamp_bearing_to_clamp_nut_block = 13;
+include_servo_attachment = false;
 
 //*********************************************
 /* [Bearing Holder Design] */ 
@@ -167,6 +167,24 @@ bearing_block_wall = z_traveller;
 
 dx_traveller = dx_end_cap;
 z_bearing_engagement = 2.5; //[0.5:"Test fit", 1:"Prototype", 2.5:"Production"]
+
+
+
+/* [Colors] */
+
+alpha_clamp_gear = 1; // [1:Solid, 0.25:Ghostly, 0:Invisible]
+alpha_clamp_gear_slide = 1; // [1:Solid, 0.25:Ghostly, 0:Invisible]
+alpha_filament_clamp = 1; // [1:Solid, 0.25:Ghostly, 0:Invisible]
+alpha_traveller = 1; // [1:Solid, 0.25:Ghostly, 0:Invisible]
+alpha_shaft_gear = 1; // [1:Solid, 0.25:Ghostly, 0:Invisible]
+
+
+filament_clamp_show_parts = false;
+color_filament_clamp = "brown";
+filament_clamp_visualization = visualize_info(color_filament_clamp, alpha_filament_clamp); 
+
+color_coupling = PART_11;  // Turquoise
+
 
 module end_of_customization() {}
 
@@ -344,7 +362,7 @@ module clamp_gear(orient_for_build, orient_to_center_of_rotation=false, show_vit
     if (show_vitamins) {
         translate(translation + [3, 0, 0])  rotate([0, 90, 0]) ball_bearing(BB608);
     }
-    color("violet", alpha=alpha_clamp_gear) {
+    color(PART_33, alpha=alpha_clamp_gear) {
         if (orient_for_build) {
             translate([0, 0, dz]) shape();
         } else {
@@ -388,7 +406,7 @@ module clamp_slide(orientation, show_vitamins=false) {
             color(BLACK_IRON) screw(str("M2x", screw_length));
             translate([0, 0, -2]) color(BLACK_IRON) nut("M2");
         }        
-        color("brown", alpha=alpha_clamp_gear_slide) shape() ;
+        color(PART_5, alpha=alpha_clamp_gear_slide) shape() ;
     }
 //        } else {
 //            //translate(translation) rotate([0, -90, 0])  
@@ -513,21 +531,35 @@ module filament_clamp(
         
     }
     
-    module servo_attachment() {
+    module pivot_attachment() {
+        color(PART_12) {
+            center_reflect([0, 1, 0]) rotate([0, 0, 90]) nut_block();
+        }        
+    }
+    
+    module platform_mount() {
         dz = include_bearing_mounting_adapter ? 14 : -z/2;
         z_wings = include_bearing_mounting_adapter ? 28 : z;
-        center_reflect([0, 1, 0]) {
-            rotate([0, 0, 90]) nut_block();
-            translate([0, 3+pivot_screw_length, 0]) block([x_clamp_nut_block, screw_wall, z_wings], center=LEFT); 
-            translate([6, 0, -dz]) 
-                block([15, 3+pivot_screw_length, screw_wall], center=ABOVE+RIGHT+BEHIND); 
-            
-        }
-        hull() {
+        color(PART_8) hull() {
             nut_block();
-            center_reflect([0, 1, 0]) rotate([0, 0, 90]) nut_block();
+            if (include_servo_attachment) {
+                #pivot_attachment();
+            }
             block([x_clamp_nut_block, y_clamp_nut_block, 14], center=BELOW);
         }
+        color(PART_34) translate([0, 0, -dz]) block([x_clamp_nut_block, 28, screw_wall]); 
+        if (include_servo_attachment) {
+            color("indigo")
+            #center_reflect([0, 1, 0]) {
+                rotate([0, 0, 90]) nut_block();
+                translate([0, 3+pivot_screw_length, 0]) 
+                    block([x_clamp_nut_block, screw_wall, z_wings], center=LEFT); 
+                translate([6, 0, -dz]) 
+                    block([15, 3+pivot_screw_length, screw_wall], center=ABOVE+RIGHT+BEHIND); 
+            }
+            
+        }
+
         
     }
     module pivot_screws(as_clearance = false) {
@@ -552,27 +584,25 @@ module filament_clamp(
     
     
     module shape() {
-        color("chocolate", alpha=alpha_filament_clamp) {
-            render(convexity=10) difference() {
-                union() {
-                    nut_block();
-                    if (include_servo_attachment) {
-                        servo_attachment();
-                    }
-                }
-                filament(as_clearance=true);
-                clamp_screw_clearance();
-                mounting_screws(as_clearance = true); 
-                if (include_servo_attachment) {
-                    pivot_screws(as_clearance = true);
-                }
-                translate([0, 0, 3]) plane_clearance(ABOVE); 
+        difference() {
+            union() {
+                nut_block();
+                platform_mount();
             }
+            filament(as_clearance=true);
+            clamp_screw_clearance();
+            mounting_screws(as_clearance = true); 
+            if (include_servo_attachment) {
+                pivot_screws(as_clearance = true);
+            }
+            translate([0, 0, 3]) plane_clearance(ABOVE); 
+        }
             
-        } 
     } 
     module vitamins() {
-        pivot_screws(as_clearance = false);
+        if (include_servo_attachment) {
+            pivot_screws(as_clearance = false);
+        }
         mounting_screws(as_clearance = false);  
     }
     if (as_mounting_screw_clearance) {
@@ -581,7 +611,9 @@ module filament_clamp(
         if (include_vitamins && !orient_for_build) {
             vitamins();
         }
-        shape();
+        visualize(filament_clamp_visualization, filament_clamp_show_parts) { 
+            shape();
+        }
     }
     
 }
@@ -722,7 +754,7 @@ module traveller(orient_for_build, show_vitamins) {
 //        translate([dx_clamp_bearing, 0, dz_clamp_screw]) 
 //            rotate([0, 90, 0]) ball_bearing(BB608);
     }
-    color("orange", alpha_traveller) {
+    color(PART_6, alpha_traveller) {
         if (orient_for_build) {
             translate([0, 0, z_traveller]) shape();
         } else {
@@ -788,7 +820,7 @@ if (build_clamp_slide) {
 }
 
 if (build_filament_clamp) {
-    filament_clamp();
+    filament_clamp(include_servo_attachment=include_servo_attachment);
 }
 
 if (build_traveller_pivot_arms) {
@@ -863,6 +895,20 @@ module shaft_bearing_retainer(orientation) {
 
 }
 
+
+
+module bearing_shaft_coupling(orient_for_build) {
+    a_lot = 100;
+    color(PART_11) 
+    difference() {
+        can(d=12, h=12);
+        can(d=7, h=a_lot, $fn=6, center=ABOVE);
+        can(d=8, h=a_lot, $fn=3, center=BELOW);
+        center_reflect([0, 0, 1]) translate([0, 0, 3]) rotate([90, 0, 0]) hole_through("M2", $fn=12);
+    }
+    
+}
+
 if (build_shaft_bearing_retainer) {
     translation  = orient_for_build ? [500, 0, 0] : [0, 0, 0]; 
     translate(translation) shaft_bearing_retainer(orientation=orientation);   
@@ -898,6 +944,11 @@ if (build_alt_shaft_gearing) {
         
     translate([-dx, 0, 0]) bearing_holder(show_vitamins=show_vitamins);
     
+}
+
+
+if (build_bearing_shaft_coupling) {
+    translate([100, 100, 0]) bearing_shaft_coupling();
 }
 
 

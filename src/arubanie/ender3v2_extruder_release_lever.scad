@@ -1,4 +1,10 @@
+/* 
 
+Provides a way to control the position of the Ender 3 V2 Release Lever
+and screw with which to attach the Ender 3 V2 Filament Guide.
+
+
+*/  
 
 
 include <lib/logging.scad>
@@ -25,7 +31,6 @@ build_mounting_plate_spacers = true;
 build_servo_gear = true;
 build_drill_guide = false;
 
-
 show_mocks = true;
 show_modified_z_axis = false;
 show_z_axis_support = true;
@@ -33,14 +38,13 @@ show_servo = true;
 
 cam_alpha = 1; // [0.25, 1]
 
+
+
 /* [Servo Design and Chararacteristics] */
-
 servo_clearance = 0; //[0: "Futaba S3003", 0:"Radio Shack 2730766"]
-
 x_servo = 18; // [0: 40]
 y_servo = 4; // [-20: 20]
 z_servo = -24; // [-40: 0]
-
 servo_shaft_diameter = 5.78; //[5.78:"Radio Shaft Standard"]
 z_servo_plate = 2.5; //[0.5:"Position test", 1:"Trial", 2:"Solid", 2.5:"Flush"]
 
@@ -48,9 +52,9 @@ z_servo_plate = 2.5; //[0.5:"Position test", 1:"Trial", 2:"Solid", 2.5:"Flush"]
 
 
 /* [Cam Design] */
-
 cam_min_diameter = 9.5;
 cam_offset = 3;
+
 
 
 /* [Actuator Design] */
@@ -61,9 +65,7 @@ z_actuator = 100;
 
 module end_of_customization() {}
 
-
-
-
+// *************************************************************************** COMMON CALCS
 
 servo_mount_blank = [25, 48, z_servo_plate];
 dy_servo_mount = 33 - servo_mount_blank.y;
@@ -75,13 +77,6 @@ servo_translation = [x_servo, y_servo, z_servo];
 dz_top_of_servo_ears = z_servo + 11;
 echo("dz_top_of_servo_ears", dz_top_of_servo_ears);
 
-
-
-
-
-
-
-
 dz_cam = bottom_of_plate_to_top_of_spring_arm - z_spring_arm - z_z_axis_support + 2;  
 echo("dz_cam", dz_cam);
 
@@ -90,15 +85,46 @@ h_cam = bottom_of_plate_to_top_of_spring_arm - z_z_axis_support - dz_cam;
 od_ptfe_tubing = 4.05;
 
 
+// *************************************************************************** BUILD
+if (build_servo_gear) {
+    if (orient_for_build) {
+       translate([-15, -28, 0]) servo_gear(orient_for_build=true); 
+    } else {
+       servo_gear(orient_for_build=false);
+    }
+}
 
 
-//y_actuator = filament_entrance_translation.y;
+if (build_cam) {
+    if (orient_for_build) {
+        translate([0, -25, 0]) cam(orient_for_build=true);
+    } else {
+        cam();
+    }
+}
+
+
+if (build_servo_mount) {
+    if (orient_for_build) {
+        translate([10, 0, z_z_axis_support + z_servo_plate]) servo_mount();
+    } else {
+        servo_mount();
+    }
+}
+
+
+if (build_mounting_plate_spacers) {
+    if (orient_for_build) { 
+        translate([-12, 40, 0]) servo_screws(as_spacers=true, orient_for_build=true);
+    } else {
+        servo_screws(as_spacers=true);
+    }
+}
+
 
 BRONZE = "#b08d57";
 STAINLESS_STEEL = "#CFD4D9";
 BLACK_IRON = "#3a3c3e";
-
-
 
 
 module servo(as_clearance = false, clearance = 0) {
@@ -112,9 +138,6 @@ module servo(as_clearance = false, clearance = 0) {
         }
     }
 }
-
-
-
 
 
 if (show_mocks && !orient_for_build) {
@@ -131,7 +154,6 @@ if (show_mocks && !orient_for_build) {
     }
     stepper();
     filament_guide_screws(as_clearance=false);
-    
 }
 
 
@@ -163,9 +185,6 @@ module servo_screws(as_clearance=false, as_spacers=false, orient_for_build=false
 }
 
 
-
-
-
 module servo_mount() {
     a_lot = 100;
     color("pink"){
@@ -194,6 +213,7 @@ module servo_mount() {
     } 
 }
 
+
 module drill_guide(orient_for_build=false) {
     difference() {
         translate([servo_mount_translation.x, -5, 0]) 
@@ -204,6 +224,7 @@ module drill_guide(orient_for_build=false) {
     }  
     
 }
+
 
 module cam_handle_screw_clearance() {
    translate([3, -cam_offset-1, h_cam/2]) rotate([0, -90, 0]) {
@@ -310,51 +331,4 @@ module servo_gear(orient_for_build=false) {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-if (build_servo_gear) {
-    if (orient_for_build) {
-       translate([-15, -28, 0]) servo_gear(orient_for_build=true); 
-    } else {
-       servo_gear(orient_for_build=false);
-    }
-}
-
-
-if (build_cam) {
-    if (orient_for_build) {
-        translate([0, -25, 0]) cam(orient_for_build=true);
-    } else {
-        cam();
-    }
-}
-
-
-if (build_servo_mount) {
-    if (orient_for_build) {
-        translate([10, 0, z_z_axis_support + z_servo_plate]) servo_mount();
-    } else {
-        servo_mount();
-    }
-}
-
-
-if (build_mounting_plate_spacers) {
-    if (orient_for_build) { 
-        translate([-12, 40, 0]) servo_screws(as_spacers=true, orient_for_build=true);
-    } else {
-        servo_screws(as_spacers=true);
-    }
-}
-
-
-
-
 

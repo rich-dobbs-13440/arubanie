@@ -31,6 +31,9 @@ show_linear_small_servo_cam = true;
 example_travel = 4; //[1:1:8]
 include_follower_example = true;
 
+//horn_thickness = 
+//hub_diameter
+
 module end_of_customization() {}
 
 
@@ -94,7 +97,7 @@ module cylinder_arc(r1, r2, h, angle) {
 
 module spring(r0, r1, r2, h, angle1, angle2) {
     cylinder_arc(r1, r2, h, angle1, $fa=fa_shape);
-    cylinder_arc(r0, r2, h, angle2, $fa=fa_shape);  
+    cylinder_arc(r0, r2 + 2, h, angle2, $fa=fa_shape);  
 }
 
 * spring(8, 10, 13, 3, 45, 10);
@@ -166,6 +169,7 @@ module bare_hub(horn_thickness) {
     }
 }
 
+//hub(horn_thickness=small_servo_cam_horn_thickness(), hub_diameter=small_servo_cam_hub_diameter());
 
 module hub(horn_thickness, hub_diameter) {
     assert(is_num(horn_thickness));
@@ -174,7 +178,8 @@ module hub(horn_thickness, hub_diameter) {
     latches(hub_diameter, horn_thickness);
 }
 
-* hub(horn_thickness, hub_diameter);
+
+
 
 module pie_slice(a, r, h){
   // a:angle, r:radius, h:height
@@ -247,9 +252,7 @@ module linear_cam_surface(
                 cube([3 * follower_lip, follower_lip, 2*follower_lip]);
             }
         } 
-    }
-     
-        
+    }     
 }
 
 
